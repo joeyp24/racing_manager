@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://boc3m4emse3bc"]
+
+[ext_resource type="Script" uid="uid://b1n3l15pqv0fd" path="res://scenes/main_menu/main_menu.gd" id="1_fsom3"]
+
+[node name="main_menu" type="Node2D" unique_id=2024180050]
+scale = Vector2(0.99526, 1.050212)
+script = ExtResource("1_fsom3")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1275314374]
+offset_right = 1167.0
+offset_bottom = 659.0
+color = Color(0.2159017, 0.21590173, 0.2159017, 1)
+
+[node name="Label" type="Label" parent="." unique_id=1844214809]
+offset_left = 432.0479
+offset_top = 10.474074
+offset_right = 740.0479
+offset_bottom = 71.474075
+scale = Vector2(0.9604066, 0.9439757)
+theme_override_font_sizes/font_size = 39
+text = "Racing Manager"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=997545794]
+light_mask = 537
+offset_left = 195.92871
+offset_top = 103.78856
+offset_right = 984.9287
+offset_bottom = 518.7886
+
+[node name="NewGame" type="Button" parent="VBoxContainer" unique_id=1586402772]
+layout_mode = 2
+text = "New Game"
+
+[node name="LoadGame" type="Button" parent="VBoxContainer" unique_id=1345019021]
+layout_mode = 2
+text = "Load Game"
+
+[node name="Settings" type="Button" parent="VBoxContainer" unique_id=1396764716]
+layout_mode = 2
+text = "Settings"
+
+[node name="QuitButton" type="Button" parent="VBoxContainer" unique_id=583554060]
+layout_mode = 2
+text = "Quit Game"
+
+[connection signal="pressed" from="VBoxContainer/NewGame" to="." method="_on_new_game_pressed"]
+[connection signal="pressed" from="VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
