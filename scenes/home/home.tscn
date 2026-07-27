@@ -78,6 +78,7 @@ custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 
 [node name="money_label" type="Label" parent="page_margin/main_layout/right_side/top_bar" unique_id=528775462]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Money: 0"
 

@@ -19,7 +19,7 @@ offset_bottom = 40.0
 [node name="v_box_container" type="VBoxContainer" parent="margin_container" unique_id=1542310408]
 layout_mode = 2
 
-[node name="title_label" type="Label" parent="margin_container/v_box_container" unique_id=1033864623]
+[node name="car_name_label" type="Label" parent="margin_container/v_box_container" unique_id=1033864623]
 unique_name_in_owner = true
 layout_mode = 2
 
@@ -32,6 +32,18 @@ unique_name_in_owner = true
 layout_mode = 2
 
 [node name="condition_label" type="Label" parent="margin_container/v_box_container" unique_id=1136251219]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="year_label" type="Label" parent="margin_container/v_box_container" unique_id=2106988431]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="manufacturer_label" type="Label" parent="margin_container/v_box_container" unique_id=589400355]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="model_label" type="Label" parent="margin_container/v_box_container" unique_id=266244640]
 unique_name_in_owner = true
 layout_mode = 2
 
@@ -56,3 +68,11 @@ text = "Rename CarS"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Back To Garage"
+
+[node name="sell_button" type="Button" parent="margin_container/v_box_container" unique_id=807894774]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Sell Car"
+
+[node name="sell_confirmation_dialog" type="ConfirmationDialog" parent="margin_container/v_box_container" unique_id=71197933]
+unique_name_in_owner = true

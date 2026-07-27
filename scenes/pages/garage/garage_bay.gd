@@ -20,23 +20,23 @@ func _on_action_button_pressed() -> void:
 	if get_car() != null:
 		inspect_car()
 	else:
-		build_car()
+		buy_car()
 
 
-func build_car() -> void:
-	var new_car = Car.new()
+func buy_car() -> void:
+	var purchase_successful = GameManager.team.buy_car(bay_index)
 
-	var success = GameManager.team.add_car_to_bay(
-		new_car,
-		bay_index
-	)
-
-	if success:
+	if not purchase_successful:
 		update_display()
+		return
+
+	GameManager.save_game()
+	update_display()
 
 
 func inspect_car() -> void:
 	GameManager.selected_car = get_car()
+	GameManager.selected_bay = bay_index
 
 	GameManager.load_page(
 		"res://scenes/pages/garage/car_inspection.tscn"
@@ -64,9 +64,17 @@ func display_car(current_car) -> void:
 	]
 
 	action_button.text = "Inspect Car"
+	action_button.disabled = false
 
 
 func display_empty_bay() -> void:
 	car_name_label.text = "No Car"
-	car_details_label.text = "Empty Garage Bay"
-	action_button.text = "Build Car"
+
+	if GameManager.team.can_afford_car():
+		car_details_label.text = "Empty Garage Bay"
+		action_button.text = "Buy Car ($10,000)"
+		action_button.disabled = false
+	else:
+		car_details_label.text = "Not enough money"
+		action_button.text = "Requires $10,000"
+		action_button.disabled = true

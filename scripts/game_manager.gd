@@ -2,6 +2,7 @@ extends Node
 
 var team: Team
 var selected_car = null
+var selected_bay: int = -1
 var page_container: Control = null
 
 

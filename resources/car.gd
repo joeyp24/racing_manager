@@ -11,4 +11,4 @@ class_name Car
 @export var condition: int = 100
 
 @export var mileage: int = 0
-@export var value: int = 25000
+@export var value: int = 7500
