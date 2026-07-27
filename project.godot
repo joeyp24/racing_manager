@@ -12,6 +12,7 @@ config_version=5
 
 config/name="racing_manager_v0"
 run/main_scene="uid://boc3m4emse3bc"
+config/auto_accept_quit=false
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 

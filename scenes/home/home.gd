@@ -1,28 +1,26 @@
 extends Control
 
 @onready var page_container: Control = %page_container
+@onready var garage_button: Button = %garage_button
 
 
 func _ready() -> void:
-	%home_button.pressed.connect(_on_home_button_pressed)
-	%garage_button.pressed.connect(_on_garage_button_pressed)
+	GameManager.page_container = page_container
 
-	load_page("res://scenes/pages/dashboard/dashboard.tscn")
+	garage_button.pressed.connect(_on_garage_button_pressed)
 
-
-func load_page(scene_path: String) -> void:
-	for child in page_container.get_children():
-		child.queue_free()
-
-	var packed_scene: PackedScene = load(scene_path)
-	var page: Control = packed_scene.instantiate()
-
-	page_container.add_child(page)
+	GameManager.load_page(
+		"res://scenes/pages/dashboard/dashboard.tscn"
+	)
 
 
-func _on_home_button_pressed() -> void:
-	load_page("res://scenes/pages/dashboard/dashboard.tscn")
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		GameManager.save_game()
+		get_tree().quit()
 
 
 func _on_garage_button_pressed() -> void:
-	load_page("res://scenes/pages/garage/garage.tscn")
+	GameManager.load_page(
+		"res://scenes/pages/garage/garage.tscn"
+	)

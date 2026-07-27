@@ -36,20 +36,15 @@ layout_mode = 2
 
 [node name="bay_2" parent="MarginContainer/VBoxContainer/garage_content" unique_id=331739778 instance=ExtResource("1_ejesk")]
 layout_mode = 2
-bay_index = 1
 
 [node name="bay_3" parent="MarginContainer/VBoxContainer/garage_content" unique_id=783828429 instance=ExtResource("1_ejesk")]
 layout_mode = 2
-bay_index = 2
 
 [node name="bay_4" parent="MarginContainer/VBoxContainer/garage_content" unique_id=1063544852 instance=ExtResource("1_ejesk")]
 layout_mode = 2
-bay_index = 3
 
 [node name="bay_5" parent="MarginContainer/VBoxContainer/garage_content" unique_id=2069756137 instance=ExtResource("1_ejesk")]
 layout_mode = 2
-bay_index = 4
 
 [node name="bay_6" parent="MarginContainer/VBoxContainer/garage_content" unique_id=1246617122 instance=ExtResource("1_ejesk")]
 layout_mode = 2
-bay_index = 5

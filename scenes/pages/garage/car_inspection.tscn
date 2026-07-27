@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://dml7mwhscw0yf"]
+
+[ext_resource type="Script" uid="uid://dcef1itr87b8d" path="res://scenes/pages/garage/car_inspection.gd" id="1_ketwj"]
+
+[node name="CarInspection" type="Control" unique_id=506176783]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ketwj")
+
+[node name="margin_container" type="MarginContainer" parent="." unique_id=1773158269]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="v_box_container" type="VBoxContainer" parent="margin_container" unique_id=1542310408]
+layout_mode = 2
+
+[node name="title_label" type="Label" parent="margin_container/v_box_container" unique_id=1033864623]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="vehicle_label" type="Label" parent="margin_container/v_box_container" unique_id=777646679]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="performance_label" type="Label" parent="margin_container/v_box_container" unique_id=1509916699]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="condition_label" type="Label" parent="margin_container/v_box_container" unique_id=1136251219]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="mileage_label" type="Label" parent="margin_container/v_box_container" unique_id=1455698980]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="value_label" type="Label" parent="margin_container/v_box_container" unique_id=1751812076]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="rename_line_edit" type="LineEdit" parent="margin_container/v_box_container" unique_id=798516891]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="rename_button" type="Button" parent="margin_container/v_box_container" unique_id=2058329553]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Rename CarS"
+
+[node name="back_button" type="Button" parent="margin_container/v_box_container" unique_id=53616402]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back To Garage"
