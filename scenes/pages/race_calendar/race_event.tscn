@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://padsykvfkble"]
+
+[ext_resource type="Script" uid="uid://1t347ffckfo3" path="res://scenes/pages/race_calendar/race_event.gd" id="1_vb6kx"]
+
+[node name="RaceEvent" type="PanelContainer" unique_id=1647017693]
+custom_minimum_size = Vector2(300, 260)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_vb6kx")
+
+[node name="margin_container" type="MarginContainer" parent="." unique_id=1036826197]
+layout_mode = 2
+
+[node name="event_container" type="VBoxContainer" parent="margin_container" unique_id=2079314532]
+layout_mode = 2
+
+[node name="race_name_label" type="Label" parent="margin_container/event_container" unique_id=117711492]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="track_label" type="Label" parent="margin_container/event_container" unique_id=822233140]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="date_label" type="Label" parent="margin_container/event_container" unique_id=1719382355]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="race_details_label" type="Label" parent="margin_container/event_container" unique_id=272833234]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="prize_label" type="Label" parent="margin_container/event_container" unique_id=1620520351]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="status_label" type="Label" parent="margin_container/event_container" unique_id=11760888]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="enter_button" type="Button" parent="margin_container/event_container" unique_id=1121182135]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Enter Race"

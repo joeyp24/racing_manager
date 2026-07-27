@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="Race" format=3 uid="uid://cppap57mlibc8"]
+
+[ext_resource type="Script" uid="uid://71mnmyrsb1lb" path="res://resources/races/race.gd" id="1_87pkt"]
+
+[resource]
+script = ExtResource("1_87pkt")
+metadata/_custom_type_script = "uid://71mnmyrsb1lb"

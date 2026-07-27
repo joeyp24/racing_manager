@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://1tg7uuryqjqs"]
+
+[ext_resource type="Script" uid="uid://7sw83qh43ury" path="res://scenes/pages/dealership/dealership_offer.gd" id="1_m65yi"]
+
+[node name="dealership_offer" type="PanelContainer" unique_id=1202591456]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_m65yi")
+
+[node name="dealership_offer" type="PanelContainer" parent="." unique_id=949766293]
+layout_mode = 2
+
+[node name="margin_container" type="MarginContainer" parent="dealership_offer" unique_id=1749788859]
+layout_mode = 2
+
+[node name="offer_container" type="VBoxContainer" parent="dealership_offer/margin_container" unique_id=2054598081]
+layout_mode = 2
+
+[node name="car_name_label" type="Label" parent="dealership_offer/margin_container/offer_container" unique_id=1116138776]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="car_details_label" type="Label" parent="dealership_offer/margin_container/offer_container" unique_id=252712687]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="price_label" type="Label" parent="dealership_offer/margin_container/offer_container" unique_id=875219176]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="buy_button" type="Button" parent="dealership_offer/margin_container/offer_container" unique_id=1517332767]
+unique_name_in_owner = true
+layout_mode = 2

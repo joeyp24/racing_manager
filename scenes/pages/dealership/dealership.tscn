@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://bwtk3goiiwe6p"]
+
+[ext_resource type="Script" uid="uid://mx45cext0pbu" path="res://scenes/pages/dealership/dealership.gd" id="1_ualsi"]
+[ext_resource type="Script" uid="uid://xfetmj3klkbk" path="res://resources/car.gd" id="2_tf1xs"]
+[ext_resource type="Resource" uid="uid://c5uaopdv5qvkw" path="res://resources/cars/generic_stock_car.tres" id="3_tf1xs"]
+[ext_resource type="Resource" uid="uid://b6clrw52aommj" path="res://resources/cars/falcon_xr.tres" id="4_sxlu8"]
+[ext_resource type="Resource" uid="uid://dax6le012dkie" path="res://resources/cars/thunder_v8.tres" id="5_tk1bs"]
+[ext_resource type="Resource" uid="uid://epg0spg21va1" path="res://resources/cars/used_comet.tres" id="6_65d2i"]
+
+[node name="dealership" type="Control" unique_id=490624185]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ualsi")
+dealership_inventory = Array[ExtResource("2_tf1xs")]([ExtResource("3_tf1xs"), ExtResource("6_65d2i"), ExtResource("5_tk1bs"), ExtResource("4_sxlu8"), ExtResource("3_tf1xs"), ExtResource("5_tk1bs")])
+
+[node name="margin_container" type="MarginContainer" parent="." unique_id=1940155612]
+layout_mode = 0
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="dealership_container" type="VBoxContainer" parent="margin_container" unique_id=1524924341]
+layout_mode = 2
+
+[node name="title_label" type="Label" parent="margin_container/dealership_container" unique_id=1253452956]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="instructions_label" type="Label" parent="margin_container/dealership_container" unique_id=1657630213]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="offers_scroll_container" type="ScrollContainer" parent="margin_container/dealership_container" unique_id=1302055619]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="offers_container" type="GridContainer" parent="margin_container/dealership_container/offers_scroll_container" unique_id=1527968972]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 3
+
+[node name="back_button" type="Button" parent="margin_container/dealership_container" unique_id=1132465521]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back To Garage"

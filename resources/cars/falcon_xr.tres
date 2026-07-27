@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Car" format=3 uid="uid://b6clrw52aommj"]
+
+[ext_resource type="Script" uid="uid://xfetmj3klkbk" path="res://resources/car.gd" id="1_qpvvd"]
+
+[resource]
+script = ExtResource("1_qpvvd")
+name = "Falcon XR"
+manufacturer = "Falcon Automotive"
+model = "XR"
+performance = 68
+condition = 95
+mileage = 750
+purchase_price = 18000
+value = 14000
+metadata/_custom_type_script = "uid://xfetmj3klkbk"

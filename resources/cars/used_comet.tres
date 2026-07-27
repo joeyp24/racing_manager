@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Car" format=3 uid="uid://epg0spg21va1"]
+
+[ext_resource type="Script" uid="uid://xfetmj3klkbk" path="res://resources/car.gd" id="1_pe8ls"]
+
+[resource]
+script = ExtResource("1_pe8ls")
+name = "Used Comet"
+manufacturer = "Comet Racing"
+model = "Club"
+year = 2022
+performance = 42
+condition = 70
+mileage = 18500
+purchase_price = 6500
+value = 5000
+metadata/_custom_type_script = "uid://xfetmj3klkbk"

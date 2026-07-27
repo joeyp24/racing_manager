@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://tao2wtxc7gd4"]
+
+[ext_resource type="Script" uid="uid://36s68ayh0le5" path="res://scenes/pages/race_calendar/race_calendar.gd" id="1_fgapt"]
+[ext_resource type="Script" uid="uid://71mnmyrsb1lb" path="res://resources/races/race.gd" id="2_a3obp"]
+[ext_resource type="Resource" uid="uid://f15vh4g1egp2" path="res://resources/races/riverside_200.tres" id="3_c1kt1"]
+[ext_resource type="Resource" uid="uid://j0a7akns7vds" path="res://resources/races/spring_speedway_100.tres" id="4_4jk1j"]
+[ext_resource type="Resource" uid="uid://ds288vlp5b7c7" path="res://resources/races/national_stock_car_300.tres" id="5_53w6p"]
+[ext_resource type="Resource" uid="uid://cppap57mlibc8" path="res://resources/races/mountain_classic.tres" id="6_c1kt1"]
+
+[node name="race_calendar" type="Control" unique_id=60914570]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_fgapt")
+race_calendar = Array[ExtResource("2_a3obp")]([ExtResource("5_53w6p"), ExtResource("3_c1kt1"), ExtResource("4_4jk1j"), ExtResource("6_c1kt1")])
+
+[node name="margin_container" type="MarginContainer" parent="." unique_id=1893077370]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="race_calendar_container" type="VBoxContainer" parent="margin_container" unique_id=497961398]
+layout_mode = 2
+
+[node name="title_label" type="Label" parent="margin_container/race_calendar_container" unique_id=514835337]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Race Calendar"
+
+[node name="instructions_label" type="Label" parent="margin_container/race_calendar_container" unique_id=442213487]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Choose an event for your team to enter"
+
+[node name="races_scroll_container" type="ScrollContainer" parent="margin_container/race_calendar_container" unique_id=573845764]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="races_container" type="GridContainer" parent="margin_container/race_calendar_container/races_scroll_container" unique_id=1844677426]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(650, 300)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 2
+
+[node name="back_button" type="Button" parent="margin_container/race_calendar_container" unique_id=474133777]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"

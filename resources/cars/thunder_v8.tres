@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Car" format=3 uid="uid://dax6le012dkie"]
+
+[ext_resource type="Script" uid="uid://xfetmj3klkbk" path="res://resources/car.gd" id="1_2bb1c"]
+
+[resource]
+script = ExtResource("1_2bb1c")
+name = "Thunder V8"
+manufacturer = "Thunder Motors"
+model = "V8"
+year = 2025
+performance = 75
+condition = 88
+mileage = 2100
+purchase_price = 24000
+value = 18500
+metadata/_custom_type_script = "uid://xfetmj3klkbk"

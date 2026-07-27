@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Race" format=3 uid="uid://ds288vlp5b7c7"]
+
+[ext_resource type="Script" uid="uid://71mnmyrsb1lb" path="res://resources/races/race.gd" id="1_y8vnt"]
+
+[resource]
+script = ExtResource("1_y8vnt")
+race_name = "Spring 100"
+track_name = "Spring Speedway"
+race_date = "March 23"
+lap_count = 100
+entry_fee = 2000
+first_place_prize = 6000
+second_place_prize = 3000
+third_place_prize = 1500
+metadata/_custom_type_script = "uid://71mnmyrsb1lb"

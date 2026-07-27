@@ -20,18 +20,7 @@ func _on_action_button_pressed() -> void:
 	if get_car() != null:
 		inspect_car()
 	else:
-		buy_car()
-
-
-func buy_car() -> void:
-	var purchase_successful = GameManager.team.buy_car(bay_index)
-
-	if not purchase_successful:
-		update_display()
-		return
-
-	GameManager.save_game()
-	update_display()
+		open_dealership()
 
 
 func inspect_car() -> void:
@@ -40,6 +29,15 @@ func inspect_car() -> void:
 
 	GameManager.load_page(
 		"res://scenes/pages/garage/car_inspection.tscn"
+	)
+
+
+func open_dealership() -> void:
+	GameManager.selected_car = null
+	GameManager.selected_bay = bay_index
+
+	GameManager.load_page(
+		"res://scenes/pages/dealership/dealership.tscn"
 	)
 
 
@@ -52,16 +50,19 @@ func update_display() -> void:
 		display_empty_bay()
 
 
-func display_car(current_car) -> void:
+func display_car(current_car: Car) -> void:
 	car_name_label.text = current_car.name
 
-	car_details_label.text = "%d %s %s\nCondition: %d%%\nPerformance: %d" % [
-		current_car.year,
-		current_car.manufacturer,
-		current_car.model,
-		current_car.condition,
-		current_car.performance
-	]
+	car_details_label.text = (
+		"%d %s %s\nCondition: %d%%\nPerformance: %d"
+		% [
+			current_car.year,
+			current_car.manufacturer,
+			current_car.model,
+			current_car.condition,
+			current_car.performance
+		]
+	)
 
 	action_button.text = "Inspect Car"
 	action_button.disabled = false
@@ -69,12 +70,6 @@ func display_car(current_car) -> void:
 
 func display_empty_bay() -> void:
 	car_name_label.text = "No Car"
-
-	if GameManager.team.can_afford_car():
-		car_details_label.text = "Empty Garage Bay"
-		action_button.text = "Buy Car ($10,000)"
-		action_button.disabled = false
-	else:
-		car_details_label.text = "Not enough money"
-		action_button.text = "Requires $10,000"
-		action_button.disabled = true
+	car_details_label.text = "Empty Garage Bay"
+	action_button.text = "Visit Dealership"
+	action_button.disabled = false

@@ -4,6 +4,7 @@ var team: Team
 var selected_car = null
 var selected_bay: int = -1
 var page_container: Control = null
+var selected_race: Race = null
 
 
 func _ready() -> void:

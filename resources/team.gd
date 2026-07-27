@@ -1,7 +1,6 @@
 extends Resource
 class_name Team
 
-const CAR_PURCHASE_PRICE: int = 10000
 const GARAGE_SIZE: int = 6
 
 @export var team_name: String = "My Team"
@@ -25,7 +24,11 @@ func get_car(bay_index: int):
 	return cars[bay_index]
 
 
-func buy_car(bay_index: int) -> bool:
+func buy_car(car_template: Car, bay_index: int) -> bool:
+	if car_template == null:
+		push_error("Cannot purchase a null car template.")
+		return false
+
 	if not is_valid_bay_index(bay_index):
 		push_error("Invalid garage bay index: %d" % bay_index)
 		return false
@@ -33,13 +36,17 @@ func buy_car(bay_index: int) -> bool:
 	if cars[bay_index] != null:
 		return false
 
-	if money < CAR_PURCHASE_PRICE:
+	if money < car_template.purchase_price:
 		return false
 
-	var new_car = Car.new()
+	var purchased_car := car_template.duplicate(true) as Car
 
-	money -= CAR_PURCHASE_PRICE
-	cars[bay_index] = new_car
+	if purchased_car == null:
+		push_error("The car template could not be duplicated.")
+		return false
+
+	money -= car_template.purchase_price
+	cars[bay_index] = purchased_car
 
 	emit_changed()
 	return true
@@ -72,8 +79,11 @@ func remove_car_from_bay(bay_index: int) -> void:
 	emit_changed()
 
 
-func can_afford_car() -> bool:
-	return money >= CAR_PURCHASE_PRICE
+func can_afford_car(car_template: Car) -> bool:
+	if car_template == null:
+		return false
+
+	return money >= car_template.purchase_price
 
 
 func is_valid_bay_index(bay_index: int) -> bool:
