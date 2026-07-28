@@ -1,4 +1,4 @@
-extends Node2D
+extends Control
 
 func _on_new_game_pressed() -> void:
 	# Load and switch to the main game dashboard scene

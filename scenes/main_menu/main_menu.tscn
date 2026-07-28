@@ -2,30 +2,50 @@
 
 [ext_resource type="Script" uid="uid://b1n3l15pqv0fd" path="res://scenes/main_menu/main_menu.gd" id="1_fsom3"]
 
-[node name="main_menu" type="Node2D" unique_id=2024180050]
-scale = Vector2(0.99526, 1.050212)
+[node name="main_menu" type="Control" unique_id=2024180050]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_fsom3")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1275314374]
-offset_right = 1167.0
-offset_bottom = 659.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 color = Color(0.2159017, 0.21590173, 0.2159017, 1)
 
 [node name="Label" type="Label" parent="." unique_id=1844214809]
-offset_left = 432.0479
-offset_top = 10.474074
-offset_right = 740.0479
-offset_bottom = 71.474075
-scale = Vector2(0.9604066, 0.9439757)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 24.0
+offset_bottom = 79.0
+grow_horizontal = 2
 theme_override_font_sizes/font_size = 39
 text = "Racing Manager"
+horizontal_alignment = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=997545794]
 light_mask = 537
-offset_left = 195.92871
-offset_top = 103.78856
-offset_right = 984.9287
-offset_bottom = 518.7886
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -394.5
+offset_top = -207.5
+offset_right = 394.5
+offset_bottom = 207.5
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="NewGame" type="Button" parent="VBoxContainer" unique_id=1586402772]
 layout_mode = 2
