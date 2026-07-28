@@ -60,13 +60,19 @@ func display_market() -> void:
 
 func create_candidate_row(driver: Driver) -> void:
 	var panel := PanelContainer.new()
+	var margin := MarginContainer.new()
 	var row := HBoxContainer.new()
 	var details := Label.new()
 	var hire_button := Button.new()
 
 	panel.custom_minimum_size = Vector2(0, 116)
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_bottom", 8)
 	row.add_theme_constant_override("separation", 18)
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	details.text = "%s — %s\n%s\nDevelopment: %s | Last Season: %s\nCareer: %d starts | %d wins | %d podiums | %d points" % [
 		driver.driver_name,
 		driver.archetype,
@@ -88,7 +94,8 @@ func create_candidate_row(driver: Driver) -> void:
 
 	row.add_child(details)
 	row.add_child(hire_button)
-	panel.add_child(row)
+	margin.add_child(row)
+	panel.add_child(margin)
 	candidates_container.add_child(panel)
 
 
