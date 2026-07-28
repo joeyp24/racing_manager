@@ -13,3 +13,8 @@ class_name Driver
 
 @export var team_name: String = ""
 @export var is_player_driver: bool = false
+
+@export var career_starts: int = 0
+@export var career_wins: int = 0
+@export var career_podiums: int = 0
+@export var career_points: int = 0

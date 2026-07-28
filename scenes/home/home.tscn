@@ -51,6 +51,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Garage"
 
+[node name="drivers_button" type="Button" parent="page_margin/main_layout/sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Drivers"
+
 [node name="championship_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
