@@ -29,7 +29,7 @@ func update_offer_display() -> void:
 			car_template.year,
 			car_template.manufacturer,
 			car_template.model,
-			car_template.performance,
+			car_template.get_total_performance(),
 			car_template.condition,
 			car_template.mileage
 		]
@@ -41,6 +41,9 @@ func update_offer_display() -> void:
 	)
 
 	buy_button.disabled = false
+	if GameManager.selected_bay < 0:
+		buy_button.disabled = true
+		buy_button.text = "Garage Full"
 
 
 func _on_buy_button_pressed() -> void:
@@ -68,6 +71,8 @@ func _on_buy_button_pressed() -> void:
 	GameManager.selected_car = GameManager.team.cars[
 		GameManager.selected_bay
 	]
+	GameManager.refresh_team_money()
+	GameManager.save_game()
 
 	GameManager.load_page(
 		"res://scenes/pages/garage/car_inspection.tscn"

@@ -1,93 +1,118 @@
-[gd_scene format=3 uid="uid://dml7mwhscw0yf"]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" uid="uid://dcef1itr87b8d" path="res://scenes/pages/garage/car_inspection.gd" id="1_ketwj"]
+[ext_resource type="Script" path="res://scenes/pages/garage/car_inspection.gd" id="1"]
 
-[node name="CarInspection" type="Control" unique_id=506176783]
+[node name="car_inspection" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_ketwj")
+script = ExtResource("1")
 
-[node name="margin_container" type="MarginContainer" parent="." unique_id=1773158269]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = -12.0
 
-[node name="v_box_container" type="VBoxContainer" parent="margin_container" unique_id=1542310408]
+[node name="layout" type="VBoxContainer" parent="margin"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="car_name_label" type="Label" parent="margin_container/v_box_container" unique_id=1033864623]
+[node name="car_name_label" type="Label" parent="margin/layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+
+[node name="details_label" type="Label" parent="margin/layout"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="vehicle_label" type="Label" parent="margin_container/v_box_container" unique_id=777646679]
+[node name="separator" type="HSeparator" parent="margin/layout"]
+layout_mode = 2
+
+[node name="columns" type="HSplitContainer" parent="margin/layout"]
+layout_mode = 2
+size_flags_vertical = 3
+split_offset = 440
+
+[node name="installed" type="VBoxContainer" parent="margin/layout/columns"]
+layout_mode = 2
+
+[node name="title" type="Label" parent="margin/layout/columns/installed"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Installed Parts"
+
+[node name="hint" type="Label" parent="margin/layout/columns/installed"]
+layout_mode = 2
+text = "Select a part to manage compatible spares."
+
+[node name="parts_container" type="VBoxContainer" parent="margin/layout/columns/installed"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="inventory" type="VBoxContainer" parent="margin/layout/columns"]
+layout_mode = 2
+
+[node name="inventory_title_label" type="Label" parent="margin/layout/columns/inventory"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Parts Inventory"
+
+[node name="inventory_scroll" type="ScrollContainer" parent="margin/layout/columns/inventory"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="inventory_container" type="VBoxContainer" parent="margin/layout/columns/inventory/inventory_scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="controls" type="HBoxContainer" parent="margin/layout"]
+layout_mode = 2
+
+[node name="rename_line_edit" type="LineEdit" parent="margin/layout/controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+placeholder_text = "Car name"
+
+[node name="rename_button" type="Button" parent="margin/layout/controls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Rename"
+
+[node name="repair_button" type="Button" parent="margin/layout/controls"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="performance_label" type="Label" parent="margin_container/v_box_container" unique_id=1509916699]
-unique_name_in_owner = true
+[node name="spacer" type="Control" parent="margin/layout/controls"]
 layout_mode = 2
+size_flags_horizontal = 3
 
-[node name="condition_label" type="Label" parent="margin_container/v_box_container" unique_id=1136251219]
+[node name="sell_button" type="Button" parent="margin/layout/controls"]
 unique_name_in_owner = true
 layout_mode = 2
-
-[node name="year_label" type="Label" parent="margin_container/v_box_container" unique_id=2106988431]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="manufacturer_label" type="Label" parent="margin_container/v_box_container" unique_id=589400355]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="model_label" type="Label" parent="margin_container/v_box_container" unique_id=266244640]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="mileage_label" type="Label" parent="margin_container/v_box_container" unique_id=1455698980]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="value_label" type="Label" parent="margin_container/v_box_container" unique_id=1751812076]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="rename_line_edit" type="LineEdit" parent="margin_container/v_box_container" unique_id=798516891]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="rename_button" type="Button" parent="margin_container/v_box_container" unique_id=2058329553]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Rename CarS"
-
-[node name="back_button" type="Button" parent="margin_container/v_box_container" unique_id=53616402]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Back To Garage"
-
-[node name="sell_button" type="Button" parent="margin_container/v_box_container" unique_id=807894774]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/icon_normal_color = Color(0.8703772, 0.04323306, 0.10258653, 1)
-theme_override_colors/icon_focus_color = Color(0.8859413, 0.19168156, 0.28809467, 1)
-theme_override_colors/icon_pressed_color = Color(0.6415529, 0, 0.11890183, 1)
 text = "Sell Car"
 
-[node name="sell_confirmation_dialog" type="ConfirmationDialog" parent="margin_container/v_box_container" unique_id=71197933]
-unique_name_in_owner = true
-
-[node name="repair_cost_label" type="Label" parent="margin_container/v_box_container" unique_id=1846250299]
+[node name="back_button" type="Button" parent="margin/layout/controls"]
 unique_name_in_owner = true
 layout_mode = 2
+text = "Back to Garage"
 
-[node name="repair_button" type="Button" parent="margin_container/v_box_container" unique_id=384414599]
+[node name="status_label" type="Label" parent="margin/layout"]
 unique_name_in_owner = true
 layout_mode = 2
+autowrap_mode = 2
 
-[node name="status_label" type="Label" parent="margin_container/v_box_container" unique_id=1323385002]
+[node name="sell_confirmation_dialog" type="ConfirmationDialog" parent="."]
 unique_name_in_owner = true
-layout_mode = 2
