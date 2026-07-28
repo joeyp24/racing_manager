@@ -253,7 +253,7 @@ func calculate_player_score(
 	player_driver: Driver
 ) -> float:
 	var performance_score: float = (
-		float(player_car.performance) * 0.50
+		float(player_car.get_total_performance()) * 0.50
 	)
 
 	var condition_score: float = (

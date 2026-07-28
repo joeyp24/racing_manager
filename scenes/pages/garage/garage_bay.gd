@@ -60,7 +60,7 @@ func display_car(current_car: Car) -> void:
 			current_car.manufacturer,
 			current_car.model,
 			current_car.condition,
-			current_car.performance
+			current_car.get_total_performance()
 		]
 	)
 

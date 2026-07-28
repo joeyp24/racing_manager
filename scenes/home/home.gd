@@ -6,6 +6,8 @@ extends Control
 @onready var drivers_button: Button = %drivers_button
 @onready var championship_button: Button = %championship_button
 @onready var race_calendar_button: Button = %race_calendar_button
+@onready var shop_button: Button = %shop_button
+@onready var dealership_button: Button = %dealership_button
 @onready var money_label: Label = %money_label
 
 
@@ -31,6 +33,9 @@ func _ready() -> void:
 	race_calendar_button.pressed.connect(
 		_on_race_calendar_button_pressed
 	)
+
+	shop_button.pressed.connect(_on_shop_button_pressed)
+	dealership_button.pressed.connect(_on_dealership_button_pressed)
 
 	if not GameManager.team_money_changed.is_connected(
 		_on_team_money_changed
@@ -100,6 +105,16 @@ func _on_race_calendar_button_pressed() -> void:
 	GameManager.load_page(
 		"res://scenes/pages/race_calendar/race_calendar.tscn"
 	)
+
+
+func _on_shop_button_pressed() -> void:
+	GameManager.load_page("res://scenes/pages/shop/shop.tscn")
+
+
+func _on_dealership_button_pressed() -> void:
+	GameManager.selected_car = null
+	GameManager.selected_bay = -1
+	GameManager.load_page("res://scenes/pages/dealership/dealership.tscn")
 
 
 func _on_reset_game_button_pressed() -> void:
