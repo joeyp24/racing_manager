@@ -3,6 +3,7 @@ extends RefCounted
 
 var race: Race = null
 var player_car: Car = null
+var player_driver: Driver = null
 
 var finishing_position: int = 0
 var field_size: int = 0

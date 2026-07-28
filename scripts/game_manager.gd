@@ -2,11 +2,13 @@ extends Node
 
 signal team_money_changed(new_amount: int)
 
-var team: Team
+var team: Team = null
+
 var selected_car = null
 var selected_bay: int = -1
-var page_container: Control = null
 var selected_race: Race = null
+
+var page_container: Control = null
 
 
 func _ready() -> void:
@@ -15,16 +17,16 @@ func _ready() -> void:
 
 func new_game() -> void:
 	team = Team.new()
-	selected_car = null
-	selected_bay = -1
-	selected_race = null
 
+	clear_selected_data()
 	refresh_team_money()
 
 
 func save_game() -> void:
 	if team == null:
-		push_error("Cannot save because no team is loaded.")
+		push_error(
+			"Cannot save because no team is loaded."
+		)
 		return
 
 	var success: bool = SaveManager.save_game(team)
@@ -40,8 +42,64 @@ func load_game() -> void:
 		team = loaded_team
 	else:
 		new_game()
+		save_game()
 
 	refresh_team_money()
+
+
+func reset_game() -> void:
+	var save_deleted: bool = SaveManager.delete_save()
+
+	if not save_deleted:
+		push_error(
+			"The game could not be reset because the save "
+			+ "file could not be deleted."
+		)
+		return
+
+	team = Team.new()
+
+	clear_selected_data()
+
+	if RaceManager != null:
+		RaceManager.clear_last_result()
+
+	var save_created: bool = SaveManager.save_game(team)
+
+	if not save_created:
+		push_error(
+			"The game was reset, but the new save file "
+			+ "could not be created."
+		)
+
+	refresh_team_money()
+
+	print("All save data has been reset.")
+	print("Starting money: ", team.money)
+	print("Owned cars: ", team.cars.size())
+	print("Completed races: ", team.completed_races)
+	print("Unlocked races: ", team.unlocked_races)
+	print(
+		"Championship points: ",
+		team.championship_points
+	)
+
+	reload_current_page()
+
+
+func clear_selected_data() -> void:
+	selected_car = null
+	selected_bay = -1
+	selected_race = null
+
+
+func reload_current_page() -> void:
+	if page_container == null:
+		return
+
+	load_page(
+		"res://scenes/pages/dashboard/dashboard.tscn"
+	)
 
 
 func load_page(scene_path: String) -> void:
@@ -74,8 +132,16 @@ func add_team_money(amount: int) -> void:
 		)
 		return
 
+	if amount < 0:
+		push_error(
+			"Money addition amount cannot be negative."
+		)
+		return
+
 	team.money += amount
-	team_money_changed.emit(team.money)
+	team.emit_changed()
+
+	refresh_team_money()
 
 
 func remove_team_money(amount: int) -> bool:
@@ -95,7 +161,9 @@ func remove_team_money(amount: int) -> bool:
 		return false
 
 	team.money -= amount
-	team_money_changed.emit(team.money)
+	team.emit_changed()
+
+	refresh_team_money()
 
 	return true
 
@@ -105,22 +173,3 @@ func refresh_team_money() -> void:
 		return
 
 	team_money_changed.emit(team.money)
-	
-
-func reset_season() -> void:
-	if team == null:
-		return
-
-	team.completed_races.clear()
-	team.unlocked_races.clear()
-
-	team.unlocked_races.append("spring_100")
-
-	team.championship_points = 0
-
-	team.emit_changed()
-
-	save_game()
-	print("Completed: ", team.completed_races)
-	print("Unlocked: ", team.unlocked_races)
-	print("Points: ", team.championship_points)

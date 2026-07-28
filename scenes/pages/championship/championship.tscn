@@ -1,0 +1,57 @@
+[gd_scene format=3 uid="uid://bkdg0rhyl4olv"]
+
+[ext_resource type="Script" uid="uid://c2m7fbm1yhomy" path="res://scenes/pages/championship/championship.gd" id="1_championship"]
+
+[node name="championship" type="Control" unique_id=782137260]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_championship")
+
+[node name="page_margin" type="MarginContainer" parent="." unique_id=1882921752]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 24
+
+[node name="page_layout" type="VBoxContainer" parent="page_margin" unique_id=850008053]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="title_label" type="Label" parent="page_margin/page_layout" unique_id=241617494]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Championship Standings"
+horizontal_alignment = 1
+
+[node name="summary_label" type="Label" parent="page_margin/page_layout" unique_id=1700096529]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Championship information"
+horizontal_alignment = 1
+
+[node name="separator" type="HSeparator" parent="page_margin/page_layout" unique_id=62053950]
+layout_mode = 2
+
+[node name="standings_scroll" type="ScrollContainer" parent="page_margin/page_layout" unique_id=1466579574]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="standings_grid" type="GridContainer" parent="page_margin/page_layout/standings_scroll" unique_id=1230507942]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 4
+columns = 5

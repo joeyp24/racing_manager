@@ -39,28 +39,45 @@ func show_race_result() -> void:
 	car_effects_label.text = create_car_effects_text(result)
 
 
-func create_standings_text(result: RaceResult) -> String:
+func create_standings_text(
+	result: RaceResult
+) -> String:
 	var standings_text: String = "Final Standings\n\n"
 
 	for index in range(result.standings.size()):
 		var entry: Dictionary = result.standings[index]
 		var position: int = index + 1
-		var competitor_name: String = str(entry["name"])
 
-		if bool(entry["is_player"]):
+		var driver_name: String = str(
+			entry.get(
+				"driver_name",
+				"Unknown Driver"
+			)
+		)
+
+		var team_name: String = str(
+			entry.get(
+				"team_name",
+				"Unknown Team"
+			)
+		)
+
+		if bool(entry.get("is_player", false)):
 			standings_text += (
-				"%d. %s — Your Team\n"
+				"%d. %s — %s (Your Driver)\n"
 				% [
 					position,
-					competitor_name
+					driver_name,
+					team_name
 				]
 			)
 		else:
 			standings_text += (
-				"%d. %s\n"
+				"%d. %s — %s\n"
 				% [
 					position,
-					competitor_name
+					driver_name,
+					team_name
 				]
 			)
 

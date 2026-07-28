@@ -1,7 +1,9 @@
 extends Control
 
 @onready var page_container: Control = %page_container
+@onready var home_button: Button = %home_button
 @onready var garage_button: Button = %garage_button
+@onready var championship_button: Button = %championship_button
 @onready var race_calendar_button: Button = %race_calendar_button
 @onready var money_label: Label = %money_label
 
@@ -9,8 +11,16 @@ extends Control
 func _ready() -> void:
 	GameManager.page_container = page_container
 
+	home_button.pressed.connect(
+		_on_home_button_pressed
+	)
+
 	garage_button.pressed.connect(
 		_on_garage_button_pressed
+	)
+
+	championship_button.pressed.connect(
+		_on_championship_button_pressed
 	)
 
 	race_calendar_button.pressed.connect(
@@ -46,9 +56,21 @@ func _notification(what: int) -> void:
 		get_tree().quit()
 
 
+func _on_home_button_pressed() -> void:
+	GameManager.load_page(
+		"res://scenes/pages/dashboard/dashboard.tscn"
+	)
+
+
 func _on_garage_button_pressed() -> void:
 	GameManager.load_page(
 		"res://scenes/pages/garage/garage.tscn"
+	)
+
+
+func _on_championship_button_pressed() -> void:
+	GameManager.load_page(
+		"res://scenes/pages/championship/championship.tscn"
 	)
 
 
@@ -59,6 +81,10 @@ func _on_race_calendar_button_pressed() -> void:
 	GameManager.load_page(
 		"res://scenes/pages/race_calendar/race_calendar.tscn"
 	)
+
+
+func _on_reset_game_button_pressed() -> void:
+	GameManager.reset_game()
 
 
 func _on_team_money_changed(
@@ -100,6 +126,3 @@ func format_number(number: int) -> String:
 		)
 
 	return number_string + formatted_number
-
-func _on_reset_season_button_pressed() -> void:
-	GameManager.reset_season()

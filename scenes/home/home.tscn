@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bnljhcukhcobc" path="res://scenes/home/home.gd" id="1_5q1ba"]
 
-[node name="home" type="Control" unique_id=1407112502]
+[node name="home" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,16 +11,16 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_5q1ba")
 
-[node name="background" type="ColorRect" parent="." unique_id=374659757]
+[node name="background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.42365062, 0.42365065, 0.42365062, 1)
+color = Color(0.423651, 0.423651, 0.423651, 1)
 
-[node name="page_margin" type="MarginContainer" parent="." unique_id=513722660]
+[node name="page_margin" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -32,78 +32,91 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="main_layout" type="HBoxContainer" parent="page_margin" unique_id=345571345]
+[node name="main_layout" type="HBoxContainer" parent="page_margin"]
 layout_mode = 2
+theme_override_constants/separation = 12
 
-[node name="sidebar" type="VBoxContainer" parent="page_margin/main_layout" unique_id=1075828927]
+[node name="sidebar" type="VBoxContainer" parent="page_margin/main_layout"]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
+theme_override_constants/separation = 6
 
-[node name="home_button" type="Button" parent="page_margin/main_layout/sidebar" unique_id=1052163141]
+[node name="home_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Home"
 
-[node name="garage_button" type="Button" parent="page_margin/main_layout/sidebar" unique_id=129664552]
+[node name="garage_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Garage"
 
-[node name="staff_button" type="Button" parent="page_margin/main_layout/sidebar" unique_id=622768156]
+[node name="championship_button" type="Button" parent="page_margin/main_layout/sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Championship"
+
+[node name="staff_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Staff"
 
-[node name="shop_button" type="Button" parent="page_margin/main_layout/sidebar" unique_id=1026095607]
+[node name="shop_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Shop"
 
-[node name="hq_button" type="Button" parent="page_margin/main_layout/sidebar" unique_id=946531720]
+[node name="hq_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "HQ"
 
-[node name="sponsors_button" type="Button" parent="page_margin/main_layout/sidebar" unique_id=31560963]
+[node name="sponsors_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Sponsors"
 
-[node name="race_calendar_button" type="Button" parent="page_margin/main_layout/sidebar" unique_id=1897333214]
+[node name="race_calendar_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Race Calendar"
 
-[node name="reset_season_button" type="Button" parent="page_margin/main_layout/sidebar" unique_id=627403418]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Reset Season"
-
-[node name="right_side" type="VBoxContainer" parent="page_margin/main_layout" unique_id=90987693]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="top_bar" type="HBoxContainer" parent="page_margin/main_layout/right_side" unique_id=1760612856]
-custom_minimum_size = Vector2(0, 60)
-layout_mode = 2
-
-[node name="money_label" type="Label" parent="page_margin/main_layout/right_side/top_bar" unique_id=528775462]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Money: 0"
-
-[node name="spacer" type="Control" parent="page_margin/main_layout/right_side/top_bar" unique_id=654969185]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="rep_label" type="Label" parent="page_margin/main_layout/right_side/top_bar" unique_id=1418643490]
-layout_mode = 2
-text = "Rep: 0"
-
-[node name="main_panel" type="PanelContainer" parent="page_margin/main_layout/right_side" unique_id=1759653488]
+[node name="sidebar_spacer" type="Control" parent="page_margin/main_layout/sidebar"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="page_container" type="Control" parent="page_margin/main_layout/right_side/main_panel" unique_id=2099295844]
+[node name="reset_game_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
+text = "Reset Game"
+
+[node name="right_side" type="VBoxContainer" parent="page_margin/main_layout"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="top_bar" type="HBoxContainer" parent="page_margin/main_layout/right_side"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
+[node name="money_label" type="Label" parent="page_margin/main_layout/right_side/top_bar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Money: $0"
+
+[node name="spacer" type="Control" parent="page_margin/main_layout/right_side/top_bar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="rep_label" type="Label" parent="page_margin/main_layout/right_side/top_bar"]
+layout_mode = 2
+text = "Rep: 0"
+
+[node name="main_panel" type="PanelContainer" parent="page_margin/main_layout/right_side"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="page_container" type="Control" parent="page_margin/main_layout/right_side/main_panel"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[connection signal="pressed" from="page_margin/main_layout/sidebar/reset_game_button" to="." method="_on_reset_game_button_pressed"]
