@@ -1,0 +1,138 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/pages/drivers/drivers.gd" id="1_drivers"]
+
+[node name="drivers" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_drivers")
+
+[node name="page_margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 24
+
+[node name="page_layout" type="VBoxContainer" parent="page_margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="page_title" type="Label" parent="page_margin/page_layout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Drivers"
+
+[node name="driver_name_label" type="Label" parent="page_margin/page_layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 25
+text = "Driver Name"
+
+[node name="team_heading" type="Label" parent="page_margin/page_layout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.72, 0.72, 1)
+text = "Team"
+
+[node name="team_name_label" type="Label" parent="page_margin/page_layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Team Name"
+
+[node name="details_separator" type="HSeparator" parent="page_margin/page_layout"]
+layout_mode = 2
+
+[node name="details" type="HBoxContainer" parent="page_margin/page_layout"]
+layout_mode = 2
+theme_override_constants/separation = 60
+
+[node name="attributes" type="GridContainer" parent="page_margin/page_layout/details"]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+theme_override_constants/h_separation = 30
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="skill_label" type="Label" parent="page_margin/page_layout/details/attributes"]
+layout_mode = 2
+text = "Skill"
+[node name="skill_value" type="Label" parent="page_margin/page_layout/details/attributes"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+[node name="consistency_label" type="Label" parent="page_margin/page_layout/details/attributes"]
+layout_mode = 2
+text = "Consistency"
+[node name="consistency_value" type="Label" parent="page_margin/page_layout/details/attributes"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+[node name="aggression_label" type="Label" parent="page_margin/page_layout/details/attributes"]
+layout_mode = 2
+text = "Aggression"
+[node name="aggression_value" type="Label" parent="page_margin/page_layout/details/attributes"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+[node name="salary_label" type="Label" parent="page_margin/page_layout/details/attributes"]
+layout_mode = 2
+text = "Salary"
+[node name="salary_value" type="Label" parent="page_margin/page_layout/details/attributes"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "$0"
+
+[node name="career" type="VBoxContainer" parent="page_margin/page_layout/details"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="career_heading" type="Label" parent="page_margin/page_layout/details/career"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Career"
+
+[node name="career_grid" type="GridContainer" parent="page_margin/page_layout/details/career"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+theme_override_constants/h_separation = 30
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="starts_label" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+layout_mode = 2
+text = "Starts"
+[node name="starts_value" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+[node name="wins_label" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+layout_mode = 2
+text = "Wins"
+[node name="wins_value" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+[node name="podiums_label" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+layout_mode = 2
+text = "Podiums"
+[node name="podiums_value" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+[node name="points_label" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+layout_mode = 2
+text = "Points"
+[node name="points_value" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"

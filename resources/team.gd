@@ -27,6 +27,10 @@ const GARAGE_SIZE: int = 6
 ]
 
 
+func _init() -> void:
+	ensure_default_player_driver()
+
+
 func get_car(bay_index: int) -> Car:
 	if not is_valid_bay_index(bay_index):
 		return null

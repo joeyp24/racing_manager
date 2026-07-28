@@ -3,6 +3,7 @@ extends Control
 @onready var page_container: Control = %page_container
 @onready var home_button: Button = %home_button
 @onready var garage_button: Button = %garage_button
+@onready var drivers_button: Button = %drivers_button
 @onready var championship_button: Button = %championship_button
 @onready var race_calendar_button: Button = %race_calendar_button
 @onready var money_label: Label = %money_label
@@ -17,6 +18,10 @@ func _ready() -> void:
 
 	garage_button.pressed.connect(
 		_on_garage_button_pressed
+	)
+
+	drivers_button.pressed.connect(
+		_on_drivers_button_pressed
 	)
 
 	championship_button.pressed.connect(
@@ -65,6 +70,12 @@ func _on_home_button_pressed() -> void:
 func _on_garage_button_pressed() -> void:
 	GameManager.load_page(
 		"res://scenes/pages/garage/garage.tscn"
+	)
+
+
+func _on_drivers_button_pressed() -> void:
+	GameManager.load_page(
+		"res://scenes/pages/drivers/drivers.tscn"
 	)
 
 

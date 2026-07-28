@@ -99,8 +99,7 @@ func run_race(
 		return null
 
 	var player_driver: Driver = (
-		GameManager.team
-		.ensure_default_player_driver()
+		GameManager.team.get_active_driver()
 	)
 
 	if player_driver == null:
@@ -408,6 +407,8 @@ func apply_race_effects(
 		result.standings
 	)
 
+	update_driver_career_stats(result)
+
 	var player_entry: Dictionary = (
 		GameManager.team
 		.get_player_championship_entry()
@@ -422,6 +423,28 @@ func apply_race_effects(
 	)
 
 	GameManager.team.emit_changed()
+
+
+func update_driver_career_stats(
+	result: RaceResult
+) -> void:
+	if result.player_driver == null:
+		return
+
+	var driver: Driver = result.player_driver
+
+	driver.career_starts += 1
+	driver.career_points += (
+		result.championship_points_earned
+	)
+
+	if result.finishing_position == 1:
+		driver.career_wins += 1
+
+	if result.finishing_position <= 3:
+		driver.career_podiums += 1
+
+	driver.emit_changed()
 
 
 func initialize_championship_standings(
