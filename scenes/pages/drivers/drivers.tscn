@@ -25,114 +25,43 @@ theme_override_constants/margin_bottom = 24
 
 [node name="page_layout" type="VBoxContainer" parent="page_margin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 
 [node name="page_title" type="Label" parent="page_margin/page_layout"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
-text = "Drivers"
+text = "Driver Market"
 
-[node name="driver_name_label" type="Label" parent="page_margin/page_layout"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 25
-text = "Driver Name"
-
-[node name="team_heading" type="Label" parent="page_margin/page_layout"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 0.72, 0.72, 1)
-text = "Team"
-
-[node name="team_name_label" type="Label" parent="page_margin/page_layout"]
+[node name="current_driver_label" type="Label" parent="page_margin/page_layout"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Team Name"
+text = "Current driver"
 
-[node name="details_separator" type="HSeparator" parent="page_margin/page_layout"]
-layout_mode = 2
-
-[node name="details" type="HBoxContainer" parent="page_margin/page_layout"]
-layout_mode = 2
-theme_override_constants/separation = 60
-
-[node name="attributes" type="GridContainer" parent="page_margin/page_layout/details"]
-custom_minimum_size = Vector2(280, 0)
-layout_mode = 2
-theme_override_constants/h_separation = 30
-theme_override_constants/v_separation = 10
-columns = 2
-
-[node name="skill_label" type="Label" parent="page_margin/page_layout/details/attributes"]
-layout_mode = 2
-text = "Skill"
-[node name="skill_value" type="Label" parent="page_margin/page_layout/details/attributes"]
+[node name="hiring_status_label" type="Label" parent="page_margin/page_layout"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "0"
-[node name="consistency_label" type="Label" parent="page_margin/page_layout/details/attributes"]
-layout_mode = 2
-text = "Consistency"
-[node name="consistency_value" type="Label" parent="page_margin/page_layout/details/attributes"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "0"
-[node name="aggression_label" type="Label" parent="page_margin/page_layout/details/attributes"]
-layout_mode = 2
-text = "Aggression"
-[node name="aggression_value" type="Label" parent="page_margin/page_layout/details/attributes"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "0"
-[node name="salary_label" type="Label" parent="page_margin/page_layout/details/attributes"]
-layout_mode = 2
-text = "Salary"
-[node name="salary_value" type="Label" parent="page_margin/page_layout/details/attributes"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "$0"
+theme_override_colors/font_color = Color(1, 0.82, 0.25, 1)
+text = "Hiring status"
 
-[node name="career" type="VBoxContainer" parent="page_margin/page_layout/details"]
+[node name="separator" type="HSeparator" parent="page_margin/page_layout"]
 layout_mode = 2
-theme_override_constants/separation = 10
 
-[node name="career_heading" type="Label" parent="page_margin/page_layout/details/career"]
+[node name="candidates_heading" type="Label" parent="page_margin/page_layout"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Career"
+theme_override_font_sizes/font_size = 22
+text = "Available candidates"
 
-[node name="career_grid" type="GridContainer" parent="page_margin/page_layout/details/career"]
-custom_minimum_size = Vector2(240, 0)
+[node name="scroll" type="ScrollContainer" parent="page_margin/page_layout"]
 layout_mode = 2
-theme_override_constants/h_separation = 30
-theme_override_constants/v_separation = 10
-columns = 2
+size_flags_vertical = 3
 
-[node name="starts_label" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
-layout_mode = 2
-text = "Starts"
-[node name="starts_value" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+[node name="candidates_container" type="VBoxContainer" parent="page_margin/page_layout/scroll"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "0"
-[node name="wins_label" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
-layout_mode = 2
-text = "Wins"
-[node name="wins_value" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="confirmation_dialog" type="ConfirmationDialog" parent="."]
 unique_name_in_owner = true
-layout_mode = 2
-text = "0"
-[node name="podiums_label" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
-layout_mode = 2
-text = "Podiums"
-[node name="podiums_value" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "0"
-[node name="points_label" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
-layout_mode = 2
-text = "Points"
-[node name="points_value" type="Label" parent="page_margin/page_layout/details/career/career_grid"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "0"
+title = "Confirm driver contract"

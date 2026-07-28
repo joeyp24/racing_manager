@@ -124,6 +124,12 @@ func run_race(
 		)
 		return null
 
+	if not GameManager.team.driver_hired_for_season:
+		push_error(
+			"Cannot run a race before hiring a driver for the season."
+		)
+		return null
+
 	var player_driver: Driver = (
 		GameManager.team.get_active_driver()
 	)
@@ -146,6 +152,7 @@ func run_race(
 	result.player_car = player_car
 	result.player_driver = player_driver
 	result.entry_fee = selected_race.entry_fee
+	result.driver_salary = player_driver.salary
 
 	var race_standings: Array[Dictionary] = []
 
@@ -228,6 +235,7 @@ func run_race(
 	result.net_earnings = (
 		result.prize_money
 		- result.entry_fee
+		- result.driver_salary
 	)
 
 	apply_race_effects(result)
@@ -427,6 +435,9 @@ func apply_race_effects(
 
 	GameManager.add_team_money(
 		result.prize_money
+	)
+	GameManager.charge_team_money(
+		result.driver_salary
 	)
 
 	update_championship_standings(
@@ -762,6 +773,11 @@ func start_new_season() -> bool:
 	GameManager.team.unlocked_races = [SEASON_RACE_IDS[0]]
 	GameManager.team.championship_standings.clear()
 	GameManager.team.championship_points = 0
+	GameManager.team.driver_hired_for_season = false
+	var active_driver := GameManager.team.get_active_driver()
+	if active_driver != null:
+		active_driver.is_player_driver = false
+		active_driver.team_name = "Free Agent"
 	clear_last_result()
 	GameManager.clear_selected_data()
 	GameManager.team.emit_changed()

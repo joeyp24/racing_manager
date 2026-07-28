@@ -75,6 +75,13 @@ func create_car_options() -> void:
 		)
 		return
 
+	if not GameManager.team.driver_hired_for_season:
+		status_label.text = (
+			"Hire a driver from the Drivers page before racing."
+		)
+		confirm_button.disabled = true
+		return
+
 	for car in GameManager.team.cars:
 		if car == null:
 			continue
@@ -155,6 +162,11 @@ func _on_confirm_button_pressed() -> void:
 		status_label.text = (
 			"No team is currently loaded."
 		)
+		return
+
+	if not GameManager.team.driver_hired_for_season:
+		status_label.text = "Hire a driver before entering a race."
+		confirm_button.disabled = true
 		return
 
 	confirm_button.disabled = true

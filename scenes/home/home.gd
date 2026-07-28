@@ -45,6 +45,14 @@ func _ready() -> void:
 		"res://scenes/pages/dashboard/dashboard.tscn"
 	)
 
+	if (
+		GameManager.team != null
+		and not GameManager.team.driver_hired_for_season
+	):
+		GameManager.load_page(
+			"res://scenes/pages/drivers/drivers.tscn"
+		)
+
 
 func _exit_tree() -> void:
 	if GameManager.team_money_changed.is_connected(

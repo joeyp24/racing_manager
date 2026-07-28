@@ -9,6 +9,7 @@ const GARAGE_SIZE: int = 6
 @export var championship_points: int = 0
 @export var season_number: int = 1
 @export var season_complete: bool = false
+@export var driver_hired_for_season: bool = false
 @export var last_season_position: int = 0
 @export var last_season_prize: int = 0
 
@@ -33,6 +34,7 @@ const GARAGE_SIZE: int = 6
 
 func _init() -> void:
 	ensure_default_player_driver()
+	ensure_driver_market()
 
 
 func get_car(bay_index: int) -> Car:
@@ -153,6 +155,8 @@ func ensure_default_player_driver() -> Driver:
 	new_driver.aggression = 50
 
 	new_driver.salary = 1500
+	new_driver.signing_fee = 2000
+	new_driver.archetype = "Balanced club racer"
 	new_driver.assigned_bay = -1
 
 	new_driver.team_name = team_name
@@ -163,6 +167,84 @@ func ensure_default_player_driver() -> Driver:
 	emit_changed()
 
 	return new_driver
+
+
+func ensure_driver_market() -> void:
+	var candidates: Array[Dictionary] = [
+		{
+			"id": "maya_torres", "name": "Maya Torres",
+			"archetype": "Talented but inconsistent",
+			"skill": 78, "consistency": 43, "aggression": 62,
+			"salary": 3200, "fee": 6500
+		},
+		{
+			"id": "grant_holloway", "name": "Grant Holloway",
+			"archetype": "Dependable veteran",
+			"skill": 67, "consistency": 84, "aggression": 38,
+			"salary": 2900, "fee": 5000
+		},
+		{
+			"id": "nia_okafor", "name": "Nia Okafor",
+			"archetype": "Aggressive prospect",
+			"skill": 65, "consistency": 54, "aggression": 88,
+			"salary": 2200, "fee": 4000
+		},
+		{
+			"id": "eli_park", "name": "Eli Park",
+			"archetype": "Cheap rookie",
+			"skill": 48, "consistency": 51, "aggression": 57,
+			"salary": 900, "fee": 1000
+		},
+		{
+			"id": "sofia_varga", "name": "Sofia Varga",
+			"archetype": "Expensive championship contender",
+			"skill": 91, "consistency": 87, "aggression": 71,
+			"salary": 6000, "fee": 12000
+		}
+	]
+
+	for data in candidates:
+		if get_driver_by_id(str(data["id"])) != null:
+			continue
+		var driver := Driver.new()
+		driver.driver_id = str(data["id"])
+		driver.driver_name = str(data["name"])
+		driver.archetype = str(data["archetype"])
+		driver.skill = int(data["skill"])
+		driver.consistency = int(data["consistency"])
+		driver.aggression = int(data["aggression"])
+		driver.salary = int(data["salary"])
+		driver.signing_fee = int(data["fee"])
+		drivers.append(driver)
+
+
+func can_hire_driver() -> bool:
+	return (
+		not season_complete
+		and completed_races.is_empty()
+		and not driver_hired_for_season
+	)
+
+
+func hire_driver(driver: Driver) -> bool:
+	if driver == null or not drivers.has(driver):
+		return false
+	if not can_hire_driver() or money < driver.signing_fee:
+		return false
+
+	for roster_driver in drivers:
+		if roster_driver == null:
+			continue
+		roster_driver.is_player_driver = false
+		if roster_driver.team_name == team_name:
+			roster_driver.team_name = "Free Agent"
+
+	money -= driver.signing_fee
+	driver.is_player_driver = true
+	driver.team_name = team_name
+	driver_hired_for_season = true
+	emit_changed()
+	return true
 
 
 func get_active_driver() -> Driver:

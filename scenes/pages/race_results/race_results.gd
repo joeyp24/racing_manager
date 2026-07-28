@@ -89,12 +89,16 @@ func create_financial_summary(result: RaceResult) -> String:
 		"Financial Summary\n\n"
 		+ "Entry Fee: -$%s\n"
 		+ "Prize Money: +$%s\n"
+		+ "Driver Salary: -$%s\n"
+		+ "Repair Costs: -$%s\n"
 		+ "Net Earnings: %s\n\n"
 		+ "Championship Points: +%d\n"
 		+ "Season Total: %d"
 	) % [
 		format_number(result.entry_fee),
 		format_number(result.prize_money),
+		format_number(result.driver_salary),
+		format_number(result.repair_cost),
 		format_money_change(result.net_earnings),
 		result.championship_points_earned,
 		result.total_championship_points

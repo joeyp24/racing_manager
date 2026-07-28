@@ -9,6 +9,8 @@ class_name Driver
 @export_range(1, 100) var aggression: int = 50
 
 @export var salary: int = 1500
+@export var signing_fee: int = 2500
+@export var archetype: String = "Balanced club racer"
 @export var assigned_bay: int = -1
 
 @export var team_name: String = ""
