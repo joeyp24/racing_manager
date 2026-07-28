@@ -1,55 +1,134 @@
 extends Control
 
-@onready var driver_name_label: Label = %driver_name_label
-@onready var team_name_label: Label = %team_name_label
-@onready var skill_value: Label = %skill_value
-@onready var consistency_value: Label = %consistency_value
-@onready var aggression_value: Label = %aggression_value
-@onready var salary_value: Label = %salary_value
-@onready var starts_value: Label = %starts_value
-@onready var wins_value: Label = %wins_value
-@onready var podiums_value: Label = %podiums_value
-@onready var points_value: Label = %points_value
+@onready var current_driver_label: Label = %current_driver_label
+@onready var hiring_status_label: Label = %hiring_status_label
+@onready var candidates_container: VBoxContainer = %candidates_container
+@onready var confirmation_dialog: ConfirmationDialog = %confirmation_dialog
+
+var pending_driver: Driver = null
 
 
 func _ready() -> void:
 	if GameManager.team == null:
-		push_error(
-			"Drivers page cannot display because no team is loaded."
+		return
+
+	confirmation_dialog.confirmed.connect(_on_hire_confirmed)
+	display_market()
+
+	if not GameManager.team.driver_hired_for_season:
+		confirmation_dialog.title = "A driver is required"
+		confirmation_dialog.dialog_text = (
+			"Season %d is ready. Compare the roster and hire one driver before entering a race."
+			% GameManager.team.season_number
 		)
+		confirmation_dialog.get_ok_button().text = "View candidates"
+		confirmation_dialog.popup_centered()
+
+
+func display_market() -> void:
+	var team: Team = GameManager.team
+	var active_driver: Driver = team.get_active_driver()
+
+	if active_driver == null:
+		current_driver_label.text = "Current driver: None — hire a driver for Season %d" % team.season_number
+	else:
+		current_driver_label.text = "Current driver: %s\n%s" % [
+			active_driver.driver_name,
+			create_driver_details(active_driver)
+		]
+
+	if team.driver_hired_for_season:
+		hiring_status_label.text = "Driver signed for Season %d. Changes are locked once a contract is signed." % team.season_number
+	else:
+		hiring_status_label.text = "Pre-season hiring is open. Signing fees are charged immediately."
+
+	for child in candidates_container.get_children():
+		child.queue_free()
+
+	for driver in team.drivers:
+		if driver == null:
+			continue
+		create_candidate_row(driver)
+
+
+func create_candidate_row(driver: Driver) -> void:
+	var panel := PanelContainer.new()
+	var row := HBoxContainer.new()
+	var details := Label.new()
+	var hire_button := Button.new()
+
+	panel.custom_minimum_size = Vector2(0, 92)
+	row.add_theme_constant_override("separation", 18)
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.text = "%s — %s\n%s\nCareer: %d starts | %d wins | %d podiums | %d points" % [
+		driver.driver_name,
+		driver.archetype,
+		create_driver_details(driver),
+		driver.career_starts,
+		driver.career_wins,
+		driver.career_podiums,
+		driver.career_points
+	]
+	hire_button.text = "Hire"
+	hire_button.custom_minimum_size = Vector2(100, 0)
+	hire_button.disabled = (
+		not GameManager.team.can_hire_driver()
+		or GameManager.team.money < driver.signing_fee
+	)
+	hire_button.pressed.connect(_on_hire_pressed.bind(driver))
+
+	row.add_child(details)
+	row.add_child(hire_button)
+	panel.add_child(row)
+	candidates_container.add_child(panel)
+
+
+func create_driver_details(driver: Driver) -> String:
+	return "Skill %d | Consistency %d | Aggression %d | Salary $%s/race | Signing fee $%s" % [
+		driver.skill,
+		driver.consistency,
+		driver.aggression,
+		format_number(driver.salary),
+		format_number(driver.signing_fee)
+	]
+
+
+func _on_hire_pressed(driver: Driver) -> void:
+	pending_driver = driver
+	var current_driver: Driver = GameManager.team.get_active_driver()
+	var replacement_text := "sign"
+	if current_driver != null and current_driver != driver:
+		replacement_text = "replace %s with" % current_driver.driver_name
+
+	confirmation_dialog.title = "Confirm driver contract"
+	confirmation_dialog.dialog_text = (
+		"Do you want to %s %s?\n\nSigning fee: $%s (charged now)\nSalary: $%s after every race"
+		% [
+			replacement_text,
+			driver.driver_name,
+			format_number(driver.signing_fee),
+			format_number(driver.salary)
+		]
+	)
+	confirmation_dialog.get_ok_button().text = "Confirm Hire"
+	confirmation_dialog.popup_centered()
+
+
+func _on_hire_confirmed() -> void:
+	if pending_driver == null:
 		return
 
-	display_driver(GameManager.team.get_active_driver())
-
-
-func display_driver(driver: Driver) -> void:
-	if driver == null:
-		driver_name_label.text = "No active driver"
-		team_name_label.text = "Team unavailable"
-		return
-
-	driver_name_label.text = driver.driver_name
-	team_name_label.text = driver.team_name
-	skill_value.text = str(driver.skill)
-	consistency_value.text = str(driver.consistency)
-	aggression_value.text = str(driver.aggression)
-	salary_value.text = "$%s" % format_number(driver.salary)
-	starts_value.text = str(driver.career_starts)
-	wins_value.text = str(driver.career_wins)
-	podiums_value.text = str(driver.career_podiums)
-	points_value.text = str(driver.career_points)
+	if GameManager.team.hire_driver(pending_driver):
+		GameManager.refresh_team_money()
+		GameManager.save_game()
+	pending_driver = null
+	display_market()
 
 
 func format_number(number: int) -> String:
 	var number_string: String = str(number)
 	var formatted_number: String = ""
-
 	while number_string.length() > 3:
-		formatted_number = (
-			"," + number_string.right(3) + formatted_number
-		)
-		number_string = number_string.left(
-			number_string.length() - 3
-		)
-
+		formatted_number = "," + number_string.right(3) + formatted_number
+		number_string = number_string.left(number_string.length() - 3)
 	return number_string + formatted_number

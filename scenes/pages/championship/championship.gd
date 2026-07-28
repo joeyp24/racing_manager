@@ -106,7 +106,9 @@ func update_season_controls() -> void:
 
 func _on_new_season_button_pressed() -> void:
 	if RaceManager.start_new_season():
-		display_championship_standings()
+		GameManager.load_page(
+			"res://scenes/pages/drivers/drivers.tscn"
+		)
 
 
 func format_number(number: int) -> String:

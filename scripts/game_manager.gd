@@ -41,6 +41,7 @@ func load_game() -> void:
 	if loaded_team != null:
 		team = loaded_team
 		team.ensure_default_player_driver()
+		team.ensure_driver_market()
 	else:
 		new_game()
 		save_game()
@@ -167,6 +168,16 @@ func remove_team_money(amount: int) -> bool:
 	refresh_team_money()
 
 	return true
+
+
+func charge_team_money(amount: int) -> void:
+	if team == null or amount < 0:
+		push_error("Cannot charge an invalid team expense.")
+		return
+
+	team.money -= amount
+	team.emit_changed()
+	refresh_team_money()
 
 
 func refresh_team_money() -> void:
