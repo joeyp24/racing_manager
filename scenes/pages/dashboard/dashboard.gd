@@ -7,6 +7,7 @@ extends Control
 @onready var cars_owned_label: Label = %cars_owned_label
 @onready var garage_value_label: Label = %garage_value_label
 @onready var reputation_label: Label = %reputation_label
+@onready var sponsor_label: Label = %sponsor_label
 
 
 func _ready() -> void:
@@ -64,6 +65,8 @@ func update_dashboard() -> void:
 		% team.reputation
 	)
 
+	update_sponsor_summary(team)
+
 	cars_owned_label.text = (
 		"Cars Owned: %d / %d"
 		% [
@@ -81,6 +84,25 @@ func update_dashboard() -> void:
 
 	update_next_race()
 	update_championship_summary()
+
+
+func update_sponsor_summary(team: Team) -> void:
+	var sponsor := SponsorCatalog.find_by_id(team.active_sponsor_id)
+	if sponsor == null:
+		sponsor_label.text = "Sponsor: No active contract"
+		return
+
+	sponsor_label.text = (
+		"Sponsor: %s  |  $%s/race  |  Objective: %d/%d%s  |  %d races left"
+		% [
+			sponsor.sponsor_name,
+			String.num_int64(sponsor.payment_per_race),
+			team.sponsor_objective_progress,
+			sponsor.objective_target,
+			" complete" if team.sponsor_objective_completed else "",
+			team.sponsor_races_remaining
+		]
+	)
 
 
 func update_next_race() -> void:

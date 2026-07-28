@@ -16,6 +16,11 @@ var entry_fee: int = 0
 var driver_salary: int = 0
 var repair_cost: int = 0
 var net_earnings: int = 0
+var sponsor_name: String = ""
+var sponsor_race_payment: int = 0
+var sponsor_objective_bonus: int = 0
+var sponsor_objective_completed: bool = false
+var reputation_earned: int = 0
 
 var mileage_added: int = 0
 var condition_lost: int = 0

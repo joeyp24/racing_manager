@@ -440,6 +440,9 @@ func apply_race_effects(
 		result.driver_salary
 	)
 
+	apply_reputation_reward(result)
+	apply_sponsor_reward(result)
+
 	update_championship_standings(
 		result.standings
 	)
@@ -460,6 +463,56 @@ func apply_race_effects(
 	)
 
 	GameManager.team.emit_changed()
+
+
+func apply_reputation_reward(result: RaceResult) -> void:
+	var position := result.finishing_position
+	if position == 1:
+		result.reputation_earned = 25
+	elif position <= 5:
+		result.reputation_earned = 15
+	elif position <= 10:
+		result.reputation_earned = 10
+	elif position <= 15:
+		result.reputation_earned = 5
+	elif position > 0:
+		result.reputation_earned = 2
+
+	GameManager.team.reputation += result.reputation_earned
+
+
+func apply_sponsor_reward(result: RaceResult) -> void:
+	var team := GameManager.team
+	if team.active_sponsor_id.is_empty():
+		return
+
+	var sponsor := SponsorCatalog.find_by_id(team.active_sponsor_id)
+	if sponsor == null:
+		push_warning("Saved sponsor no longer exists: %s" % team.active_sponsor_id)
+		team.active_sponsor_id = ""
+		team.sponsor_races_remaining = 0
+		return
+
+	result.sponsor_name = sponsor.sponsor_name
+	result.sponsor_race_payment = sponsor.payment_per_race
+	GameManager.add_team_money(result.sponsor_race_payment)
+	result.net_earnings += result.sponsor_race_payment
+
+	if (
+		not team.sponsor_objective_completed
+		and sponsor.result_advances_objective(result.finishing_position)
+	):
+		team.sponsor_objective_progress += 1
+		if team.sponsor_objective_progress >= sponsor.objective_target:
+			team.sponsor_objective_completed = true
+			result.sponsor_objective_completed = true
+			result.sponsor_objective_bonus = sponsor.objective_bonus
+			GameManager.add_team_money(result.sponsor_objective_bonus)
+			result.net_earnings += result.sponsor_objective_bonus
+
+	team.sponsor_races_remaining = maxi(0, team.sponsor_races_remaining - 1)
+	if team.sponsor_races_remaining == 0:
+		team.active_sponsor_id = ""
 
 
 func update_driver_career_stats(
@@ -754,6 +807,8 @@ func finish_season_if_complete() -> void:
 	GameManager.team.season_complete = true
 	GameManager.team.last_season_position = player_position
 	GameManager.team.last_season_prize = prize_money
+	if player_position == 1:
+		GameManager.team.reputation += 100
 	GameManager.add_team_money(prize_money)
 	GameManager.team.emit_changed()
 
@@ -786,6 +841,10 @@ func start_new_season() -> bool:
 	GameManager.team.championship_standings.clear()
 	GameManager.team.championship_points = 0
 	GameManager.team.driver_hired_for_season = false
+	GameManager.team.active_sponsor_id = ""
+	GameManager.team.sponsor_races_remaining = 0
+	GameManager.team.sponsor_objective_progress = 0
+	GameManager.team.sponsor_objective_completed = false
 	var active_driver := GameManager.team.get_active_driver()
 	if active_driver != null:
 		active_driver.is_player_driver = false
