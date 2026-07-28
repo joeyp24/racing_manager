@@ -128,5 +128,6 @@ size_flags_vertical = 3
 [node name="page_container" type="Control" parent="page_margin/main_layout/right_side/main_panel"]
 unique_name_in_owner = true
 layout_mode = 2
+clip_contents = true
 
 [connection signal="pressed" from="page_margin/main_layout/sidebar/reset_game_button" to="." method="_on_reset_game_button_pressed"]
