@@ -1,5 +1,31 @@
 extends Node
 
+const SEASON_RACE_IDS: Array[String] = [
+	"spring_100",
+	"riverside_200",
+	"coastal_150",
+	"desert_175",
+	"mountain_classic",
+	"lakeside_225",
+	"capital_200",
+	"prairie_250",
+	"harbor_180",
+	"forest_240",
+	"national_stock_car",
+	"championship_300"
+]
+
+const SEASON_PRIZES: Array[int] = [
+	50000,
+	35000,
+	25000,
+	18000,
+	14000,
+	10000,
+	7500,
+	5000
+]
+
 const AI_DRIVERS: Array[Dictionary] = [
 	{
 		"driver_id": "logan_brooks",
@@ -676,6 +702,71 @@ func complete_race(
 		)
 
 	GameManager.team.emit_changed()
+	finish_season_if_complete()
+
+
+func finish_season_if_complete() -> void:
+	if GameManager.team == null:
+		return
+
+	if GameManager.team.season_complete:
+		return
+
+	for race_id in SEASON_RACE_IDS:
+		if not GameManager.team.completed_races.has(race_id):
+			return
+
+	var standings := (
+		GameManager.team.get_sorted_championship_standings()
+	)
+	var player_position: int = 0
+
+	for index in range(standings.size()):
+		if bool(standings[index].get("is_player", false)):
+			player_position = index + 1
+			break
+
+	var prize_money: int = calculate_season_prize(
+		player_position
+	)
+
+	GameManager.team.season_complete = true
+	GameManager.team.last_season_position = player_position
+	GameManager.team.last_season_prize = prize_money
+	GameManager.add_team_money(prize_money)
+	GameManager.team.emit_changed()
+
+
+func calculate_season_prize(finishing_position: int) -> int:
+	if finishing_position <= 0:
+		return 0
+
+	if finishing_position > SEASON_PRIZES.size():
+		return 0
+
+	return SEASON_PRIZES[finishing_position - 1]
+
+
+func start_new_season() -> bool:
+	if GameManager.team == null:
+		return false
+
+	if not GameManager.team.season_complete:
+		return false
+
+	GameManager.team.season_number += 1
+	GameManager.team.season_complete = false
+	GameManager.team.last_season_position = 0
+	GameManager.team.last_season_prize = 0
+	GameManager.team.completed_races.clear()
+	GameManager.team.unlocked_races = [SEASON_RACE_IDS[0]]
+	GameManager.team.championship_standings.clear()
+	GameManager.team.championship_points = 0
+	clear_last_result()
+	GameManager.clear_selected_data()
+	GameManager.team.emit_changed()
+	GameManager.save_game()
+	return true
 
 
 func is_race_completed(

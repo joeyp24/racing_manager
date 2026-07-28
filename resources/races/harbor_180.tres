@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Race" format=3]
+
+[ext_resource type="Script" path="res://resources/races/race.gd" id="1_race"]
+
+[resource]
+script = ExtResource("1_race")
+race_id = "harbor_180"
+race_name = "Harbor 180"
+track_name = "Portside Oval"
+race_date = "July 20"
+lap_count = 190
+entry_fee = 2600
+first_place_prize = 9000
+second_place_prize = 4500
+third_place_prize = 2250
+difficulty = 68

@@ -5,4 +5,13 @@
 [resource]
 script = ExtResource("1_sn684")
 race_id = "riverside_200"
+race_name = "Riverside 200"
+track_name = "Riverside Raceway"
+race_date = "March 29"
+lap_count = 120
+entry_fee = 1200
+first_place_prize = 5500
+second_place_prize = 2800
+third_place_prize = 1400
+difficulty = 30
 metadata/_custom_type_script = "uid://71mnmyrsb1lb"

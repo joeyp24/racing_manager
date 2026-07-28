@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Race" format=3]
+
+[ext_resource type="Script" path="res://resources/races/race.gd" id="1_race"]
+
+[resource]
+script = ExtResource("1_race")
+race_id = "lakeside_225"
+race_name = "Lakeside 225"
+track_name = "Great Lakes Circuit"
+race_date = "June 1"
+lap_count = 175
+entry_fee = 2000
+first_place_prize = 7500
+second_place_prize = 3800
+third_place_prize = 1900
+difficulty = 52

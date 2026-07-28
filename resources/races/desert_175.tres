@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Race" format=3]
+
+[ext_resource type="Script" path="res://resources/races/race.gd" id="1_race"]
+
+[resource]
+script = ExtResource("1_race")
+race_id = "desert_175"
+race_name = "Desert 175"
+track_name = "Canyon Motorsports Park"
+race_date = "April 26"
+lap_count = 145
+entry_fee = 1600
+first_place_prize = 6500
+second_place_prize = 3250
+third_place_prize = 1600
+difficulty = 40

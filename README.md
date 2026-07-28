@@ -161,6 +161,9 @@ Implemented:
 - Team Money
 - Season Progression
 - Championship Points
+- 12-race seasons
+- Position-based season prize money
+- Repeatable seasons
 
 ---
 

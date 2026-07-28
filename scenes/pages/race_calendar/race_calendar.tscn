@@ -7,6 +7,15 @@
 [ext_resource type="Resource" uid="uid://ds288vlp5b7c7" path="res://resources/races/national_stock_car_300.tres" id="5_53w6p"]
 [ext_resource type="Resource" uid="uid://cppap57mlibc8" path="res://resources/races/mountain_classic.tres" id="6_c1kt1"]
 
+[ext_resource type="Resource" path="res://resources/races/coastal_150.tres" id="7_coastal"]
+[ext_resource type="Resource" path="res://resources/races/desert_175.tres" id="8_desert"]
+[ext_resource type="Resource" path="res://resources/races/lakeside_225.tres" id="9_lakeside"]
+[ext_resource type="Resource" path="res://resources/races/capital_200.tres" id="10_capital"]
+[ext_resource type="Resource" path="res://resources/races/prairie_250.tres" id="11_prairie"]
+[ext_resource type="Resource" path="res://resources/races/harbor_180.tres" id="12_harbor"]
+[ext_resource type="Resource" path="res://resources/races/forest_240.tres" id="13_forest"]
+[ext_resource type="Resource" path="res://resources/races/championship_300.tres" id="14_finale"]
+
 [node name="race_calendar" type="Control" unique_id=60914570]
 layout_mode = 3
 anchors_preset = 15
@@ -15,7 +24,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_fgapt")
-race_calendar = Array[ExtResource("2_a3obp")]([ExtResource("5_53w6p"), ExtResource("3_c1kt1"), ExtResource("4_4jk1j"), ExtResource("6_c1kt1")])
+race_calendar = Array[ExtResource("2_a3obp")]([ExtResource("4_4jk1j"), ExtResource("3_c1kt1"), ExtResource("7_coastal"), ExtResource("8_desert"), ExtResource("6_c1kt1"), ExtResource("9_lakeside"), ExtResource("10_capital"), ExtResource("11_prairie"), ExtResource("12_harbor"), ExtResource("13_forest"), ExtResource("5_53w6p"), ExtResource("14_finale")])
 
 [node name="margin_container" type="MarginContainer" parent="." unique_id=1893077370]
 layout_mode = 1
@@ -36,7 +45,7 @@ text = "Race Calendar"
 [node name="instructions_label" type="Label" parent="margin_container/race_calendar_container" unique_id=442213487]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Choose an event for your team to enter"
+text = "Complete all 12 events to finish the season"
 
 [node name="races_scroll_container" type="ScrollContainer" parent="margin_container/race_calendar_container" unique_id=573845764]
 layout_mode = 2

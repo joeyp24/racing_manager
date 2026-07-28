@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Race" format=3]
+
+[ext_resource type="Script" path="res://resources/races/race.gd" id="1_race"]
+
+[resource]
+script = ExtResource("1_race")
+race_id = "capital_200"
+race_name = "Capital City 200"
+track_name = "Capital Speedway"
+race_date = "June 15"
+lap_count = 180
+entry_fee = 2200
+first_place_prize = 8000
+second_place_prize = 4000
+third_place_prize = 2000
+difficulty = 57
