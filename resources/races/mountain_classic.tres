@@ -5,4 +5,13 @@
 [resource]
 script = ExtResource("1_87pkt")
 race_id = "mountain_classic"
+race_name = "Mountain Classic"
+track_name = "Highland Raceway"
+race_date = "May 18"
+lap_count = 160
+entry_fee = 1800
+first_place_prize = 7000
+second_place_prize = 3500
+third_place_prize = 1800
+difficulty = 48
 metadata/_custom_type_script = "uid://71mnmyrsb1lb"

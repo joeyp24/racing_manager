@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Race" format=3]
+
+[ext_resource type="Script" path="res://resources/races/race.gd" id="1_race"]
+
+[resource]
+script = ExtResource("1_race")
+race_id = "championship_300"
+race_name = "Championship 300"
+track_name = "Victory Lane Speedway"
+race_date = "September 21"
+lap_count = 300
+entry_fee = 3500
+first_place_prize = 15000
+second_place_prize = 7500
+third_place_prize = 3750
+difficulty = 88

@@ -4,13 +4,14 @@
 
 [resource]
 script = ExtResource("1_y8vnt")
-race_id = "national_stock_Car"
+race_id = "national_stock_car"
 race_name = "National Stock Car Classic"
 track_name = "Southern Speedway"
-race_date = "March 23"
+race_date = "September 7"
 lap_count = 100
 entry_fee = 2000
 first_place_prize = 6000
 second_place_prize = 3000
 third_place_prize = 1500
+difficulty = 80
 metadata/_custom_type_script = "uid://71mnmyrsb1lb"

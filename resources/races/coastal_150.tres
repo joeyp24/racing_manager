@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Race" format=3]
+
+[ext_resource type="Script" path="res://resources/races/race.gd" id="1_race"]
+
+[resource]
+script = ExtResource("1_race")
+race_id = "coastal_150"
+race_name = "Coastal 150"
+track_name = "Oceanview Speedway"
+race_date = "April 12"
+lap_count = 130
+entry_fee = 1400
+first_place_prize = 6000
+second_place_prize = 3000
+third_place_prize = 1500
+difficulty = 34

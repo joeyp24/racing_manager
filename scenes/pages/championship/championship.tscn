@@ -40,6 +40,19 @@ theme_override_font_sizes/font_size = 17
 text = "Championship information"
 horizontal_alignment = 1
 
+[node name="season_status_label" type="Label" parent="page_margin/page_layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Season progress"
+horizontal_alignment = 1
+
+[node name="new_season_button" type="Button" parent="page_margin/page_layout"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "Start New Season"
+
 [node name="separator" type="HSeparator" parent="page_margin/page_layout" unique_id=62053950]
 layout_mode = 2
 

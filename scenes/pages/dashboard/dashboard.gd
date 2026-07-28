@@ -84,6 +84,13 @@ func update_dashboard() -> void:
 
 
 func update_next_race() -> void:
+	if GameManager.team.season_complete:
+		next_race_label.text = (
+			"Season %d Complete — Start a new season from Standings"
+			% GameManager.team.season_number
+		)
+		return
+
 	if GameManager.team.unlocked_races.is_empty():
 		next_race_label.text = (
 			"Next Race: Season Complete"

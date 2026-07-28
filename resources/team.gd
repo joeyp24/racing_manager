@@ -7,6 +7,10 @@ const GARAGE_SIZE: int = 6
 @export var money: int = 15000
 @export var reputation: int = 0
 @export var championship_points: int = 0
+@export var season_number: int = 1
+@export var season_complete: bool = false
+@export var last_season_position: int = 0
+@export var last_season_prize: int = 0
 
 @export var completed_races: Array[String] = []
 

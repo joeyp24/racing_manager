@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Race" format=3]
+
+[ext_resource type="Script" path="res://resources/races/race.gd" id="1_race"]
+
+[resource]
+script = ExtResource("1_race")
+race_id = "prairie_250"
+race_name = "Prairie 250"
+track_name = "Heartland Raceway"
+race_date = "July 6"
+lap_count = 200
+entry_fee = 2400
+first_place_prize = 8500
+second_place_prize = 4250
+third_place_prize = 2100
+difficulty = 62
