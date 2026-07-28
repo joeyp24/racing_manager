@@ -42,6 +42,7 @@ func load_game() -> void:
 		team = loaded_team
 		team.ensure_default_player_driver()
 		team.ensure_driver_market()
+		team.ensure_car_parts()
 	else:
 		new_game()
 		save_game()

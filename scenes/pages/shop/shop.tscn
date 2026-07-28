@@ -1,0 +1,56 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/pages/shop/shop.gd" id="1"]
+
+[node name="shop" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 14.0
+offset_right = -18.0
+offset_bottom = -14.0
+
+[node name="layout" type="VBoxContainer" parent="margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="title" type="Label" parent="margin/layout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Parts Shop"
+
+[node name="subtitle" type="Label" parent="margin/layout"]
+layout_mode = 2
+text = "Build your inventory with specialized upgrades for every area of the car."
+
+[node name="inventory_label" type="Label" parent="margin/layout"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="scroll" type="ScrollContainer" parent="margin/layout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="offers_container" type="GridContainer" parent="margin/layout/scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 3
+
+[node name="status_label" type="Label" parent="margin/layout"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2

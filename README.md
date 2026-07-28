@@ -281,6 +281,11 @@ Stores:
 - performance
 - condition
 - mileage
+- installed engine, suspension, brakes, chassis, drivetrain, and body parts
+
+## Car Parts
+
+Every purchased car receives standard parts. Upgraded parts are bought in the Parts Shop, stored in `team.parts_inventory`, and installed or sold from Car Inspection. Each category improves a distinct vehicle characteristic and contributes to total race performance.
 
 ---
 
@@ -352,7 +357,7 @@ Keep the project beginner-friendly and easy to understand.
 - Driver hiring
 - Team upgrades
 - Sponsorships
-- Car upgrades
+- Car parts and upgrades
 - Multiple seasons
 - Championship standings page
 - AI team progression
