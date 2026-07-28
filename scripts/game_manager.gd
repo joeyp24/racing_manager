@@ -112,9 +112,6 @@ func load_page(scene_path: String) -> void:
 		)
 		return
 
-	for child in page_container.get_children():
-		child.queue_free()
-
 	var page_scene: PackedScene = load(scene_path)
 
 	if page_scene == null:
@@ -125,7 +122,29 @@ func load_page(scene_path: String) -> void:
 		return
 
 	var page_instance: Node = page_scene.instantiate()
+
+	if page_instance == null:
+		push_error(
+			"Could not instantiate page: %s"
+			% scene_path
+		)
+		return
+
+	# Remove the previous page from the container immediately. queue_free()
+	# alone leaves it active until the end of the frame, so a full-size page
+	# (notably Championship Standings) can continue drawing and receiving input
+	# over a newly selected page.
+	for child in page_container.get_children():
+		page_container.remove_child(child)
+		child.queue_free()
+
 	page_container.add_child(page_instance)
+
+	if page_instance is Control:
+		var page_control := page_instance as Control
+		page_control.set_anchors_and_offsets_preset(
+			Control.PRESET_FULL_RECT
+		)
 
 
 func add_team_money(amount: int) -> void:
