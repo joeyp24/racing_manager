@@ -14,6 +14,12 @@ const GARAGE_SIZE: int = 6
 @export var last_season_prize: int = 0
 @export var last_development_summary: Array[String] = []
 
+@export var active_sponsor_id: String = ""
+@export var sponsor_races_remaining: int = 0
+@export var sponsor_objective_progress: int = 0
+@export var sponsor_objective_completed: bool = false
+@export var sponsor_signed_season: int = 0
+
 @export var completed_races: Array[String] = []
 
 @export var unlocked_races: Array[String] = [

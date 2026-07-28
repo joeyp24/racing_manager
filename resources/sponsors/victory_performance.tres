@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Sponsor" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/sponsor.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+sponsor_id = "victory_performance"
+sponsor_name = "Victory Performance"
+required_reputation = 300
+signing_bonus = 3500
+payment_per_race = 1500
+objective_type = "top_10_finishes"
+objective_target = 3
+objective_bonus = 5000
+contract_length = 12
