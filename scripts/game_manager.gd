@@ -40,6 +40,7 @@ func load_game() -> void:
 
 	if loaded_team != null:
 		team = loaded_team
+		team.ensure_default_player_driver()
 	else:
 		new_game()
 		save_game()
