@@ -74,6 +74,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Race Calendar"
 
+[node name="reset_season_button" type="Button" parent="page_margin/main_layout/sidebar" unique_id=627403418]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reset Season"
+
 [node name="right_side" type="VBoxContainer" parent="page_margin/main_layout" unique_id=90987693]
 layout_mode = 2
 size_flags_horizontal = 3

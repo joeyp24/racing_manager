@@ -4,4 +4,5 @@
 
 [resource]
 script = ExtResource("1_sn684")
+race_id = "riverside_200"
 metadata/_custom_type_script = "uid://71mnmyrsb1lb"

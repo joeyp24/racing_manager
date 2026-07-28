@@ -13,7 +13,10 @@ var race: Race = null
 
 
 func _ready() -> void:
-	enter_button.pressed.connect(_on_enter_button_pressed)
+	enter_button.pressed.connect(
+		_on_enter_button_pressed
+	)
+
 	update_display()
 
 
@@ -59,20 +62,45 @@ func update_display() -> void:
 func update_entry_status() -> void:
 	if GameManager.team == null:
 		status_label.text = "No team loaded"
+		enter_button.text = "Unavailable"
+		enter_button.disabled = true
+		return
+
+	if race.race_id.is_empty():
+		status_label.text = "Missing race ID"
+		enter_button.text = "Unavailable"
+		enter_button.disabled = true
+		return
+
+	if RaceManager.is_race_completed(race):
+		status_label.text = "Completed"
+		enter_button.text = "Completed"
+		enter_button.disabled = true
+		return
+
+	if not RaceManager.is_race_unlocked(race):
+		status_label.text = "Locked"
+		enter_button.text = "Locked"
 		enter_button.disabled = true
 		return
 
 	if not team_has_a_car():
 		status_label.text = "You need a car to enter"
+		enter_button.text = "Enter Race"
 		enter_button.disabled = true
 		return
 
 	if GameManager.team.money < race.entry_fee:
-		status_label.text = "Not enough money for the entry fee"
+		status_label.text = (
+			"Not enough money for the entry fee"
+		)
+
+		enter_button.text = "Enter Race"
 		enter_button.disabled = true
 		return
 
 	status_label.text = "Available"
+	enter_button.text = "Enter Race"
 	enter_button.disabled = false
 
 
@@ -91,11 +119,20 @@ func show_missing_race() -> void:
 	race_details_label.text = ""
 	prize_label.text = ""
 	status_label.text = "No race resource assigned"
+	enter_button.text = "Unavailable"
 	enter_button.disabled = true
 
 
 func _on_enter_button_pressed() -> void:
 	if race == null:
+		return
+
+	if RaceManager.is_race_completed(race):
+		update_entry_status()
+		return
+
+	if not RaceManager.is_race_unlocked(race):
+		update_entry_status()
 		return
 
 	GameManager.selected_race = race

@@ -17,8 +17,13 @@ var car_option_nodes: Array[RaceCarOption] = []
 
 
 func _ready() -> void:
-	back_button.pressed.connect(_on_back_button_pressed)
-	confirm_button.pressed.connect(_on_confirm_button_pressed)
+	back_button.pressed.connect(
+		_on_back_button_pressed
+	)
+
+	confirm_button.pressed.connect(
+		_on_confirm_button_pressed
+	)
 
 	confirm_button.disabled = true
 
@@ -32,7 +37,11 @@ func show_race_information() -> void:
 	if selected_race == null:
 		race_name_label.text = "No Race Selected"
 		race_details_label.text = ""
-		status_label.text = "Return to the calendar and select a race."
+
+		status_label.text = (
+			"Return to the calendar and select a race."
+		)
+
 		confirm_button.disabled = true
 		return
 
@@ -47,17 +56,23 @@ func show_race_information() -> void:
 		selected_race.track_name,
 		selected_race.lap_count,
 		format_number(selected_race.entry_fee),
-		format_number(selected_race.first_place_prize)
+		format_number(
+			selected_race.first_place_prize
+		)
 	]
 
-	status_label.text = "Choose the car you want to enter."
+	status_label.text = (
+		"Choose the car you want to enter."
+	)
 
 
 func create_car_options() -> void:
 	clear_existing_options()
 
 	if GameManager.team == null:
-		status_label.text = "No team is currently loaded."
+		status_label.text = (
+			"No team is currently loaded."
+		)
 		return
 
 	for car in GameManager.team.cars:
@@ -67,7 +82,9 @@ func create_car_options() -> void:
 		create_car_option(car)
 
 	if car_option_nodes.is_empty():
-		status_label.text = "Your team does not own any cars."
+		status_label.text = (
+			"Your team does not own any cars."
+		)
 
 
 func create_car_option(car: Car) -> void:
@@ -77,13 +94,19 @@ func create_car_option(car: Car) -> void:
 	)
 
 	if option_instance == null:
-		push_error("Could not instantiate the race car option scene.")
+		push_error(
+			"Could not instantiate the race car option scene."
+		)
 		return
 
-	option_instance.setup(car)
-	option_instance.car_selected.connect(_on_car_selected)
-
 	cars_container.add_child(option_instance)
+
+	option_instance.setup(car)
+
+	option_instance.car_selected.connect(
+		_on_car_selected
+	)
+
 	car_option_nodes.append(option_instance)
 
 
@@ -98,12 +121,18 @@ func _on_car_selected(car: Car) -> void:
 	selected_car = car
 	GameManager.selected_car = car
 
-	selected_car_label.text = "Selected Car: %s" % car.name
+	selected_car_label.text = (
+		"Selected Car: %s"
+		% car.name
+	)
+
 	status_label.text = "Ready to enter the race."
 	confirm_button.disabled = false
 
 	for option in car_option_nodes:
-		option.set_selected(option.car == selected_car)
+		option.set_selected(
+			option.car == selected_car
+		)
 
 
 func _on_confirm_button_pressed() -> void:
@@ -115,44 +144,60 @@ func _on_confirm_button_pressed() -> void:
 		return
 
 	if selected_car == null:
-		status_label.text = "Select a car before confirming."
+		status_label.text = (
+			"Select a car before confirming."
+		)
+
 		confirm_button.disabled = true
 		return
 
 	if GameManager.team == null:
-		status_label.text = "No team is currently loaded."
+		status_label.text = (
+			"No team is currently loaded."
+		)
 		return
 
-	if GameManager.team.money < selected_race.entry_fee:
-		status_label.text = "Your team cannot afford the entry fee."
-		confirm_button.disabled = true
-		return
-
-	GameManager.team.money -= selected_race.entry_fee
-
-	status_label.text = (
-		"%s has been entered in %s."
-		% [
-			selected_car.name,
-			selected_race.race_name
-		]
-	)
-
-	confirm_button.text = "Entry Confirmed"
 	confirm_button.disabled = true
 	back_button.disabled = true
+	status_label.text = "Paying entry fee..."
 
-	print(
-		"Entered %s in %s"
-		% [
-			selected_car.name,
-			selected_race.race_name
-		]
+	var entry_fee_paid: bool = (
+		GameManager.remove_team_money(
+			selected_race.entry_fee
+		)
 	)
 
-	print(
-		"Entry fee paid: $%s"
-		% format_number(selected_race.entry_fee)
+	if not entry_fee_paid:
+		status_label.text = (
+			"Your team cannot afford the entry fee."
+		)
+
+		confirm_button.disabled = false
+		back_button.disabled = false
+		return
+
+	status_label.text = "Running race..."
+
+	var race_result: RaceResult = RaceManager.run_race(
+		selected_race,
+		selected_car
+	)
+
+	if race_result == null:
+		GameManager.add_team_money(
+			selected_race.entry_fee
+		)
+
+		status_label.text = (
+			"The race could not be completed."
+		)
+
+		confirm_button.disabled = false
+		back_button.disabled = false
+		return
+
+	GameManager.load_page(
+		"res://scenes/pages/race_results/race_results.tscn"
 	)
 
 

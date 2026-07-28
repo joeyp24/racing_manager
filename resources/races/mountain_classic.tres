@@ -4,4 +4,5 @@
 
 [resource]
 script = ExtResource("1_87pkt")
+race_id = "mountain_classic"
 metadata/_custom_type_script = "uid://71mnmyrsb1lb"

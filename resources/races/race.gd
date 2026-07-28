@@ -1,6 +1,7 @@
 class_name Race
 extends Resource
 
+@export var race_id: String = ""
 @export var race_name: String = "Unnamed Race"
 @export var track_name: String = "Unnamed Track"
 @export var race_date: String = "March 1"

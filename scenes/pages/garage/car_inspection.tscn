@@ -79,3 +79,15 @@ text = "Sell Car"
 
 [node name="sell_confirmation_dialog" type="ConfirmationDialog" parent="margin_container/v_box_container" unique_id=71197933]
 unique_name_in_owner = true
+
+[node name="repair_cost_label" type="Label" parent="margin_container/v_box_container" unique_id=1846250299]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="repair_button" type="Button" parent="margin_container/v_box_container" unique_id=384414599]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="status_label" type="Label" parent="margin_container/v_box_container" unique_id=1323385002]
+unique_name_in_owner = true
+layout_mode = 2

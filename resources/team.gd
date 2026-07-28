@@ -6,6 +6,12 @@ const GARAGE_SIZE: int = 6
 @export var team_name: String = "My Team"
 @export var money: int = 15000
 @export var reputation: int = 0
+@export var championship_points: int = 0
+@export var completed_races: Array[String] = []
+
+@export var unlocked_races: Array[String] = [
+	"spring_100"
+]
 
 @export var cars: Array = [
 	null,

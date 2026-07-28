@@ -4,8 +4,9 @@
 
 [resource]
 script = ExtResource("1_y8vnt")
-race_name = "Spring 100"
-track_name = "Spring Speedway"
+race_id = "national_stock_Car"
+race_name = "National Stock Car Classic"
+track_name = "Southern Speedway"
 race_date = "March 23"
 lap_count = 100
 entry_fee = 2000

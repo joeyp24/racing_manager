@@ -9,18 +9,35 @@ extends Control
 func _ready() -> void:
 	GameManager.page_container = page_container
 
-	garage_button.pressed.connect(_on_garage_button_pressed)
+	garage_button.pressed.connect(
+		_on_garage_button_pressed
+	)
+
 	race_calendar_button.pressed.connect(
 		_on_race_calendar_button_pressed
 	)
 
-	GameManager.team.changed.connect(_on_team_changed)
+	if not GameManager.team_money_changed.is_connected(
+		_on_team_money_changed
+	):
+		GameManager.team_money_changed.connect(
+			_on_team_money_changed
+		)
 
 	update_team_display()
 
 	GameManager.load_page(
 		"res://scenes/pages/dashboard/dashboard.tscn"
 	)
+
+
+func _exit_tree() -> void:
+	if GameManager.team_money_changed.is_connected(
+		_on_team_money_changed
+	):
+		GameManager.team_money_changed.disconnect(
+			_on_team_money_changed
+		)
 
 
 func _notification(what: int) -> void:
@@ -44,11 +61,45 @@ func _on_race_calendar_button_pressed() -> void:
 	)
 
 
-func _on_team_changed() -> void:
-	update_team_display()
+func _on_team_money_changed(
+	new_amount: int
+) -> void:
+	update_money_label(new_amount)
 
 
 func update_team_display() -> void:
-	money_label.text = "Money: $%s" % String.num_int64(
+	if GameManager.team == null:
+		money_label.text = "Money: $0"
+		return
+
+	update_money_label(
 		GameManager.team.money
 	)
+
+
+func update_money_label(amount: int) -> void:
+	money_label.text = (
+		"Money: $%s"
+		% format_number(amount)
+	)
+
+
+func format_number(number: int) -> String:
+	var number_string: String = str(number)
+	var formatted_number: String = ""
+
+	while number_string.length() > 3:
+		formatted_number = (
+			","
+			+ number_string.right(3)
+			+ formatted_number
+		)
+
+		number_string = number_string.left(
+			number_string.length() - 3
+		)
+
+	return number_string + formatted_number
+
+func _on_reset_season_button_pressed() -> void:
+	GameManager.reset_season()

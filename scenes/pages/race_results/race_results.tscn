@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://b33v4lpmtlqax"]
+
+[ext_resource type="Script" uid="uid://bksaebiiukt8h" path="res://scenes/pages/race_results/race_results.gd" id="1_cis04"]
+
+[node name="race_results" type="Control" unique_id=229289711]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_cis04")
+
+[node name="margin_container" type="MarginContainer" parent="." unique_id=689821499]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="results_container" type="VBoxContainer" parent="margin_container" unique_id=398741187]
+layout_mode = 2
+
+[node name="title_label" type="Label" parent="margin_container/results_container" unique_id=298679443]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Race Results"
+
+[node name="race_name_label" type="Label" parent="margin_container/results_container" unique_id=576232691]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="finishing_position_label" type="Label" parent="margin_container/results_container" unique_id=241891256]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="standings_scroll_container" type="ScrollContainer" parent="margin_container/results_container" unique_id=768077961]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="standings_label" type="Label" parent="margin_container/results_container/standings_scroll_container" unique_id=1089533720]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+
+[node name="summary_label" type="Label" parent="margin_container/results_container" unique_id=1121546790]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="car_effects_label" type="Label" parent="margin_container/results_container" unique_id=1569523567]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="continue_button" type="Button" parent="margin_container/results_container" unique_id=950594644]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Continue"
