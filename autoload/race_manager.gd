@@ -471,15 +471,25 @@ func update_driver_career_stats(
 	var driver: Driver = result.player_driver
 
 	driver.career_starts += 1
+	driver.season_starts += 1
 	driver.career_points += (
 		result.championship_points_earned
 	)
+	driver.development_points += 1
 
 	if result.finishing_position == 1:
 		driver.career_wins += 1
+		driver.development_points += 1
 
 	if result.finishing_position <= 3:
 		driver.career_podiums += 1
+		driver.development_points += 1
+
+	if (
+		driver.potential >= 85
+		and (driver.career_starts + driver.career_points) % 3 == 0
+	):
+		driver.development_points += 1
 
 	driver.emit_changed()
 
@@ -765,6 +775,8 @@ func start_new_season() -> bool:
 	if not GameManager.team.season_complete:
 		return false
 
+	apply_driver_development()
+
 	GameManager.team.season_number += 1
 	GameManager.team.season_complete = false
 	GameManager.team.last_season_position = 0
@@ -783,6 +795,113 @@ func start_new_season() -> bool:
 	GameManager.team.emit_changed()
 	GameManager.save_game()
 	return true
+
+
+func apply_driver_development() -> void:
+	var team: Team = GameManager.team
+	team.last_development_summary.clear()
+
+	for driver in team.drivers:
+		if driver == null:
+			continue
+
+		var represented_team: bool = driver.season_starts > 0
+		if represented_team:
+			driver.seasons_with_team += 1
+		else:
+			driver.development_points += get_free_agent_development(driver)
+
+		var old_skill: int = driver.skill
+		var old_consistency: int = driver.consistency
+		var old_aggression: int = driver.aggression
+		spend_development_points(driver)
+		driver.age += 1
+		apply_veteran_decline(driver)
+		driver.season_starts = 0
+
+		driver.last_season_development = describe_driver_changes(
+			driver,
+			old_skill,
+			old_consistency,
+			old_aggression
+		)
+		team.last_development_summary.append(
+			"%s: %s" % [
+				driver.driver_name,
+				driver.last_season_development
+			]
+		)
+		driver.emit_changed()
+
+
+func get_free_agent_development(driver: Driver) -> int:
+	if driver.age >= 34:
+		return 0
+	if driver.potential >= 88 and driver.age <= 24:
+		return 2
+	return 1
+
+
+func spend_development_points(driver: Driver) -> void:
+	var attempts: int = driver.development_points
+	var development_cycle: Array[String] = [
+		"skill", "consistency", "skill",
+		"aggression", "skill", "consistency"
+	]
+
+	for point_index in range(attempts):
+		var attribute: String = development_cycle[
+			point_index % development_cycle.size()
+		]
+		var current_value: int = int(driver.get(attribute))
+		var ceiling: int = min(driver.potential, 100)
+		if current_value < ceiling and driver.age < 34:
+			driver.set(attribute, current_value + 1)
+		driver.development_points -= 1
+
+
+func apply_veteran_decline(driver: Driver) -> void:
+	if driver.age < 35:
+		return
+
+	var decline: int = 2 if driver.age >= 39 else 1
+	driver.skill = max(1, driver.skill - decline)
+	driver.consistency = max(1, driver.consistency - 1)
+
+
+func describe_driver_changes(
+	driver: Driver,
+	old_skill: int,
+	old_consistency: int,
+	old_aggression: int
+) -> String:
+	var changes: Array[String] = []
+	append_attribute_change(changes, "Skill", driver.skill - old_skill)
+	append_attribute_change(
+		changes,
+		"Consistency",
+		driver.consistency - old_consistency
+	)
+	append_attribute_change(
+		changes,
+		"Aggression",
+		driver.aggression - old_aggression
+	)
+	return "No change" if changes.is_empty() else ", ".join(changes)
+
+
+func append_attribute_change(
+	changes: Array[String],
+	attribute_name: String,
+	amount: int
+) -> void:
+	if amount == 0:
+		return
+	changes.append("%s %s%d" % [
+		attribute_name,
+		"+" if amount > 0 else "",
+		amount
+	])
 
 
 func is_race_completed(

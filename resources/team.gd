@@ -12,6 +12,7 @@ const GARAGE_SIZE: int = 6
 @export var driver_hired_for_season: bool = false
 @export var last_season_position: int = 0
 @export var last_season_prize: int = 0
+@export var last_development_summary: Array[String] = []
 
 @export var completed_races: Array[String] = []
 
@@ -143,6 +144,13 @@ func ensure_default_player_driver() -> Driver:
 	if current_driver != null:
 		current_driver.team_name = team_name
 		current_driver.is_player_driver = true
+		if (
+			current_driver.driver_id == "player_jordan_hayes"
+			and current_driver.age == 25
+			and current_driver.potential == 80
+		):
+			current_driver.age = 24
+			current_driver.potential = 78
 		return current_driver
 
 	var new_driver := Driver.new()
@@ -153,6 +161,8 @@ func ensure_default_player_driver() -> Driver:
 	new_driver.skill = 55
 	new_driver.consistency = 55
 	new_driver.aggression = 50
+	new_driver.age = 24
+	new_driver.potential = 78
 
 	new_driver.salary = 1500
 	new_driver.signing_fee = 2000
@@ -175,36 +185,43 @@ func ensure_driver_market() -> void:
 			"id": "maya_torres", "name": "Maya Torres",
 			"archetype": "Talented but inconsistent",
 			"skill": 78, "consistency": 43, "aggression": 62,
-			"salary": 3200, "fee": 6500
+			"salary": 3200, "fee": 6500,
+			"age": 25, "potential": 90
 		},
 		{
 			"id": "grant_holloway", "name": "Grant Holloway",
 			"archetype": "Dependable veteran",
 			"skill": 67, "consistency": 84, "aggression": 38,
-			"salary": 2900, "fee": 5000
+			"salary": 2900, "fee": 5000,
+			"age": 35, "potential": 85
 		},
 		{
 			"id": "nia_okafor", "name": "Nia Okafor",
 			"archetype": "Aggressive prospect",
 			"skill": 65, "consistency": 54, "aggression": 88,
-			"salary": 2200, "fee": 4000
+			"salary": 2200, "fee": 4000,
+			"age": 21, "potential": 94
 		},
 		{
 			"id": "eli_park", "name": "Eli Park",
 			"archetype": "Cheap rookie",
 			"skill": 48, "consistency": 51, "aggression": 57,
-			"salary": 900, "fee": 1000
+			"salary": 900, "fee": 1000,
+			"age": 19, "potential": 86
 		},
 		{
 			"id": "sofia_varga", "name": "Sofia Varga",
 			"archetype": "Expensive championship contender",
 			"skill": 91, "consistency": 87, "aggression": 71,
-			"salary": 6000, "fee": 12000
+			"salary": 6000, "fee": 12000,
+			"age": 29, "potential": 94
 		}
 	]
 
 	for data in candidates:
-		if get_driver_by_id(str(data["id"])) != null:
+		var existing_driver: Driver = get_driver_by_id(str(data["id"]))
+		if existing_driver != null:
+			migrate_driver_development(existing_driver, data)
 			continue
 		var driver := Driver.new()
 		driver.driver_id = str(data["id"])
@@ -215,7 +232,25 @@ func ensure_driver_market() -> void:
 		driver.aggression = int(data["aggression"])
 		driver.salary = int(data["salary"])
 		driver.signing_fee = int(data["fee"])
+		driver.age = int(data["age"])
+		driver.potential = int(data["potential"])
 		drivers.append(driver)
+
+
+func migrate_driver_development(
+	driver: Driver,
+	data: Dictionary
+) -> void:
+	# Values introduced after launch use generic Resource defaults in old saves.
+	# Replace those defaults with the archetype-specific values once.
+	if driver.age == 25 and driver.potential == 80:
+		driver.age = int(data["age"])
+		driver.potential = int(data["potential"])
+
+	driver.potential = max(
+		driver.potential,
+		max(driver.skill, max(driver.consistency, driver.aggression))
+	)
 
 
 func can_hire_driver() -> bool:
