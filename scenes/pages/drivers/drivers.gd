@@ -40,7 +40,14 @@ func display_market() -> void:
 	if team.driver_hired_for_season:
 		hiring_status_label.text = "Driver signed for Season %d. Changes are locked once a contract is signed." % team.season_number
 	else:
-		hiring_status_label.text = "Pre-season hiring is open. Signing fees are charged immediately."
+		hiring_status_label.text = (
+			"Pre-season hiring is open. Signing fees are charged immediately."
+		)
+		if not team.last_development_summary.is_empty():
+			hiring_status_label.text += (
+				"\nLast season's development:\n"
+				+ "\n".join(team.last_development_summary)
+			)
 
 	for child in candidates_container.get_children():
 		child.queue_free()
@@ -57,13 +64,15 @@ func create_candidate_row(driver: Driver) -> void:
 	var details := Label.new()
 	var hire_button := Button.new()
 
-	panel.custom_minimum_size = Vector2(0, 92)
+	panel.custom_minimum_size = Vector2(0, 116)
 	row.add_theme_constant_override("separation", 18)
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	details.text = "%s — %s\n%s\nCareer: %d starts | %d wins | %d podiums | %d points" % [
+	details.text = "%s — %s\n%s\nDevelopment: %s | Last Season: %s\nCareer: %d starts | %d wins | %d podiums | %d points" % [
 		driver.driver_name,
 		driver.archetype,
 		create_driver_details(driver),
+		driver.get_development_rate(),
+		driver.last_season_development,
 		driver.career_starts,
 		driver.career_wins,
 		driver.career_podiums,
@@ -84,7 +93,10 @@ func create_candidate_row(driver: Driver) -> void:
 
 
 func create_driver_details(driver: Driver) -> String:
-	return "Skill %d | Consistency %d | Aggression %d | Salary $%s/race | Signing fee $%s" % [
+	return "Age %d | Potential %d | Team seasons %d | Skill %d | Consistency %d | Aggression %d | Salary $%s/race | Signing fee $%s" % [
+		driver.age,
+		driver.potential,
+		driver.seasons_with_team,
 		driver.skill,
 		driver.consistency,
 		driver.aggression,
