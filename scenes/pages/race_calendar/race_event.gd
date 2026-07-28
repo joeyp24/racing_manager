@@ -1,8 +1,6 @@
 class_name RaceEvent
 extends PanelContainer
 
-signal race_selected(selected_race: Race)
-
 var race: Race = null
 
 @onready var race_name_label: Label = %race_name_label
@@ -16,11 +14,14 @@ var race: Race = null
 
 func _ready() -> void:
 	enter_button.pressed.connect(_on_enter_button_pressed)
+	update_display()
 
 
 func setup(new_race: Race) -> void:
 	race = new_race
-	update_display()
+
+	if is_node_ready():
+		update_display()
 
 
 func update_display() -> void:
@@ -97,7 +98,12 @@ func _on_enter_button_pressed() -> void:
 	if race == null:
 		return
 
-	race_selected.emit(race)
+	GameManager.selected_race = race
+	GameManager.selected_car = null
+
+	GameManager.load_page(
+		"res://scenes/pages/race_entry/race_entry.tscn"
+	)
 
 
 func format_number(number: int) -> String:

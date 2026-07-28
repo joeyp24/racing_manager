@@ -4,4 +4,6 @@
 
 [resource]
 script = ExtResource("1_hrol7")
+race_name = "Spring Speedway 100"
+track_name = "Spring Speedway"
 metadata/_custom_type_script = "uid://71mnmyrsb1lb"

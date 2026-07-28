@@ -34,3 +34,4 @@ layout_mode = 2
 [node name="buy_button" type="Button" parent="dealership_offer/margin_container/offer_container" unique_id=1517332767]
 unique_name_in_owner = true
 layout_mode = 2
+text = "Purchase Car"

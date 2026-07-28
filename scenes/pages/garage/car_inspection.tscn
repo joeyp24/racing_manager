@@ -72,6 +72,9 @@ text = "Back To Garage"
 [node name="sell_button" type="Button" parent="margin_container/v_box_container" unique_id=807894774]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/icon_normal_color = Color(0.8703772, 0.04323306, 0.10258653, 1)
+theme_override_colors/icon_focus_color = Color(0.8859413, 0.19168156, 0.28809467, 1)
+theme_override_colors/icon_pressed_color = Color(0.6415529, 0, 0.11890183, 1)
 text = "Sell Car"
 
 [node name="sell_confirmation_dialog" type="ConfirmationDialog" parent="margin_container/v_box_container" unique_id=71197933]

@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://b8f4q7cyf6sku"]
+
+[ext_resource type="Script" uid="uid://dq3kuwvyekasy" path="res://scenes/pages/race_entry/race_entry.gd" id="1_6jwqh"]
+
+[node name="race_entry" type="Control" unique_id=391791362]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_6jwqh")
+
+[node name="margin_container" type="MarginContainer" parent="." unique_id=637104137]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="race_entry_container" type="VBoxContainer" parent="margin_container" unique_id=107656130]
+layout_mode = 2
+
+[node name="title_label" type="Label" parent="margin_container/race_entry_container" unique_id=1584361617]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Race Entry"
+
+[node name="race_name_label" type="Label" parent="margin_container/race_entry_container" unique_id=1856814189]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="race_details_label" type="Label" parent="margin_container/race_entry_container" unique_id=688120151]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="instructions_label" type="Label" parent="margin_container/race_entry_container" unique_id=179023723]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Select a car to enter this event"
+
+[node name="cars_scroll_container" type="ScrollContainer" parent="margin_container/race_entry_container" unique_id=972782784]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="cars_container" type="GridContainer" parent="margin_container/race_entry_container/cars_scroll_container" unique_id=748438134]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 2
+
+[node name="selected_car_label" type="Label" parent="margin_container/race_entry_container" unique_id=1276730893]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Selected Car: None"
+
+[node name="status_label" type="Label" parent="margin_container/race_entry_container" unique_id=1593441103]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="buttons_container" type="HBoxContainer" parent="margin_container/race_entry_container" unique_id=580248580]
+layout_mode = 2
+
+[node name="back_button" type="Button" parent="margin_container/race_entry_container/buttons_container" unique_id=1432441203]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"
+
+[node name="confirm_button" type="Button" parent="margin_container/race_entry_container/buttons_container" unique_id=2095647978]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Confirm Entry"

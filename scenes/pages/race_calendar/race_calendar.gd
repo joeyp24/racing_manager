@@ -18,8 +18,6 @@ func _ready() -> void:
 func create_race_events() -> void:
 	clear_existing_events()
 
-	print("Race count: ", race_calendar.size())
-
 	if race_calendar.is_empty():
 		push_warning("The race calendar contains no races.")
 		return
@@ -27,27 +25,23 @@ func create_race_events() -> void:
 	for race_resource in race_calendar:
 		create_race_event(race_resource)
 
-	print(
-		"Generated event count: ",
-		races_container.get_child_count()
-	)
-
 
 func create_race_event(race_resource: Race) -> void:
 	if race_resource == null:
 		push_warning("The race calendar contains an empty entry.")
 		return
 
-	var event_instance := RACE_EVENT_SCENE.instantiate() as RaceEvent
+	var event_instance := (
+		RACE_EVENT_SCENE.instantiate()
+		as RaceEvent
+	)
 
 	if event_instance == null:
 		push_error("The race event scene could not be instantiated.")
 		return
 
-	races_container.add_child(event_instance)
-
 	event_instance.setup(race_resource)
-	event_instance.race_selected.connect(_on_race_selected)
+	races_container.add_child(event_instance)
 
 
 func clear_existing_events() -> void:
@@ -55,20 +49,9 @@ func clear_existing_events() -> void:
 		child.queue_free()
 
 
-func _on_race_selected(selected_race: Race) -> void:
-	if selected_race == null:
-		return
-
-	GameManager.selected_race = selected_race
-
-	print(
-		"Selected race: %s"
-		% selected_race.race_name
-	)
-
-
 func _on_back_button_pressed() -> void:
 	GameManager.selected_race = null
+	GameManager.selected_car = null
 
 	GameManager.load_page(
 		"res://scenes/pages/dashboard/dashboard.tscn"
