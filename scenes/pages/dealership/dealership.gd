@@ -25,6 +25,8 @@ var maximum_used_mileage: int = 140000
 
 @onready var offers_container: GridContainer = %offers_container
 @onready var back_button: Button = %back_button
+@onready var title_label: Label = %title_label
+@onready var instructions_label: Label = %instructions_label
 
 var random_number_generator := RandomNumberGenerator.new()
 
@@ -35,12 +37,23 @@ func _ready() -> void:
 	back_button.pressed.connect(_on_back_button_pressed)
 
 	if GameManager.selected_bay < 0:
-		push_error(
-			"The dealership was opened without selecting a garage bay."
-		)
-		return
+		GameManager.selected_bay = find_empty_garage_bay()
+
+	if GameManager.selected_bay < 0:
+		instructions_label.text = "Your garage is full. Sell a car before purchasing another."
+	else:
+		instructions_label.text = "Purchases will be delivered to garage bay %d. New and used cars include a complete set of standard parts." % (GameManager.selected_bay + 1)
+
+	title_label.text = "Car Dealership"
 
 	create_dealership_offers()
+
+
+func find_empty_garage_bay() -> int:
+	for bay_index in range(GameManager.team.cars.size()):
+		if GameManager.team.get_car(bay_index) == null:
+			return bay_index
+	return -1
 
 
 func create_dealership_offers() -> void:

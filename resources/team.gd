@@ -32,10 +32,20 @@ const GARAGE_SIZE: int = 6
 	null
 ]
 
+@export var parts_inventory: Array[CarPart] = []
+
 
 func _init() -> void:
 	ensure_default_player_driver()
 	ensure_driver_market()
+	ensure_car_parts()
+
+
+func ensure_car_parts() -> void:
+	for car_value in cars:
+		var car := car_value as Car
+		if car != null:
+			car.ensure_standard_parts()
 
 
 func get_car(bay_index: int) -> Car:
@@ -78,6 +88,8 @@ func buy_car(
 		)
 		return false
 
+	purchased_car.ensure_standard_parts()
+
 	money -= car_template.purchase_price
 	cars[bay_index] = purchased_car
 
@@ -107,6 +119,43 @@ func sell_car(bay_index: int) -> int:
 	emit_changed()
 
 	return sale_price
+
+
+func buy_part(part_template: CarPart) -> bool:
+	if part_template == null or money < part_template.purchase_price:
+		return false
+	money -= part_template.purchase_price
+	parts_inventory.append(part_template.duplicate(true) as CarPart)
+	emit_changed()
+	return true
+
+
+func sell_part(part: CarPart) -> int:
+	if part == null or not parts_inventory.has(part):
+		return 0
+	parts_inventory.erase(part)
+	money += part.sale_price
+	emit_changed()
+	return part.sale_price
+
+
+func install_part(car: Car, part: CarPart) -> bool:
+	if car == null or part == null or not parts_inventory.has(part):
+		return false
+	parts_inventory.erase(part)
+	var removed_part: CarPart = car.install_part(part)
+	if removed_part != null and removed_part.tier != "Standard":
+		parts_inventory.append(removed_part)
+	emit_changed()
+	return true
+
+
+func get_parts_by_type(part_type: String) -> Array[CarPart]:
+	var matches: Array[CarPart] = []
+	for part in parts_inventory:
+		if part != null and part.part_type == part_type:
+			matches.append(part)
+	return matches
 
 
 func remove_car_from_bay(
