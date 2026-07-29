@@ -254,7 +254,7 @@ func _on_scouting_button_pressed() -> void:
 func update_unlocked_navigation() -> void:
 	var unlocked := GameManager.team != null and GameManager.team.get_department_level("scouting") > 0
 	scouting_button.disabled = not unlocked
-	scouting_button.text = "Scouting" if unlocked else "Scouting  ·  LOCKED"
+	scouting_button.text = "⌕   Scouting" if unlocked else "⌕   Scouting  ·  LOCKED"
 	scouting_button.tooltip_text = "Build the Scouting department at HQ to unlock." if not unlocked else "Find emerging driver talent."
 
 

@@ -33,7 +33,7 @@ offset_bottom = -32.0
 
 [node name="content" type="VBoxContainer" parent="PageScroll/margin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 10
 
 [node name="progress_label" type="Label" parent="PageScroll/margin/content"]
 unique_name_in_owner = true
