@@ -74,7 +74,7 @@ func show_part_inventory(part_type: String) -> void:
 	for part in available_parts:
 		var row := HBoxContainer.new()
 		var label := Label.new()
-		label.text = "%s\nPerformance +%d  •  Sell $%s" % [part.get_summary(), part.performance_bonus, format_number(part.sale_price)]
+		label.text = "%s\nEffective performance +%d  •  Sell $%s" % [part.get_summary(), part.get_effective_performance_bonus(), format_number(part.sale_price)]
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var install_button := Button.new()
 		install_button.text = "Install"

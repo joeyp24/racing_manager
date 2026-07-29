@@ -19,6 +19,8 @@ var part_type: String = "Engine"
 @export var performance_bonus: int = 0
 @export var purchase_price: int = 0
 @export var sale_price: int = 0
+@export_range(0, 100) var condition: int = 100
+@export var manufactured_by: String = ""
 
 
 func get_effect_text() -> String:
@@ -27,4 +29,8 @@ func get_effect_text() -> String:
 
 
 func get_summary() -> String:
-	return "%s · %s · %s" % [tier, part_name, get_effect_text()]
+	return "%s · %s · %s · %d%% condition" % [tier, part_name, get_effect_text(), condition]
+
+
+func get_effective_performance_bonus() -> int:
+	return roundi(float(performance_bonus) * float(condition) / 100.0)

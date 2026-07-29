@@ -364,3 +364,12 @@ Keep the project beginner-friendly and easy to understand.
 - Financial reports
 - Team reputation expansion
 - Better race simulation
+
+---
+
+# Staff and Workshop
+
+The Staff page allows a team to hire one crew chief and up to three engineers.
+Crew-chief rating supplies a percentage race-performance boost. Engineers can
+manufacture parts and repair worn inventory parts; their rating controls the
+quality of manufactured parts and the condition restored by each repair.

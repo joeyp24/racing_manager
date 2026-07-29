@@ -48,5 +48,5 @@ func get_total_performance() -> int:
 	var total: int = performance
 	for part in installed_parts:
 		if part != null:
-			total += part.performance_bonus
+			total += part.get_effective_performance_bonus()
 	return total
