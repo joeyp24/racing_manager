@@ -3,6 +3,7 @@ extends Node
 signal team_money_changed(new_amount: int)
 signal team_loaded(team: Team)
 signal fullscreen_changed(is_now_fullscreen: bool)
+signal page_changed(scene_path: String)
 
 var team: Team = null
 var active_save_id: String = ""
@@ -119,6 +120,7 @@ func load_page(scene_path: String) -> void:
 	page_container.add_child(page_instance)
 	if page_instance is Control:
 		(page_instance as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page_changed.emit(scene_path)
 
 
 func add_team_money(amount: int) -> void:
