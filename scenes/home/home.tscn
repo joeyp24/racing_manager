@@ -41,15 +41,20 @@ theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="Content" type="VBoxContainer" parent="Layout/Sidebar/Margin"]
+[node name="Scroll" type="ScrollContainer" parent="Layout/Sidebar/Margin"]
 layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="Layout/Sidebar/Margin/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 5
 
-[node name="TeamHeader" type="HBoxContainer" parent="Layout/Sidebar/Margin/Content"]
+[node name="TeamHeader" type="HBoxContainer" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Badge" type="Label" parent="Layout/Sidebar/Margin/Content/TeamHeader"]
+[node name="Badge" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content/TeamHeader"]
 custom_minimum_size = Vector2(42, 42)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.3, 0.12, 1)
@@ -58,32 +63,32 @@ text = "◆"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Identity" type="VBoxContainer" parent="Layout/Sidebar/Margin/Content/TeamHeader"]
+[node name="Identity" type="VBoxContainer" parent="Layout/Sidebar/Margin/Scroll/Content/TeamHeader"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 0
 
-[node name="team_name_label" type="Label" parent="Layout/Sidebar/Margin/Content/TeamHeader/Identity"]
+[node name="team_name_label" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content/TeamHeader/Identity"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "APEX MOTORSPORT"
 text_overrun_behavior = 3
 
-[node name="season_label" type="Label" parent="Layout/Sidebar/Margin/Content/TeamHeader/Identity"]
+[node name="season_label" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content/TeamHeader/Identity"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "SEASON 1 • TEAM HQ"
 
-[node name="Rule" type="HSeparator" parent="Layout/Sidebar/Margin/Content"]
+[node name="Rule" type="HSeparator" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 
-[node name="OverviewLabel" type="Label" parent="Layout/Sidebar/Margin/Content"]
+[node name="OverviewLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "OVERVIEW"
 
-[node name="home_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="home_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -91,7 +96,7 @@ toggle_mode = true
 text = "  ◈  Dashboard"
 alignment = 0
 
-[node name="race_calendar_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="race_calendar_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -99,7 +104,7 @@ toggle_mode = true
 text = "  ◷  Calendar"
 alignment = 0
 
-[node name="championship_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="championship_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -107,12 +112,12 @@ toggle_mode = true
 text = "  ▥  Championship"
 alignment = 0
 
-[node name="TeamLabel" type="Label" parent="Layout/Sidebar/Margin/Content"]
+[node name="TeamLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "TEAM"
 
-[node name="garage_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="garage_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -120,7 +125,7 @@ toggle_mode = true
 text = "  ▰  Garage"
 alignment = 0
 
-[node name="drivers_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="drivers_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -128,7 +133,7 @@ toggle_mode = true
 text = "  ◉  Drivers"
 alignment = 0
 
-[node name="staff_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="staff_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -136,12 +141,12 @@ toggle_mode = true
 text = "  ◫  Staff"
 alignment = 0
 
-[node name="OperationsLabel" type="Label" parent="Layout/Sidebar/Margin/Content"]
+[node name="OperationsLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "OPERATIONS"
 
-[node name="shop_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="shop_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -149,7 +154,7 @@ toggle_mode = true
 text = "  ◆  Parts Shop"
 alignment = 0
 
-[node name="dealership_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="dealership_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -157,7 +162,7 @@ toggle_mode = true
 text = "  ◇  Dealership"
 alignment = 0
 
-[node name="sponsors_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="sponsors_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -165,7 +170,7 @@ toggle_mode = true
 text = "  ✦  Sponsors"
 alignment = 0
 
-[node name="finances_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="finances_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -173,12 +178,12 @@ toggle_mode = true
 text = "  $  Finances"
 alignment = 0
 
-[node name="FacilitiesLabel" type="Label" parent="Layout/Sidebar/Margin/Content"]
+[node name="FacilitiesLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "FACILITIES"
 
-[node name="hq_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="hq_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -186,7 +191,7 @@ toggle_mode = true
 text = "  ▦  Headquarters"
 alignment = 0
 
-[node name="scouting_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="scouting_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -194,11 +199,11 @@ toggle_mode = true
 text = "  ⌖  Scouting  🔒"
 alignment = 0
 
-[node name="Spacer" type="Control" parent="Layout/Sidebar/Margin/Content"]
+[node name="Spacer" type="Control" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="identity_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="identity_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
@@ -206,13 +211,13 @@ toggle_mode = true
 text = "  ◆  Team Identity"
 alignment = 0
 
-[node name="fullscreen_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="fullscreen_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "  ⛶  Full Screen (F11)"
 alignment = 0
 
-[node name="reset_game_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+[node name="reset_game_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Reset career"
@@ -320,4 +325,4 @@ unique_name_in_owner = true
 layout_mode = 2
 clip_contents = true
 
-[connection signal="pressed" from="Layout/Sidebar/Margin/Content/reset_game_button" to="." method="_on_reset_game_button_pressed"]
+[connection signal="pressed" from="Layout/Sidebar/Margin/Scroll/Content/reset_game_button" to="." method="_on_reset_game_button_pressed"]

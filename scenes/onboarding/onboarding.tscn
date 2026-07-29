@@ -20,7 +20,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.025, 0.035, 0.055, 1)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="PageScroll" type="ScrollContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -28,94 +28,99 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(690, 500)
+[node name="Center" type="CenterContainer" parent="PageScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Panel" type="PanelContainer" parent="PageScroll/Center"]
+custom_minimum_size = Vector2(560, 460)
 layout_mode = 2
 theme_type_variation = &"CardPanel"
 
-[node name="Content" type="VBoxContainer" parent="Center/Panel"]
+[node name="Content" type="VBoxContainer" parent="PageScroll/Center/Panel"]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="step_label" type="Label" parent="Center/Panel/Content"]
+[node name="step_label" type="Label" parent="PageScroll/Center/Panel/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 
-[node name="title_label" type="Label" parent="Center/Panel/Content"]
+[node name="title_label" type="Label" parent="PageScroll/Center/Panel/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PageTitle"
 
-[node name="body_label" type="Label" parent="Center/Panel/Content"]
+[node name="body_label" type="Label" parent="PageScroll/Center/Panel/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 autowrap_mode = 2
 
-[node name="setup_form" type="VBoxContainer" parent="Center/Panel/Content"]
+[node name="setup_form" type="VBoxContainer" parent="PageScroll/Center/Panel/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="NameLabel" type="Label" parent="Center/Panel/Content/setup_form"]
+[node name="NameLabel" type="Label" parent="PageScroll/Center/Panel/Content/setup_form"]
 layout_mode = 2
 text = "TEAM NAME"
-[node name="name_edit" type="LineEdit" parent="Center/Panel/Content/setup_form"]
+[node name="name_edit" type="LineEdit" parent="PageScroll/Center/Panel/Content/setup_form"]
 unique_name_in_owner = true
 layout_mode = 2
 max_length = 32
-[node name="HomeLabel" type="Label" parent="Center/Panel/Content/setup_form"]
+[node name="HomeLabel" type="Label" parent="PageScroll/Center/Panel/Content/setup_form"]
 layout_mode = 2
 text = "HOME TOWN"
-[node name="hometown_edit" type="LineEdit" parent="Center/Panel/Content/setup_form"]
+[node name="hometown_edit" type="LineEdit" parent="PageScroll/Center/Panel/Content/setup_form"]
 unique_name_in_owner = true
 layout_mode = 2
 max_length = 40
-[node name="MottoLabel" type="Label" parent="Center/Panel/Content/setup_form"]
+[node name="MottoLabel" type="Label" parent="PageScroll/Center/Panel/Content/setup_form"]
 layout_mode = 2
 text = "TEAM MOTTO"
-[node name="motto_edit" type="LineEdit" parent="Center/Panel/Content/setup_form"]
+[node name="motto_edit" type="LineEdit" parent="PageScroll/Center/Panel/Content/setup_form"]
 unique_name_in_owner = true
 layout_mode = 2
 max_length = 64
-[node name="Style" type="HBoxContainer" parent="Center/Panel/Content/setup_form"]
+[node name="Style" type="HBoxContainer" parent="PageScroll/Center/Panel/Content/setup_form"]
 layout_mode = 2
-[node name="badge_option" type="OptionButton" parent="Center/Panel/Content/setup_form/Style"]
+[node name="badge_option" type="OptionButton" parent="PageScroll/Center/Panel/Content/setup_form/Style"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-[node name="primary_picker" type="ColorPickerButton" parent="Center/Panel/Content/setup_form/Style"]
+[node name="primary_picker" type="ColorPickerButton" parent="PageScroll/Center/Panel/Content/setup_form/Style"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Primary"
-[node name="secondary_picker" type="ColorPickerButton" parent="Center/Panel/Content/setup_form/Style"]
+[node name="secondary_picker" type="ColorPickerButton" parent="PageScroll/Center/Panel/Content/setup_form/Style"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Secondary"
 
-[node name="Spacer" type="Control" parent="Center/Panel/Content"]
+[node name="Spacer" type="Control" parent="PageScroll/Center/Panel/Content"]
 layout_mode = 2
 size_flags_vertical = 3
-[node name="Actions" type="HBoxContainer" parent="Center/Panel/Content"]
+[node name="Actions" type="HBoxContainer" parent="PageScroll/Center/Panel/Content"]
 layout_mode = 2
-[node name="Cancel" type="Button" parent="Center/Panel/Content/Actions"]
+[node name="Cancel" type="Button" parent="PageScroll/Center/Panel/Content/Actions"]
 layout_mode = 2
 text = "Main menu"
-[node name="ActionSpacer" type="Control" parent="Center/Panel/Content/Actions"]
+[node name="ActionSpacer" type="Control" parent="PageScroll/Center/Panel/Content/Actions"]
 layout_mode = 2
 size_flags_horizontal = 3
-[node name="back_button" type="Button" parent="Center/Panel/Content/Actions"]
+[node name="back_button" type="Button" parent="PageScroll/Center/Panel/Content/Actions"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Back"
-[node name="next_button" type="Button" parent="Center/Panel/Content/Actions"]
+[node name="next_button" type="Button" parent="PageScroll/Center/Panel/Content/Actions"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(180, 44)
 layout_mode = 2
 theme_type_variation = &"PrimaryButton"
 text = "CONTINUE  →"
 
-[connection signal="pressed" from="Center/Panel/Content/Actions/Cancel" to="." method="_on_cancel_pressed"]
-[connection signal="pressed" from="Center/Panel/Content/Actions/back_button" to="." method="_on_back_pressed"]
-[connection signal="pressed" from="Center/Panel/Content/Actions/next_button" to="." method="_on_next_pressed"]
+[connection signal="pressed" from="PageScroll/Center/Panel/Content/Actions/Cancel" to="." method="_on_cancel_pressed"]
+[connection signal="pressed" from="PageScroll/Center/Panel/Content/Actions/back_button" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="PageScroll/Center/Panel/Content/Actions/next_button" to="." method="_on_next_pressed"]
