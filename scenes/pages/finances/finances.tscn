@@ -59,6 +59,12 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Transaction History"
 
+[node name="recovery_button" type="Button" parent="margin/layout"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Accept emergency owner investment (+$15,000)"
+tooltip_text = "Available once per career when cash falls below $10,000."
+
 [node name="history_scroll" type="ScrollContainer" parent="margin/layout"]
 layout_mode = 2
 size_flags_vertical = 3

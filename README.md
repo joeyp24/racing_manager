@@ -1,5 +1,12 @@
 # Racing Manager
 
+## Economy balance simulation
+
+Run `python3 tools/balance_simulation.py --difficulty Club --seasons 500` to exercise the
+career economy with a deterministic Monte Carlo model. The report includes bankruptcy
+rate, cash after each race, finishing position, upgrade timing, and modeled ROI for every
+part family and department. Use `--seed` to reproduce a run or compare balance changes.
+
 A stock-car motorsports management game built in Godot 4.x.
 
 The goal of the game is to let the player build a racing team by purchasing cars, entering races, earning prize money, repairing vehicles, progressing through a championship season, and eventually competing for the championship.

@@ -121,7 +121,8 @@ func calculate_repair_cost(car: Car) -> int:
 	var engineering_discount := GameManager.team.get_department_bonus("engineering")
 	var mechanic_discount := GameManager.team.get_repair_time_reduction() * 0.35
 	var improved_cost := ceili(float(base_cost) * (1.0 - (engineering_discount + mechanic_discount) / 100.0))
-	return GameManager.team.get_discounted_cost(improved_cost)
+	var difficulty_cost := roundi(float(improved_cost) * float(GameManager.team.get_difficulty_setting("repair_multiplier", 1.0)))
+	return GameManager.team.get_discounted_cost(difficulty_cost)
 
 
 func _on_repair_button_pressed() -> void:

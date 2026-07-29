@@ -53,7 +53,7 @@ func show_event_information() -> void:
 		prize_label.text = ""
 		return
 	race_name_label.text = race.race_name
-	event_details_label.text = "%s  •  %s\n%d laps  •  Difficulty %d/100  •  Entry $%s" % [race.track_name, race.race_date, race.lap_count, race.difficulty, format_number(race.entry_fee)]
+	event_details_label.text = "%s  •  %s\n%d laps  •  Difficulty %d/100  •  Track charges $%s  •  Operations $%s" % [race.track_name, race.race_date, race.lap_count, race.difficulty, format_number(race.get_track_charges()), format_number(race.get_operating_cost())]
 	prize_label.text = "PRIZE STRUCTURE  1st $%s  •  2nd $%s  •  3rd $%s" % [format_number(race.first_place_prize), format_number(race.second_place_prize), format_number(race.third_place_prize)]
 
 
@@ -179,7 +179,7 @@ func update_forecast() -> void:
 	var sponsor_income := sponsor.payment_per_race if sponsor != null else 0
 	var payroll: int = GameManager.team.get_total_race_payroll()
 	var objective_chance := clampi(roundi(72.0 + (strength - 60.0) - float(race.difficulty) * 0.25), 10, 95)
-	var total_fee: int = race.entry_fee * selected_race_teams.size()
+	var total_fee: int = race.get_weekend_cost() * selected_race_teams.size()
 	forecast_label.text = "EXPECTED FINISH  P%d–P%d\nExpected revenue $%s  •  Entry + payroll $%s  •  Net forecast %s$%s\nSponsor objective chance %d%%  •  Expected condition loss %d%%" % [best, worst, format_number(expected_prize + sponsor_income), format_number(total_fee + payroll), "+" if expected_prize + sponsor_income >= total_fee + payroll else "−", format_number(absi(expected_prize + sponsor_income - total_fee - payroll)), objective_chance, wear]
 	var risks: Array[String] = []
 	if selected_car.condition < 70:
@@ -201,7 +201,7 @@ func update_readiness() -> void:
 		return
 	var checks := RaceReadiness.evaluate(GameManager.team, GameManager.selected_race, selected_car)
 	var overall := RaceReadiness.get_overall_status(checks)
-	var total_fee: int = GameManager.selected_race.entry_fee * selected_race_teams.size()
+	var total_fee: int = GameManager.selected_race.get_weekend_cost() * selected_race_teams.size()
 	if selected_race_teams.is_empty() or GameManager.team.money < total_fee:
 		overall = RaceReadiness.BLOCKED
 	readiness_summary_label.text = {RaceReadiness.READY: "READY TO ENTER", RaceReadiness.SUBOPTIMAL: "ENTRY AVAILABLE WITH WARNINGS", RaceReadiness.BLOCKED: "ENTRY BLOCKED"}.get(overall, "REVIEW")
@@ -229,13 +229,13 @@ func _on_confirm_button_pressed() -> void:
 	confirm_button.disabled = true
 	back_button.disabled = true
 	status_label.text = "Committing entry fee and opening race weekend..."
-	var total_fee: int = GameManager.selected_race.entry_fee * selected_race_teams.size()
+	var total_fee: int = GameManager.selected_race.get_weekend_cost() * selected_race_teams.size()
 	if not GameManager.remove_team_money(total_fee):
 		status_label.text = "The entry fee could not be paid."
 		back_button.disabled = false
 		refresh_operations_center()
 		return
-	GameManager.team.record_finance("Race", -total_fee, "%s entry fees (%d teams)" % [GameManager.selected_race.race_name, selected_race_teams.size()])
+	GameManager.team.record_finance("Race Operations", -total_fee, "%s track, travel, preparation, insurance, and facility costs (%d teams)" % [GameManager.selected_race.race_name, selected_race_teams.size()])
 	var entries: Array[Dictionary] = []
 	for race_team in selected_race_teams:
 		entries.append({"team_id": race_team.team_id, "team_name": race_team.team_name, "driver_id": race_team.driver_id, "car_bay": race_team.car_bay})
@@ -250,11 +250,7 @@ func _on_back_button_pressed() -> void:
 
 
 func _prize_for_position(race: Race, position: int) -> int:
-	match position:
-		1: return race.first_place_prize
-		2: return race.second_place_prize
-		3: return race.third_place_prize
-		_: return 0
+	return RaceManager.calculate_prize_money(race, position)
 
 
 func format_number(number: int) -> String:

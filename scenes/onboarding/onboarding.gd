@@ -10,6 +10,7 @@ extends Control
 @onready var badge_option: OptionButton = %badge_option
 @onready var primary_picker: ColorPickerButton = %primary_picker
 @onready var secondary_picker: ColorPickerButton = %secondary_picker
+@onready var difficulty_option: OptionButton = %difficulty_option
 @onready var back_button: Button = %back_button
 @onready var next_button: Button = %next_button
 
@@ -27,6 +28,9 @@ func _ready() -> void:
 		GameManager.new_game()
 	for badge in ["Diamond", "Shield", "Bolt", "Flag"]:
 		badge_option.add_item(badge)
+	for difficulty in ["Rookie", "Club", "Pro"]:
+		difficulty_option.add_item(difficulty)
+	difficulty_option.select(1)
 	name_edit.text = GameManager.team.team_name
 	hometown_edit.text = GameManager.team.hometown
 	motto_edit.text = GameManager.team.team_motto
@@ -76,6 +80,7 @@ func apply_identity() -> bool:
 	team.primary_color = primary_picker.color
 	team.secondary_color = secondary_picker.color
 	team.accent_color = primary_picker.color.lerp(Color.WHITE, 0.8)
+	team.set_career_difficulty(difficulty_option.get_item_text(difficulty_option.selected))
 	for driver in team.drivers:
 		if driver != null and driver.is_player_driver:
 			driver.team_name = team.team_name

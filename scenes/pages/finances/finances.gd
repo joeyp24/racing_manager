@@ -3,9 +3,11 @@ extends Control
 @onready var overview_label: Label = %overview_label
 @onready var payroll_label: Label = %payroll_label
 @onready var history_container: VBoxContainer = %history_container
+@onready var recovery_button: Button = %recovery_button
 
 
 func _ready() -> void:
+	recovery_button.pressed.connect(_on_recovery_pressed)
 	refresh_finances()
 
 
@@ -29,6 +31,8 @@ func refresh_finances() -> void:
 	var chief_salary := chief.salary if chief != null else 0
 	var engineer_salary := team.get_staff_payroll() - chief_salary
 	payroll_label.text = "Driver: $%s/race\nCrew chief: $%s/race\nEngineers: $%s/race\nTotal payroll: $%s/race\nRaces remaining: %d\nProjected remaining payroll: $%s" % [format_number(driver_salary), format_number(chief_salary), format_number(engineer_salary), format_number(team.get_total_race_payroll()), remaining_races, format_number(team.get_total_race_payroll() * remaining_races)]
+	recovery_button.disabled = team.recovery_funding_used or team.money >= 10000
+	recovery_button.text = "Owner investment already used" if team.recovery_funding_used else "Accept emergency owner investment (+$15,000)"
 
 	for child in history_container.get_children():
 		child.queue_free()
@@ -56,6 +60,13 @@ func format_money(amount: int) -> String:
 	if amount < 0:
 		return "-$%s" % format_number(abs(amount))
 	return "$0"
+
+
+func _on_recovery_pressed() -> void:
+	if GameManager.team.accept_owner_investment():
+		GameManager.refresh_team_money()
+		GameManager.save_game()
+		refresh_finances()
 
 
 func format_number(number: int) -> String:
