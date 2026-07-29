@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://dgfgqehc4hl3m"]
+[gd_scene load_steps=3 format=3 uid="uid://dgfgqehc4hl3m"]
 
 [ext_resource type="Script" uid="uid://bnljhcukhcobc" path="res://scenes/home/home.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/components/command_bar.tscn" id="2_command"]
 
 [node name="home" type="Control"]
 layout_mode = 3
@@ -331,6 +332,9 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Spring 100"
 horizontal_alignment = 2
+
+[node name="CommandBar" parent="Layout/RightSide/OuterMargin/Stack" instance=ExtResource("2_command")]
+unique_name_in_owner = true
 
 [node name="MainPanel" type="PanelContainer" parent="Layout/RightSide/OuterMargin/Stack"]
 layout_mode = 2

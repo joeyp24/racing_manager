@@ -25,6 +25,7 @@ extends Control
 @onready var fullscreen_button: Button = %fullscreen_button
 @onready var settings_dialog: ConfirmationDialog = %settings_dialog
 @onready var reset_confirmation: ConfirmationDialog = %reset_confirmation
+@onready var command_bar: CommandBar = %CommandBar
 
 var navigation_buttons: Array[Button] = []
 
@@ -68,6 +69,8 @@ func _ready() -> void:
 	scouting_button.pressed.connect(_on_scouting_button_pressed)
 	fullscreen_button.pressed.connect(_on_fullscreen_button_pressed)
 	_make_top_bar_actionable()
+	command_bar.action_requested.connect(_on_command_action_requested)
+	GameManager.page_changed.connect(_on_page_changed)
 	GameManager.fullscreen_changed.connect(_update_fullscreen_button)
 	_update_fullscreen_button(GameManager.is_fullscreen())
 
@@ -101,6 +104,8 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if GameManager.fullscreen_changed.is_connected(_update_fullscreen_button):
 		GameManager.fullscreen_changed.disconnect(_update_fullscreen_button)
+	if GameManager.page_changed.is_connected(_on_page_changed):
+		GameManager.page_changed.disconnect(_on_page_changed)
 	if GameManager.team_money_changed.is_connected(
 		_on_team_money_changed
 	):
@@ -266,6 +271,7 @@ func _on_team_money_changed(
 func update_team_display() -> void:
 	if GameManager.team == null:
 		money_label.text = "$0"
+		command_bar.display(NextActionModel.derive(null))
 		return
 
 	var team: Team = GameManager.team
@@ -275,6 +281,45 @@ func update_team_display() -> void:
 	rep_label.text = "%d PTS" % team.reputation
 	next_event_label.text = get_next_event_name(team)
 	position_label.text = get_championship_position(team)
+	command_bar.display(NextActionModel.derive(team))
+	update_unlocked_navigation()
+
+
+func _on_command_action_requested(action: String) -> void:
+	var paths := {
+		"dashboard": "res://scenes/pages/dashboard/dashboard.tscn",
+		"calendar": "res://scenes/pages/race_calendar/race_calendar.tscn",
+		"championship": "res://scenes/pages/championship/championship.tscn",
+		"drivers": "res://scenes/pages/drivers/drivers.tscn",
+		"garage": "res://scenes/pages/garage/garage.tscn",
+		"dealership": "res://scenes/pages/dealership/dealership.tscn",
+		"staff": "res://scenes/pages/staff/staff.tscn",
+		"finances": "res://scenes/pages/finances/finances.tscn",
+		"sponsors": "res://scenes/pages/sponsors/sponsors.tscn",
+		"race_entry": "res://scenes/pages/race_entry/race_entry.tscn",
+	}
+	if not paths.has(action):
+		return
+	if action == "race_entry":
+		GameManager.selected_race = RaceManager.get_next_race(GameManager.team)
+	GameManager.load_page(str(paths[action]))
+
+
+func _on_page_changed(scene_path: String) -> void:
+	var destinations := {
+		"dashboard": home_button, "race_calendar": race_calendar_button,
+		"race_entry": race_calendar_button, "race_weekend": race_calendar_button,
+		"live_race": race_calendar_button, "race_results": race_calendar_button,
+		"championship": championship_button, "garage": garage_button,
+		"drivers": drivers_button, "race_teams": race_teams_button,
+		"staff": staff_button, "finances": finances_button, "shop": shop_button,
+		"dealership": shop_button, "sponsors": sponsors_button,
+		"departments": hq_button, "team_identity": identity_button,
+		"scouting": scouting_button,
+	}
+	var page_id := scene_path.get_file().get_basename()
+	set_active_navigation(destinations.get(page_id, null) as Button)
+	command_bar.display(NextActionModel.derive(GameManager.team, scene_path))
 
 
 func update_money_label(amount: int) -> void:
