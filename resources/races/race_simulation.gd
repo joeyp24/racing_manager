@@ -22,7 +22,8 @@ func setup(
 	starting_position: int,
 	ai_drivers: Array[Dictionary],
 	ai_scores: Array[float],
-	starting_compound: String = "Medium"
+	starting_compound: String = "Medium",
+	additional_team_entries: Array = []
 ) -> void:
 	race = selected_race
 	random_number_generator.randomize()
@@ -45,6 +46,16 @@ func setup(
 	player.base_pace = player_score
 	player.tyre_compound = starting_compound
 	grid.insert(clampi(starting_position - 1, 0, grid.size()), player)
+	for data_value in additional_team_entries:
+		var data := data_value as Dictionary
+		var teammate := RaceEntryState.new()
+		teammate.driver_id = str(data.get("driver_id", ""))
+		teammate.driver_name = str(data.get("driver_name", "Team Driver"))
+		teammate.team_name = str(data.get("team_name", player_team_name))
+		teammate.consistency = int(data.get("consistency", 50))
+		teammate.base_pace = float(data.get("score", 50.0))
+		teammate.tyre_compound = starting_compound
+		grid.insert(clampi(int(data.get("starting_position", grid.size() + 1)) - 1, 0, grid.size()), teammate)
 	for index in range(grid.size()):
 		var entry := grid[index]
 		entry.starting_position = index + 1

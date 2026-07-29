@@ -23,9 +23,9 @@ horizontal_scroll_mode = 0
 [node name="Margin" type="MarginContainer" parent="Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/margin_left = 24
+theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 24
+theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 24
 
 [node name="Content" type="VBoxContainer" parent="Scroll/Margin"]
@@ -95,7 +95,7 @@ layout_mode = 2
 [node name="Title" type="Label" parent="Scroll/Margin/Content/Main/Left/Entry/Stack"]
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
-text = "Entry // Car Selection"
+text = "Entry // Race Teams"
 
 [node name="selected_car_label" type="Label" parent="Scroll/Margin/Content/Main/Left/Entry/Stack"]
 unique_name_in_owner = true
@@ -109,10 +109,10 @@ theme_type_variation = &"MutedLabel"
 autowrap_mode = 2
 text = "Installed package"
 
-[node name="cars_container" type="GridContainer" parent="Scroll/Margin/Content/Main/Left/Entry/Stack"]
+[node name="cars_container" type="VBoxContainer" parent="Scroll/Margin/Content/Main/Left/Entry/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
-columns = 2
+theme_override_constants/separation = 6
 
 [node name="Crew" type="PanelContainer" parent="Scroll/Margin/Content/Main/Left"]
 layout_mode = 2
@@ -162,7 +162,7 @@ autowrap_mode = 2
 text = "Strategy effects"
 
 [node name="Right" type="VBoxContainer" parent="Scroll/Margin/Content/Main"]
-custom_minimum_size = Vector2(440, 0)
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
