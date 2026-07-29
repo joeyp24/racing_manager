@@ -162,10 +162,10 @@ func _pace_data(entry: RaceEntryState) -> Dictionary:
 
 
 func _resolve_incident(entry: RaceEntryState) -> float:
-	var pace_risk := {"Conserve": 0.70, "Balanced": 1.0, "Attack": 1.65}.get(entry.pace_mode, 1.0)
+	var pace_risk: float = float({"Conserve": 0.70, "Balanced": 1.0, "Attack": 1.65}.get(entry.pace_mode, 1.0))
 	var traffic_risk := 1.0 + race.overtaking_difficulty * (0.5 if entry.position > 1 else 0.0)
-	var incident_chance := 0.0015 * race.accident_factor * pace_risk * traffic_risk * lerpf(0.65, 1.45, entry.aggression / 100.0)
-	var failure_chance := 0.0008 * race.mechanical_stress * pace_risk * lerpf(1.8, 0.35, entry.reliability / 100.0)
+	var incident_chance: float = 0.0015 * race.accident_factor * pace_risk * traffic_risk * lerpf(0.65, 1.45, entry.aggression / 100.0)
+	var failure_chance: float = 0.0008 * race.mechanical_stress * pace_risk * lerpf(1.8, 0.35, entry.reliability / 100.0)
 	if random_number_generator.randf() < failure_chance:
 		entry.status = "Retired"
 		entry.retired_lap = current_lap
