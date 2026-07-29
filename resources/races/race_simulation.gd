@@ -42,6 +42,7 @@ func setup(
 		entry.team_name = str(data.get("team_name", "Unknown Team"))
 		entry.consistency = int(data.get("consistency", 50))
 		entry.aggression = int(data.get("aggression", 50))
+		entry.attributes = data.get("attributes", data).duplicate()
 		entry.reliability = float(data.get("reliability", 72))
 		entry.fuel_efficiency = float(data.get("fuel_efficiency", 50))
 		entry.tyre_preservation = float(data.get("tyre_preservation", 50))
@@ -55,6 +56,7 @@ func setup(
 	player.consistency = player_driver.consistency
 	player.base_pace = player_score
 	player.aggression = player_driver.aggression
+	player.attributes = player_driver.get_attribute_dictionary()
 	player.reliability = float(player_attributes.get("reliability", 75.0))
 	player.fuel_efficiency = float(player_attributes.get("fuel", 50.0))
 	player.tyre_preservation = float(player_attributes.get("tyres", 50.0))
@@ -68,6 +70,7 @@ func setup(
 		teammate.driver_name = str(data.get("driver_name", "Team Driver"))
 		teammate.team_name = str(data.get("team_name", player_team_name))
 		teammate.consistency = int(data.get("consistency", 50))
+		teammate.attributes = data.get("attributes", {}).duplicate()
 		teammate.base_pace = float(data.get("score", 50.0))
 		teammate.tyre_compound = starting_compound
 		grid.insert(clampi(int(data.get("starting_position", grid.size() + 1)) - 1, 0, grid.size()), teammate)
@@ -102,13 +105,14 @@ func simulate_lap() -> void:
 		if entry.status == "Retired":
 			continue
 		var base_lap := 34.0 + float(race.difficulty) * 0.035
-		var rating_bonus := (entry.base_pace - 55.0) * 0.045
+		var rating_bonus := (entry.base_pace - 55.0) * 0.030 + (_situational_rating(entry) - 50.0) * 0.018
 		var tyre_penalty := pow(1.0 - entry.tyre_condition / 100.0, 2.0) * 2.4
 		var fuel_weight_penalty := maxf(0.0, entry.fuel_laps) / maxf(1.0, race.lap_count) * 0.75
 		var traffic_penalty := _traffic_penalty(entry)
 		var caution_delta := 4.5 if race_state != "GREEN FLAG" else 0.0
-		var variance_limit := lerpf(0.50, 0.10, float(entry.consistency) / 100.0)
-		entry.last_lap_time = maxf(20.0, base_lap - rating_bonus + tyre_penalty + fuel_weight_penalty + traffic_penalty + caution_delta + float(pace_data.mode) + float(pace_data.compound) + _get_setup_modifier(entry) + pit_loss + incident_loss + random_number_generator.randf_range(-variance_limit, variance_limit))
+		var variance_limit := lerpf(0.55, 0.08, float(entry.rating("consistency", entry.consistency)) / 100.0)
+		var late_race_penalty := maxf(0.0, float(current_lap) / race.lap_count - 0.65) * lerpf(0.55, 0.0, entry.rating("fitness") / 100.0) * (1.0 + race.heat_factor)
+		entry.last_lap_time = maxf(20.0, base_lap - rating_bonus + tyre_penalty + fuel_weight_penalty + traffic_penalty + caution_delta + late_race_penalty + float(pace_data.mode) + float(pace_data.compound) + _get_setup_modifier(entry) + pit_loss + incident_loss + random_number_generator.randf_range(-variance_limit, variance_limit))
 		entry.elapsed_time += entry.last_lap_time
 		entry.completed_laps = current_lap
 		entry.best_lap_time = entry.last_lap_time if entry.best_lap_time <= 0.0 else minf(entry.best_lap_time, entry.last_lap_time)
@@ -149,7 +153,7 @@ func _update_track_state() -> void:
 
 func _pace_data(entry: RaceEntryState) -> Dictionary:
 	var wear := 100.0 / maxf(12.0, float(race.lap_count) * 0.72)
-	wear *= race.tyre_wear_factor * lerpf(1.12, 0.82, entry.tyre_preservation / 100.0)
+	wear *= race.tyre_wear_factor * lerpf(1.18, 0.72, entry.rating("tyre_management", roundi(entry.tyre_preservation)) / 100.0)
 	var result := {"mode": 0.0, "compound": 0.0, "wear": wear, "fuel": 1.0}
 	if entry.tyre_compound == "Soft": result.merge({"compound": -0.18, "wear": wear * 1.28}, true)
 	elif entry.tyre_compound == "Hard": result.merge({"compound": 0.16, "wear": wear * 0.72}, true)
@@ -164,7 +168,8 @@ func _pace_data(entry: RaceEntryState) -> Dictionary:
 func _resolve_incident(entry: RaceEntryState) -> float:
 	var pace_risk: float = float({"Conserve": 0.70, "Balanced": 1.0, "Attack": 1.65}.get(entry.pace_mode, 1.0))
 	var traffic_risk := 1.0 + race.overtaking_difficulty * (0.5 if entry.position > 1 else 0.0)
-	var incident_chance: float = 0.0015 * race.accident_factor * pace_risk * traffic_risk * lerpf(0.65, 1.45, entry.aggression / 100.0)
+	var control := (entry.rating("consistency") + entry.rating("composure") + (entry.rating("wet_weather") if race.weather == "Wet" else 50)) / 3.0
+	var incident_chance: float = 0.0015 * race.accident_factor * pace_risk * traffic_risk * lerpf(1.45, 0.55, control / 100.0)
 	var failure_chance: float = 0.0008 * race.mechanical_stress * pace_risk * lerpf(1.8, 0.35, entry.reliability / 100.0)
 	if random_number_generator.randf() < failure_chance:
 		entry.status = "Retired"
@@ -202,8 +207,22 @@ func _traffic_penalty(entry: RaceEntryState) -> float:
 	if race_state != "GREEN FLAG" or entry.position <= 1: return 0.0
 	var ahead := entries[entry.position - 2]
 	if entry.elapsed_time - ahead.elapsed_time < 1.0:
-		return race.overtaking_difficulty * 0.30
+		return race.overtaking_difficulty * lerpf(0.42, 0.10, entry.rating("racecraft") / 100.0)
 	return 0.0
+
+
+func _situational_rating(entry: RaceEntryState) -> float:
+	var total := 0.0
+	var weight_total := 0.0
+	var weights := race.get_driver_attribute_weights()
+	for field in weights:
+		var weight := float(weights[field])
+		total += entry.rating(field) * weight
+		weight_total += weight
+	if current_lap == 1 or race_state == "RESTART":
+		total += entry.rating("starts_restarts") * 0.12
+		weight_total += 0.12
+	return total / maxf(weight_total, 0.01)
 
 
 func _ai_should_pit(entry: RaceEntryState) -> bool:

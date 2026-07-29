@@ -160,8 +160,12 @@ func create_live_simulation(
 	if player_driver == null:
 		return null
 	var ai_scores: Array[float] = []
+	var detailed_ai_drivers: Array[Dictionary] = []
 	for ai_driver in AI_DRIVERS:
 		ai_scores.append(calculate_ai_score(selected_race, ai_driver))
+		var detailed := ai_driver.duplicate(true)
+		detailed["attributes"] = _normalized_ai_attributes(ai_driver)
+		detailed_ai_drivers.append(detailed)
 	var simulation := RaceSimulation.new()
 	var compound := "Medium"
 	var plan := str(weekend_data.get("pre_race_plan", ""))
@@ -177,7 +181,7 @@ func create_live_simulation(
 			+ float(weekend_data.get("setup_bonus", 0.0))
 			+ float(weekend_data.get("race_modifier", 0.0)),
 		int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1)),
-		AI_DRIVERS,
+		detailed_ai_drivers,
 		ai_scores,
 		compound,
 		_build_additional_team_entries(selected_race, selected_strategy, weekend_data),
@@ -212,6 +216,7 @@ func _build_additional_team_entries(selected_race: Race, selected_strategy: Stri
 			"driver_name": driver.driver_name,
 			"team_name": str(entry.get("team_name", GameManager.team.team_name)),
 			"consistency": driver.consistency,
+			"attributes": driver.get_attribute_dictionary(),
 			"score": calculate_player_score(car, driver, selected_strategy, selected_race),
 			"starting_position": int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1)) + index
 		})
@@ -268,6 +273,7 @@ func finalize_live_race(
 	for expired_name in staff_payroll.get("expired_names", []):
 		result.expired_staff_names.append(str(expired_name))
 	result.net_earnings -= result.crew_chief_salary + result.engineering_payroll
+	player_driver.record_race({"race_id":selected_race.race_id, "race_name":selected_race.race_name, "start":result.starting_position, "finish":result.finishing_position, "positions_gained":result.positions_gained, "qualifying":result.starting_position, "points":result.championship_points_earned, "track_type":selected_race.track_type, "weather":selected_race.weather, "status":str((result.standings[result.finishing_position - 1] as Dictionary).get("status", "Finished")), "incident":false})
 	apply_race_effects(result)
 	complete_race(selected_race)
 	last_result = result
@@ -521,9 +527,9 @@ func calculate_player_score(
 
 	var driver_boost := team.get_department_bonus("driver_development") if team != null else 0.0
 	var simulator_boost := team.get_department_bonus("simulator") if team != null else 0.0
-	var skill_score: float = float(player_driver.skill) * (1.0 + driver_boost / 100.0) * 0.20
-
-	var consistency_score: float = float(player_driver.consistency) * (1.0 + simulator_boost / 100.0) * 0.10
+	var detailed_driver_score := calculate_driver_attribute_score(selected_race, player_driver.get_attribute_dictionary())
+	var driver_attribute_score: float = detailed_driver_score * (1.0 + driver_boost / 100.0) * 0.30
+	var feedback_score := float(player_driver.car_feedback) * (1.0 + simulator_boost / 100.0) * 0.04
 
 	var variance_limit: float = lerpf(
 		12.0,
@@ -544,17 +550,13 @@ func calculate_player_score(
 		)
 	)
 
-	var aggression_bonus: float = (
-		float(player_driver.aggression) * 0.03
-	)
 	var spotter_restart_bonus := team.get_restart_performance_boost() if team != null else 0.0
 
 	var total_score := (
 		performance_score
 		+ condition_score
-		+ skill_score
-		+ consistency_score
-		+ aggression_bonus
+		+ driver_attribute_score
+		+ feedback_score
 		+ spotter_restart_bonus
 		+ random_variance
 	)
@@ -565,17 +567,8 @@ func calculate_ai_score(
 	selected_race: Race,
 	ai_driver: Dictionary
 ) -> float:
-	var skill: int = int(
-		ai_driver.get("skill", 50)
-	)
-
-	var consistency: int = int(
-		ai_driver.get("consistency", 50)
-	)
-
-	var aggression: int = int(
-		ai_driver.get("aggression", 50)
-	)
+	var attributes := _normalized_ai_attributes(ai_driver)
+	var consistency := int(attributes.get("consistency", 50))
 
 	var career_growth := 0.0
 	if GameManager.team != null:
@@ -586,17 +579,7 @@ func calculate_ai_score(
 		+ career_growth
 	)
 
-	var skill_score: float = (
-		float(skill) * 0.28
-	)
-
-	var consistency_score: float = (
-		float(consistency) * 0.10
-	)
-
-	var aggression_score: float = (
-		float(aggression) * 0.05
-	)
+	var driver_attribute_score := calculate_driver_attribute_score(selected_race, attributes) * 0.43
 
 	var variance_limit: float = lerpf(
 		12.0,
@@ -613,11 +596,27 @@ func calculate_ai_score(
 
 	return (
 		difficulty_score
-		+ skill_score
-		+ consistency_score
-		+ aggression_score
+		+ driver_attribute_score
 		+ random_variance
 	)
+
+
+func calculate_driver_attribute_score(selected_race: Race, attributes: Dictionary) -> float:
+	var weights := selected_race.get_driver_attribute_weights() if selected_race != null else {}
+	var total := 0.0
+	var weight_total := 0.0
+	for field in Driver.RATING_FIELDS:
+		var weight := float(weights.get(field, 0.10))
+		total += float(attributes.get(field, 50)) * weight
+		weight_total += weight
+	return total / maxf(0.01, weight_total)
+
+
+func _normalized_ai_attributes(data: Dictionary) -> Dictionary:
+	if data.has("race_pace"):
+		return data
+	var skill := int(data.get("skill", 50)); var consistency := int(data.get("consistency", 50)); var aggression := int(data.get("aggression", 50))
+	return {"race_pace":skill, "qualifying_pace":skill, "tyre_management":consistency, "racecraft":roundi((skill+aggression)/2.0), "wet_weather":skill-3, "starts_restarts":aggression, "consistency":consistency, "car_feedback":consistency, "fitness":consistency, "composure":consistency}
 
 
 func find_player_position(
@@ -1209,20 +1208,14 @@ func apply_driver_development() -> void:
 		else:
 			driver.development_points += get_free_agent_development(driver)
 
-		var old_skill: int = driver.skill
-		var old_consistency: int = driver.consistency
-		var old_aggression: int = driver.aggression
+		var old_ratings := driver.get_attribute_dictionary()
 		spend_development_points(driver)
 		driver.age += 1
 		apply_veteran_decline(driver)
 		driver.season_starts = 0
 
-		driver.last_season_development = describe_driver_changes(
-			driver,
-			old_skill,
-			old_consistency,
-			old_aggression
-		)
+		driver.update_archetype()
+		driver.last_season_development = describe_detailed_driver_changes(driver, old_ratings)
 		team.last_development_summary.append(
 			"%s: %s" % [
 				driver.driver_name,
@@ -1242,7 +1235,10 @@ func get_free_agent_development(driver: Driver) -> int:
 
 func spend_development_points(driver: Driver) -> void:
 	var attempts: int = driver.development_points
-	var development_cycle: Array[String] = Driver.RATING_FIELDS
+	var development_cycle: Array[String] = Driver.RATING_FIELDS.duplicate()
+	var focus_map := {"Race pace":"race_pace", "Qualifying":"qualifying_pace", "Tyre conservation":"tyre_management", "Racecraft":"racecraft", "Wet-weather training":"wet_weather", "Fitness":"fitness", "Simulator work":"consistency", "Technical feedback":"car_feedback", "Mental coaching":"composure"}
+	if focus_map.has(driver.development_focus):
+		development_cycle.push_front(str(focus_map[driver.development_focus]))
 
 	for point_index in range(attempts):
 		var attribute: String = development_cycle[
@@ -1254,6 +1250,13 @@ func spend_development_points(driver: Driver) -> void:
 			driver.set(attribute, current_value + 1)
 		driver.development_points -= 1
 	driver.sync_legacy_ratings()
+
+
+func describe_detailed_driver_changes(driver: Driver, old_ratings: Dictionary) -> String:
+	var changes: Array[String] = []
+	for row in driver.get_rating_rows():
+		append_attribute_change(changes, str(row["label"]), int(row["rating"]) - int(old_ratings.get(row["key"], row["rating"])))
+	return "No change" if changes.is_empty() else ", ".join(changes)
 
 
 func apply_veteran_decline(driver: Driver) -> void:

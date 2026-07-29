@@ -18,6 +18,7 @@ var aggression: int = 50
 var reliability: float = 75.0
 var fuel_efficiency: float = 50.0
 var tyre_preservation: float = 50.0
+var attributes: Dictionary = {}
 
 var tyre_compound: String = "Medium"
 var tyre_condition: float = 100.0
@@ -38,3 +39,7 @@ var status: String = "Running"
 
 func gap_to(other: RaceEntryState) -> float:
 	return maxf(0.0, elapsed_time - other.elapsed_time)
+
+
+func rating(field: String, fallback: int = 50) -> int:
+	return int(attributes.get(field, fallback))
