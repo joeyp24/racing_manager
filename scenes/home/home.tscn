@@ -86,14 +86,14 @@ layout_mode = 2
 [node name="OverviewLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
-text = "OVERVIEW"
+text = "RACE"
 
 [node name="home_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ◈  Dashboard"
+text = "Dashboard"
 alignment = 0
 
 [node name="race_calendar_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -101,7 +101,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ◷  Calendar"
+text = "Calendar"
 alignment = 0
 
 [node name="championship_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -109,7 +109,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ▥  Championship"
+text = "Championship"
 alignment = 0
 
 [node name="TeamLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -122,7 +122,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ▰  Garage"
+text = "Garage"
 alignment = 0
 
 [node name="drivers_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -130,7 +130,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ◉  Drivers"
+text = "Drivers"
 alignment = 0
 
 [node name="staff_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -138,28 +138,29 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ◫  Staff"
+text = "Staff"
 alignment = 0
 
 [node name="OperationsLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
-text = "OPERATIONS"
+text = "BUSINESS"
 
 [node name="shop_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ◆  Parts Shop"
+text = "Marketplace"
 alignment = 0
 
 [node name="dealership_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
+visible = false
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ◇  Dealership"
+text = "Dealership"
 alignment = 0
 
 [node name="sponsors_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -167,7 +168,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ✦  Sponsors"
+text = "Sponsors"
 alignment = 0
 
 [node name="finances_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -175,20 +176,20 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  $  Finances"
+text = "Finances"
 alignment = 0
 
 [node name="FacilitiesLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
-text = "FACILITIES"
+text = "DEVELOPMENT"
 
 [node name="hq_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ▦  Headquarters"
+text = "Headquarters"
 alignment = 0
 
 [node name="scouting_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -196,7 +197,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ⌖  Scouting  🔒"
+text = "Scouting  ·  LOCKED"
 alignment = 0
 
 [node name="Spacer" type="Control" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -208,19 +209,19 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "  ◆  Team Identity"
+text = "Team Identity"
 alignment = 0
 
 [node name="fullscreen_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "  ⛶  Full Screen (F11)"
+text = "Full Screen (F11)"
 alignment = 0
 
 [node name="reset_game_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Reset career"
+text = "Settings"
 
 [node name="RightSide" type="VBoxContainer" parent="Layout"]
 layout_mode = 2
@@ -325,4 +326,36 @@ unique_name_in_owner = true
 layout_mode = 2
 clip_contents = true
 
-[connection signal="pressed" from="Layout/Sidebar/Margin/Scroll/Content/reset_game_button" to="." method="_on_reset_game_button_pressed"]
+[node name="settings_dialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Settings"
+dialog_text = "Display"
+ok_button_text = "Close"
+
+[node name="Settings" type="VBoxContainer" parent="settings_dialog"]
+offset_left = 12.0
+offset_top = 44.0
+offset_right = 388.0
+offset_bottom = 150.0
+
+[node name="Identity" type="Button" parent="settings_dialog/Settings"]
+text = "Edit team identity"
+
+[node name="Fullscreen" type="Button" parent="settings_dialog/Settings"]
+text = "Toggle full screen"
+
+[node name="Reset" type="Button" parent="settings_dialog/Settings"]
+theme_type_variation = &"DangerButton"
+text = "Reset career…"
+
+[node name="reset_confirmation" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Reset Career?"
+dialog_text = "This permanently deletes the current career. This action cannot be undone."
+ok_button_text = "Reset career"
+
+[connection signal="pressed" from="Layout/Sidebar/Margin/Scroll/Content/reset_game_button" to="." method="_on_settings_pressed"]
+[connection signal="pressed" from="settings_dialog/Settings/Identity" to="." method="_on_identity_button_pressed"]
+[connection signal="pressed" from="settings_dialog/Settings/Fullscreen" to="." method="_on_fullscreen_button_pressed"]
+[connection signal="pressed" from="settings_dialog/Settings/Reset" to="." method="_on_reset_requested"]
+[connection signal="confirmed" from="reset_confirmation" to="." method="_on_reset_game_button_pressed"]

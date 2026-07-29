@@ -21,6 +21,8 @@ extends Control
 @onready var team_name_label: Label = %team_name_label
 @onready var season_label: Label = %season_label
 @onready var fullscreen_button: Button = %fullscreen_button
+@onready var settings_dialog: ConfirmationDialog = %settings_dialog
+@onready var reset_confirmation: ConfirmationDialog = %reset_confirmation
 
 var navigation_buttons: Array[Button] = []
 
@@ -61,6 +63,7 @@ func _ready() -> void:
 	identity_button.pressed.connect(_on_identity_button_pressed)
 	scouting_button.pressed.connect(_on_scouting_button_pressed)
 	fullscreen_button.pressed.connect(_on_fullscreen_button_pressed)
+	_make_top_bar_actionable()
 	GameManager.fullscreen_changed.connect(_update_fullscreen_button)
 	_update_fullscreen_button(GameManager.is_fullscreen())
 
@@ -106,6 +109,32 @@ func _exit_tree() -> void:
 
 func _on_fullscreen_button_pressed() -> void:
 	GameManager.toggle_fullscreen()
+
+
+func _on_settings_pressed() -> void:
+	settings_dialog.popup_centered(Vector2i(420, 250))
+
+
+func _on_reset_requested() -> void:
+	settings_dialog.hide()
+	reset_confirmation.popup_centered(Vector2i(460, 190))
+
+
+func _make_top_bar_actionable() -> void:
+	var actions := {
+		%money_label.get_parent(): _on_finances_button_pressed,
+		%position_label.get_parent(): _on_championship_button_pressed,
+		%next_event_label.get_parent(): _on_race_calendar_button_pressed,
+	}
+	for box: Control in actions:
+		box.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		box.tooltip_text = "Open details"
+		box.gui_input.connect(_on_status_box_input.bind(actions[box]))
+
+
+func _on_status_box_input(event: InputEvent, action: Callable) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		action.call()
 
 
 func _update_fullscreen_button(is_now_fullscreen: bool) -> void:
@@ -206,7 +235,7 @@ func _on_scouting_button_pressed() -> void:
 func update_unlocked_navigation() -> void:
 	var unlocked := GameManager.team != null and GameManager.team.get_department_level("scouting") > 0
 	scouting_button.disabled = not unlocked
-	scouting_button.text = "  ⌖  Scouting" if unlocked else "  ⌖  Scouting  • LOCKED"
+	scouting_button.text = "Scouting" if unlocked else "Scouting  ·  LOCKED"
 	scouting_button.tooltip_text = "Build the Scouting department at HQ to unlock." if not unlocked else "Find emerging driver talent."
 
 

@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[node name="StatusBanner" type="PanelContainer"]
+theme_type_variation = &"CardPanel"
+
+[node name="Row" type="HBoxContainer" parent="."]
+theme_override_constants/separation = 8
+
+[node name="Indicator" type="ColorRect" parent="Row"]
+custom_minimum_size = Vector2(4, 0)
+color = Color(0.48, 0.72, 1, 1)
+
+[node name="Message" type="Label" parent="Row"]
+size_flags_horizontal = 3
+theme_type_variation = &"InfoLabel"
+text = "Status message"
+autowrap_mode = 2
