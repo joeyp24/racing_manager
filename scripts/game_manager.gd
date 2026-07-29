@@ -6,7 +6,7 @@ signal fullscreen_changed(is_now_fullscreen: bool)
 
 var team: Team = null
 var active_save_id: String = ""
-var selected_car = null
+var selected_car: Car = null
 var selected_bay: int = -1
 var selected_race: Race = null
 var page_container: Control = null
