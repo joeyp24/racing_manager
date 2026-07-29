@@ -1,15 +1,15 @@
 [gd_resource type="Theme" load_steps=21 format=3]
 
 [sub_resource type="SystemFont" id="FontRegular"]
-font_names = PackedStringArray("Inter", "Aptos", "Segoe UI", "Noto Sans", "Arial")
+font_names = PackedStringArray("IBM Plex Sans", "Inter", "Aptos", "Segoe UI", "Noto Sans", "Arial")
 font_weight = 400
 
 [sub_resource type="SystemFont" id="FontMedium"]
-font_names = PackedStringArray("Inter", "Aptos", "Segoe UI", "Noto Sans", "Arial")
+font_names = PackedStringArray("IBM Plex Sans", "Inter", "Aptos", "Segoe UI", "Noto Sans", "Arial")
 font_weight = 600
 
 [sub_resource type="SystemFont" id="FontBold"]
-font_names = PackedStringArray("Inter", "Aptos Display", "Segoe UI", "Noto Sans", "Arial")
+font_names = PackedStringArray("Barlow Condensed", "IBM Plex Sans", "Inter", "Aptos Display", "Segoe UI", "Noto Sans", "Arial")
 font_weight = 700
 
 [sub_resource type="StyleBoxFlat" id="ButtonNormal"]
@@ -219,7 +219,7 @@ content_margin_bottom = 7.0
 
 [resource]
 default_font = SubResource("FontRegular")
-default_font_size = 15
+default_font_size = 14
 default_base_scale = 1.0
 Button/colors/font_color = Color(0.88, 0.91, 0.95, 1)
 Button/colors/font_hover_color = Color(1, 1, 1, 1)
@@ -272,11 +272,11 @@ SidebarPanel/styles/panel = SubResource("Sidebar")
 TopbarPanel/base_type = &"PanelContainer"
 TopbarPanel/styles/panel = SubResource("Topbar")
 PageTitle/base_type = &"Label"
-PageTitle/font_sizes/font_size = 28
+PageTitle/font_sizes/font_size = 30
 PageTitle/colors/font_color = Color(0.98, 0.99, 1, 1)
 PageTitle/fonts/font = SubResource("FontBold")
 SectionTitle/base_type = &"Label"
-SectionTitle/font_sizes/font_size = 17
+SectionTitle/font_sizes/font_size = 19
 SectionTitle/colors/font_color = Color(0.96, 0.97, 0.99, 1)
 SectionTitle/fonts/font = SubResource("FontMedium")
 StatValue/base_type = &"Label"
@@ -290,3 +290,19 @@ EyebrowLabel/base_type = &"Label"
 EyebrowLabel/font_sizes/font_size = 11
 EyebrowLabel/colors/font_color = Color(0.95, 0.35, 0.18, 1)
 EyebrowLabel/fonts/font = SubResource("FontBold")
+
+CardTitle/base_type = &"Label"
+CardTitle/font_sizes/font_size = 20
+CardTitle/colors/font_color = Color(0.98, 0.99, 1, 1)
+CardTitle/fonts/font = SubResource("FontBold")
+BodyStrong/base_type = &"Label"
+BodyStrong/font_sizes/font_size = 15
+BodyStrong/colors/font_color = Color(0.93, 0.95, 0.98, 1)
+BodyStrong/fonts/font = SubResource("FontMedium")
+StatusLabel/base_type = &"Label"
+StatusLabel/font_sizes/font_size = 13
+StatusLabel/colors/font_color = Color(0.97, 0.62, 0.33, 1)
+StatusLabel/fonts/font = SubResource("FontMedium")
+TabContainer/font_sizes/font_size = 14
+TabContainer/fonts/font = SubResource("FontMedium")
+PopupMenu/font_sizes/font_size = 14

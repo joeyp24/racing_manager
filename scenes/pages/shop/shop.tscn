@@ -26,11 +26,13 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="title" type="Label" parent="margin/layout"]
+theme_type_variation = &"PageTitle"
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "Parts Shop"
 
 [node name="subtitle" type="Label" parent="margin/layout"]
+theme_type_variation = &"SectionTitle"
 layout_mode = 2
 text = "Build your inventory with specialized upgrades for every area of the car."
 
@@ -51,6 +53,7 @@ theme_override_constants/v_separation = 10
 columns = 3
 
 [node name="status_label" type="Label" parent="margin/layout"]
+theme_type_variation = &"StatusLabel"
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 2

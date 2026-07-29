@@ -23,6 +23,7 @@ grow_vertical = 2
 layout_mode = 2
 
 [node name="title_label" type="Label" parent="margin_container/race_entry_container" unique_id=1584361617]
+theme_type_variation = &"SectionTitle"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Race Entry"
@@ -56,6 +57,7 @@ layout_mode = 2
 text = "Selected Car: None"
 
 [node name="strategy_title_label" type="Label" parent="margin_container/race_entry_container"]
+theme_type_variation = &"SectionTitle"
 layout_mode = 2
 text = "Race Strategy"
 
@@ -69,6 +71,7 @@ layout_mode = 2
 autowrap_mode = 3
 
 [node name="status_label" type="Label" parent="margin_container/race_entry_container" unique_id=1593441103]
+theme_type_variation = &"StatusLabel"
 unique_name_in_owner = true
 layout_mode = 2
 

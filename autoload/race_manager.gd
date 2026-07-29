@@ -409,7 +409,7 @@ func calculate_player_score(
 		car_performance += float(part_bonus) * team.get_department_bonus("engineering") / 100.0
 		car_performance += float(body_bonus) * team.get_department_bonus("wind_tunnel") / 100.0
 		car_performance *= 1.0 + team.get_department_bonus("cheating") / 100.0
-		car_performance *= 1.0 + team.get_crew_chief_performance_boost() / 100.0
+		car_performance *= 1.0 + (team.get_crew_chief_performance_boost() + team.get_engineering_performance_boost()) / 100.0
 	# A stock car should run in the midfield; several meaningful part upgrades
 	# are required before its raw pace matches the established front-runners.
 	var performance_score: float = car_performance * 0.55
@@ -446,6 +446,7 @@ func calculate_player_score(
 	var aggression_bonus: float = (
 		float(player_driver.aggression) * 0.03
 	)
+	var spotter_restart_bonus := team.get_restart_performance_boost() if team != null else 0.0
 
 	var total_score := (
 		performance_score
@@ -453,6 +454,7 @@ func calculate_player_score(
 		+ skill_score
 		+ consistency_score
 		+ aggression_bonus
+		+ spotter_restart_bonus
 		+ random_variance
 	)
 	return total_score * float(strategy.get("performance_modifier", 1.0))
@@ -601,6 +603,15 @@ func apply_race_effects(
 
 	result.player_car.mileage += (
 		result.mileage_added
+	)
+	# Engineering reliability and spotter awareness prevent avoidable race damage.
+	var protection := (
+		GameManager.team.get_reliability_boost()
+		+ GameManager.team.get_accident_risk_reduction()
+	)
+	result.condition_lost = maxi(
+		1,
+		roundi(float(result.condition_lost) * (1.0 - minf(0.30, protection / 100.0)))
 	)
 
 	result.player_car.condition = maxi(
@@ -1040,6 +1051,7 @@ func start_new_season() -> bool:
 		return false
 
 	apply_driver_development()
+	GameManager.team.process_staff_season()
 
 	GameManager.team.season_number += 1
 	GameManager.team.season_complete = false

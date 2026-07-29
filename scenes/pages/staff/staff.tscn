@@ -16,38 +16,60 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 14.0
-offset_right = -18.0
-offset_bottom = -14.0
+offset_left = 24.0
+offset_top = 18.0
+offset_right = -24.0
+offset_bottom = -18.0
 
 [node name="layout" type="VBoxContainer" parent="margin"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
+
+[node name="eyebrow" type="Label" parent="margin/layout"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "TEAM OPERATIONS  /  PERSONNEL"
 
 [node name="title" type="Label" parent="margin/layout"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
-text = "Staff & Workshop"
+theme_type_variation = &"PageTitle"
+text = "Staff & Race Crew"
 
-[node name="roster_summary_label" type="Label" parent="margin/layout"]
+[node name="subtitle" type="Label" parent="margin/layout"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Build a crew whose contracts, morale, experience and specialties complement your racing program."
+
+[node name="summary_panel" type="PanelContainer" parent="margin/layout"]
+layout_mode = 2
+theme_type_variation = &"HeroPanel"
+
+[node name="roster_summary_label" type="Label" parent="margin/layout/summary_panel"]
 unique_name_in_owner = true
 layout_mode = 2
+autowrap_mode = 2
 
 [node name="tabs" type="TabContainer" parent="margin/layout"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Hiring" type="ScrollContainer" parent="margin/layout/tabs"]
+[node name="Roster" type="ScrollContainer" parent="margin/layout/tabs"]
 layout_mode = 2
 
-[node name="candidates_container" type="GridContainer" parent="margin/layout/tabs/Hiring"]
+[node name="roster_container" type="VBoxContainer" parent="margin/layout/tabs/Roster"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
-columns = 3
+theme_override_constants/separation = 10
+
+[node name="Hiring Market" type="ScrollContainer" parent="margin/layout/tabs"]
+layout_mode = 2
+
+[node name="market_container" type="VBoxContainer" parent="margin/layout/tabs/Hiring Market"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
 
 [node name="Workshop" type="VBoxContainer" parent="margin/layout/tabs"]
 layout_mode = 2
@@ -55,12 +77,13 @@ theme_override_constants/separation = 12
 
 [node name="manufacture_title" type="Label" parent="margin/layout/tabs/Workshop"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Manufacture a New Part"
+theme_type_variation = &"SectionTitle"
+text = "Manufacture a performance part"
 
 [node name="manufacture_help" type="Label" parent="margin/layout/tabs/Workshop"]
 layout_mode = 2
-text = "Engineer rating determines the part's performance and starting condition."
+theme_type_variation = &"MutedLabel"
+text = "Performance determines the part bonus; reliability determines its starting condition."
 
 [node name="manufacture_row" type="HBoxContainer" parent="margin/layout/tabs/Workshop"]
 layout_mode = 2
@@ -78,6 +101,7 @@ size_flags_horizontal = 3
 [node name="manufacture_button" type="Button" parent="margin/layout/tabs/Workshop/manufacture_row"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"PrimaryButton"
 text = "Manufacture Part"
 
 [node name="separator" type="HSeparator" parent="margin/layout/tabs/Workshop"]
@@ -85,12 +109,13 @@ layout_mode = 2
 
 [node name="repair_title" type="Label" parent="margin/layout/tabs/Workshop"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Repair an Inventory Part"
+theme_type_variation = &"SectionTitle"
+text = "Repair an inventory part"
 
 [node name="repair_help" type="Label" parent="margin/layout/tabs/Workshop"]
 layout_mode = 2
-text = "Parts wear during races. A better engineer restores more condition in each repair."
+theme_type_variation = &"MutedLabel"
+text = "Engineers restore part condition; mechanics reduce whole-car repair time between races."
 
 [node name="repair_row" type="HBoxContainer" parent="margin/layout/tabs/Workshop"]
 layout_mode = 2
@@ -113,6 +138,7 @@ text = "Repair Part"
 [node name="status_label" type="Label" parent="margin/layout"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"StatusLabel"
 autowrap_mode = 2
 
 [node name="fire_confirmation_dialog" type="ConfirmationDialog" parent="."]

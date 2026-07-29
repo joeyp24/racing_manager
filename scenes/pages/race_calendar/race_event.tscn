@@ -40,6 +40,7 @@ theme_type_variation = &"MutedLabel"
 text_overrun_behavior = 3
 
 [node name="status_label" type="Label" parent="Margin/Row"]
+theme_type_variation = &"StatusLabel"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
@@ -67,6 +68,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="dialog_title" type="Label" parent="details_dialog/Details"]
+theme_type_variation = &"SectionTitle"
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 22

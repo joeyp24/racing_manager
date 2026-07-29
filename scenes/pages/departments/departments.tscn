@@ -28,16 +28,19 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="title" type="Label" parent="margin/layout"]
+theme_type_variation = &"PageTitle"
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "Team HQ Departments"
 
 [node name="subtitle" type="Label" parent="margin/layout"]
+theme_type_variation = &"SectionTitle"
 layout_mode = 2
 text = "Purchase a department at level 1, then invest to upgrade it through level 5. Each level adds 2.5% to its bonus."
 autowrap_mode = 2
 
 [node name="status_label" type="Label" parent="margin/layout"]
+theme_type_variation = &"StatusLabel"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
