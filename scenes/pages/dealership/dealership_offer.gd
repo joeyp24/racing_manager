@@ -24,11 +24,12 @@ func update_offer_display() -> void:
 	car_name_label.text = car_template.name
 
 	car_details_label.text = (
-		"%d %s %s\nPerformance: %d\nCondition: %d%%\nMileage: %d"
+		"%d %s %s\n%s\nPerformance: %d\nCondition: %d%%\nMileage: %d"
 		% [
 			car_template.year,
 			car_template.manufacturer,
 			car_template.model,
+			SeriesCatalog.get_series(car_template.series_id).get("name", "Unknown series"),
 			car_template.get_total_performance(),
 			car_template.condition,
 			car_template.mileage
@@ -47,6 +48,9 @@ func update_offer_display() -> void:
 		buy_button.disabled = true
 		buy_button.text = "Garage Full"
 		buy_button.tooltip_text = "Disabled: sell a car or expand garage capacity before purchasing."
+	elif not GameManager.team.entered_series_ids.has(car_template.series_id):
+		buy_button.disabled = true
+		buy_button.text = "Series Locked"
 
 
 func _on_buy_button_pressed() -> void:

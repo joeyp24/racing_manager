@@ -2,6 +2,7 @@ extends Resource
 class_name Car
 
 @export var name: String = "Starter Stock Car"
+@export var series_id: String = "local_short_track"
 
 @export var manufacturer: String = "Generic Motors"
 @export var model: String = "Stock Car"

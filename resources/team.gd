@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 2
+const CURRENT_SAVE_FORMAT_VERSION: int = 3
 
 @export var team_name: String = "My Team"
 @export var hometown: String = "Charlotte, NC"
@@ -30,6 +30,9 @@ const CURRENT_SAVE_FORMAT_VERSION: int = 2
 @export_enum("Rookie", "Club", "Pro") var career_difficulty: String = "Club"
 @export var recovery_funding_used: bool = false
 @export var reputation: int = 0
+@export var hq_level: int = 1
+@export var current_series_id: String = "local_short_track"
+@export var entered_series_ids: Array[String] = ["local_short_track"]
 @export var championship_points: int = 0
 @export var season_number: int = 1
 @export var season_complete: bool = false
@@ -88,6 +91,7 @@ func _init() -> void:
 	ensure_departments()
 	ensure_default_player_driver()
 	ensure_driver_market()
+	ensure_series_rosters()
 	ensure_race_teams()
 	ensure_car_parts()
 	ensure_staff_market()
@@ -126,6 +130,50 @@ func ensure_race_week_progression() -> void:
 
 func get_department_level(department_id: String) -> int:
 	return clampi(int(department_levels.get(department_id, 0)), 0, DepartmentCatalog.MAX_LEVEL)
+
+
+func get_hq_upgrade_cost() -> int:
+	return get_discounted_cost(SeriesCatalog.get_hq_upgrade_cost(hq_level))
+
+
+func upgrade_hq() -> bool:
+	var cost := get_hq_upgrade_cost()
+	if cost <= 0 or money < cost:
+		return false
+	money -= cost
+	hq_level += 1
+	record_finance("HQ", -cost, "Upgraded Team HQ to level %d" % hq_level)
+	emit_changed()
+	return true
+
+
+func can_enter_series(series_id: String) -> bool:
+	var index := SeriesCatalog.get_index(series_id)
+	var current_index := SeriesCatalog.get_index(current_series_id)
+	if index < 0 or entered_series_ids.has(series_id) or index != current_index + 1:
+		return false
+	var series := SeriesCatalog.get_series(series_id)
+	return hq_level >= int(series.hq_level) and money >= get_discounted_cost(int(series.entry_cost))
+
+
+func enter_series(series_id: String) -> bool:
+	if not can_enter_series(series_id):
+		return false
+	var cost := get_discounted_cost(int(SeriesCatalog.get_series(series_id).entry_cost))
+	money -= cost
+	entered_series_ids.append(series_id)
+	current_series_id = series_id
+	record_finance("Series", -cost, "Entered %s" % SeriesCatalog.get_series(series_id).name)
+	emit_changed()
+	return true
+
+
+func owns_car_for_series(series_id: String) -> bool:
+	for car_value in cars:
+		var car := car_value as Car
+		if car != null and car.series_id == series_id:
+			return true
+	return false
 
 
 func start_scouting_assignment(driver: Driver, assignment_type: String) -> bool:
@@ -242,6 +290,8 @@ func buy_car(
 		push_error(
 			"Cannot purchase a null car template."
 		)
+		return false
+	if not entered_series_ids.has(car_template.series_id):
 		return false
 
 	if not is_valid_bay_index(bay_index):
@@ -860,6 +910,31 @@ func ensure_driver_market() -> void:
 		driver.initialize_detailed_ratings(driver.skill, driver.consistency, driver.aggression, driver.potential)
 		_apply_driver_profile(driver)
 		drivers.append(driver)
+
+
+func ensure_series_rosters() -> void:
+	# Persistent fictional fields match the approximate entry-list sizes of each tier.
+	var first_names := ["Avery", "Blake", "Cameron", "Dakota", "Emery", "Finley", "Harper", "Jesse", "Kai", "Logan", "Morgan", "Parker"]
+	var last_names := ["Adams", "Baker", "Carter", "Diaz", "Ellis", "Foster", "Gray", "Howard", "Irwin", "James", "King", "Lewis", "Miller", "Nolan", "Owens", "Price", "Reed", "Stone", "Turner", "Young"]
+	for series_index in SeriesCatalog.SERIES.size():
+		var series: Dictionary = SeriesCatalog.SERIES[series_index]
+		var target_size := int(series.roster_size)
+		var existing_count := 0
+		for driver in drivers:
+			if driver != null and driver.series_id == series.id:
+				existing_count += 1
+		for roster_index in range(existing_count, target_size):
+			var driver := Driver.new()
+			driver.driver_id = "%s_driver_%02d" % [series.id, roster_index + 1]
+			driver.driver_name = "%s %s" % [first_names[(roster_index + series_index) % first_names.size()], last_names[(roster_index * 3 + series_index) % last_names.size()]]
+			driver.series_id = str(series.id)
+			driver.age = 18 + ((roster_index * 5 + series_index) % 25)
+			var skill := clampi(44 + series_index * 6 + (roster_index * 7) % 13, 0, 96)
+			driver.initialize_detailed_ratings(skill, skill - 2 + roster_index % 5, 45 + (roster_index * 9) % 45, mini(99, skill + 8 + roster_index % 8))
+			driver.salary = roundi(float(series.car_price) * (0.025 + float(roster_index % 5) * 0.004))
+			driver.signing_fee = driver.salary * 2
+			driver.update_archetype()
+			drivers.append(driver)
 
 
 func migrate_driver_development(

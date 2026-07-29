@@ -10,6 +10,7 @@ const PERSONALITY_FIELDS: Array[String] = ["ambition", "loyalty", "professionali
 
 @export var driver_id: String = ""
 @export var driver_name: String = "Unnamed Driver"
+@export var series_id: String = "local_short_track"
 
 # Legacy values remain serialized for save compatibility and race balancing.
 @export_range(0, 99) var skill: int = 50

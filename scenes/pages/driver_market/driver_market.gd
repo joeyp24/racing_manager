@@ -70,6 +70,8 @@ func display_market() -> void:
 			continue
 		if team.contracted_driver_ids.has(driver.driver_id):
 			continue
+		if driver.series_id != team.current_series_id:
+			continue
 		create_candidate_row(driver)
 
 
