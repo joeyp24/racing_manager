@@ -2,6 +2,9 @@ extends Resource
 class_name Team
 
 const GARAGE_SIZE: int = 6
+const MAX_ENGINEERS: int = 3
+const MANUFACTURING_BASE_COST: int = 1800
+const PART_REPAIR_COST_PER_POINT: int = 12
 
 @export var team_name: String = "My Team"
 @export var money: int = 15000
@@ -42,6 +45,7 @@ const GARAGE_SIZE: int = 6
 ]
 
 @export var parts_inventory: Array[CarPart] = []
+@export var staff: Array[StaffMember] = []
 
 
 func _init() -> void:
@@ -49,6 +53,7 @@ func _init() -> void:
 	ensure_default_player_driver()
 	ensure_driver_market()
 	ensure_car_parts()
+	ensure_staff_market()
 
 
 func ensure_departments() -> void:
@@ -221,6 +226,107 @@ func get_parts_by_type(part_type: String) -> Array[CarPart]:
 		if part != null and part.part_type == part_type:
 			matches.append(part)
 	return matches
+
+
+func ensure_staff_market() -> void:
+	var candidates: Array[Dictionary] = [
+		{"id": "chief_morgan", "name": "Alex Morgan", "role": "Crew Chief", "rating": 62, "fee": 4500, "salary": 1600, "specialty": "Race strategy"},
+		{"id": "chief_chen", "name": "Lena Chen", "role": "Crew Chief", "rating": 78, "fee": 9000, "salary": 2800, "specialty": "Car setup"},
+		{"id": "chief_bennett", "name": "Marcus Bennett", "role": "Crew Chief", "rating": 91, "fee": 16000, "salary": 4500, "specialty": "Championship leadership"},
+		{"id": "engineer_singh", "name": "Priya Singh", "role": "Engineer", "rating": 58, "fee": 3200, "salary": 1200, "specialty": "Engines"},
+		{"id": "engineer_romero", "name": "Diego Romero", "role": "Engineer", "rating": 71, "fee": 6000, "salary": 1900, "specialty": "Suspension"},
+		{"id": "engineer_nakamura", "name": "Emi Nakamura", "role": "Engineer", "rating": 84, "fee": 10500, "salary": 3100, "specialty": "Aerodynamics"},
+		{"id": "engineer_okafor", "name": "Tunde Okafor", "role": "Engineer", "rating": 94, "fee": 17500, "salary": 4800, "specialty": "Advanced manufacturing"}
+	]
+	for data in candidates:
+		if get_staff_by_id(str(data["id"])) != null:
+			continue
+		var member := StaffMember.new()
+		member.staff_id = str(data["id"])
+		member.staff_name = str(data["name"])
+		member.role = str(data["role"])
+		member.rating = int(data["rating"])
+		member.signing_fee = int(data["fee"])
+		member.salary = int(data["salary"])
+		member.specialty = str(data["specialty"])
+		staff.append(member)
+
+
+func get_staff_by_id(staff_id: String) -> StaffMember:
+	for member in staff:
+		if member != null and member.staff_id == staff_id:
+			return member
+	return null
+
+
+func get_crew_chief() -> StaffMember:
+	for member in staff:
+		if member != null and member.hired and member.role == "Crew Chief":
+			return member
+	return null
+
+
+func get_engineers() -> Array[StaffMember]:
+	var engineers: Array[StaffMember] = []
+	for member in staff:
+		if member != null and member.hired and member.role == "Engineer":
+			engineers.append(member)
+	return engineers
+
+
+func hire_staff(member: StaffMember) -> bool:
+	if member == null or not staff.has(member) or member.hired:
+		return false
+	if member.role == "Crew Chief" and get_crew_chief() != null:
+		return false
+	if member.role == "Engineer" and get_engineers().size() >= MAX_ENGINEERS:
+		return false
+	var cost := get_discounted_cost(member.signing_fee)
+	if money < cost:
+		return false
+	money -= cost
+	member.hired = true
+	emit_changed()
+	return true
+
+
+func get_crew_chief_performance_boost() -> float:
+	var chief := get_crew_chief()
+	if chief == null:
+		return 0.0
+	return float(chief.rating) * 0.05
+
+
+func manufacture_part(engineer: StaffMember, part_type: String) -> CarPart:
+	if engineer == null or not engineer.hired or engineer.role != "Engineer":
+		return null
+	if not CarPart.PART_TYPES.has(part_type):
+		return null
+	var cost := get_discounted_cost(MANUFACTURING_BASE_COST)
+	if money < cost:
+		return null
+	money -= cost
+	var part := PartCatalog.create_manufactured_part(part_type, engineer)
+	parts_inventory.append(part)
+	emit_changed()
+	return part
+
+
+func repair_part(engineer: StaffMember, part: CarPart) -> int:
+	if engineer == null or not engineer.hired or engineer.role != "Engineer":
+		return 0
+	if part == null or not parts_inventory.has(part) or part.condition >= 100:
+		return 0
+	var maximum_restore := 10 + roundi(float(engineer.rating) * 0.35)
+	var restored := mini(100 - part.condition, maximum_restore)
+	var cost := get_discounted_cost(restored * PART_REPAIR_COST_PER_POINT)
+	if money < cost:
+		return 0
+	money -= cost
+	part.condition += restored
+	part.emit_changed()
+	emit_changed()
+	return restored
 
 
 func remove_car_from_bay(

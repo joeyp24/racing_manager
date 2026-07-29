@@ -29,7 +29,7 @@ func refresh_shop() -> void:
 		title.text = "%s — %s" % [part.part_type, part.part_name]
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		var details := Label.new()
-		details.text = "%s tier\n%s\nPerformance +%d" % [part.tier, part.get_effect_text(), part.performance_bonus]
+		details.text = "%s tier\n%s\nPerformance +%d at %d%% condition" % [part.tier, part.get_effect_text(), part.get_effective_performance_bonus(), part.condition]
 		var buy_button := Button.new()
 		buy_button.text = "Buy — $%s" % format_number(purchase_cost)
 		buy_button.disabled = GameManager.team.money < purchase_cost

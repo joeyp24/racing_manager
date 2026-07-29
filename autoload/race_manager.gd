@@ -259,12 +259,13 @@ func calculate_player_score(
 		var body_bonus := 0
 		for part in player_car.installed_parts:
 			if part is CarPart:
-				part_bonus += part.performance_bonus
+				part_bonus += part.get_effective_performance_bonus()
 				if part.part_type == "Body":
-					body_bonus += part.performance_bonus
+					body_bonus += part.get_effective_performance_bonus()
 		car_performance += float(part_bonus) * team.get_department_bonus("engineering") / 100.0
 		car_performance += float(body_bonus) * team.get_department_bonus("wind_tunnel") / 100.0
 		car_performance *= 1.0 + team.get_department_bonus("cheating") / 100.0
+		car_performance *= 1.0 + team.get_crew_chief_performance_boost() / 100.0
 	var performance_score: float = car_performance * 0.50
 
 	var condition_score: float = (
@@ -439,6 +440,10 @@ func apply_race_effects(
 		result.player_car.condition
 		- result.condition_lost
 	)
+	for part in result.player_car.installed_parts:
+		if part is CarPart:
+			part.condition = maxi(0, part.condition - maxi(1, result.condition_lost / 3))
+			part.emit_changed()
 
 	result.player_car.emit_changed()
 
