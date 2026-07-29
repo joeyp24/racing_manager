@@ -56,6 +56,7 @@ static func save_game(team: Team, slot_id: String) -> bool:
 		return false
 	team.last_saved_unix_time = int(Time.get_unix_time_from_system())
 	team.save_format_version = Team.CURRENT_SAVE_FORMAT_VERSION
+	team.save_series_progress()
 	var save_path := get_save_path(slot_id)
 	var temporary_path := save_path.trim_suffix(SAVE_EXTENSION) + TEMP_EXTENSION
 	var backup_path := save_path.trim_suffix(SAVE_EXTENSION) + BACKUP_EXTENSION
@@ -97,6 +98,8 @@ static func load_game(slot_id: String) -> Team:
 
 static func _repair_and_migrate(team: Team) -> void:
 	# Resource defaults cover newly introduced scalar fields; these calls repair collections.
+	team.ensure_series_progress(team.current_series_id)
+	team.load_series_progress(team.current_series_id)
 	team.ensure_departments()
 	team.ensure_default_player_driver()
 	team.ensure_driver_market()

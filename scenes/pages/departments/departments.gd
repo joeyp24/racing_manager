@@ -51,7 +51,8 @@ func create_series_ladder_card() -> Control:
 	else:
 		var next: Dictionary = SeriesCatalog.SERIES[next_index]
 		action.text = "Enter %s — $%s" % [next.name, format_number(team.get_discounted_cost(int(next.entry_cost)))]
-		action.tooltip_text = "Requires Team HQ level %d. A series-specific car must be purchased separately." % next.hq_level
+		var requirements := team.get_series_entry_requirements(str(next.id))
+		action.tooltip_text = "Promotion is available at the season boundary. " + ("All requirements met." if requirements.is_empty() else " ".join(requirements))
 		action.disabled = not team.can_enter_series(str(next.id))
 		action.pressed.connect(_on_enter_series_pressed.bind(str(next.id)))
 	content.add_child(title); content.add_child(current); content.add_child(action); panel.add_child(content)

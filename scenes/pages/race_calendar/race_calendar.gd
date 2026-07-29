@@ -11,6 +11,8 @@ const RACE_EVENT_SCENE: PackedScene = preload(
 
 
 func _ready() -> void:
+	if GameManager.team != null:
+		race_calendar = RaceManager.get_calendar_for_series(GameManager.team.current_series_id)
 	back_button.pressed.connect(
 		_on_back_button_pressed
 	)

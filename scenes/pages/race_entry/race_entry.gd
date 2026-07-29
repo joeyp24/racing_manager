@@ -75,7 +75,7 @@ func create_car_options() -> void:
 		var option: CheckBox = CheckBox.new()
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.clip_text = true
-		option.disabled = not race_team.is_ready(GameManager.team) or not RaceReadiness.is_car_eligible(car)
+		option.disabled = not race_team.is_ready(GameManager.team) or not RaceReadiness.is_car_eligible(car, GameManager.selected_race.series_id)
 		option.text = "%s  •  %s  •  %s" % [race_team.team_name, driver.driver_name if driver != null else "No driver", car.name if car != null else "No car"]
 		option.tooltip_text = "Assign a contracted driver and eligible car on the Race Teams page." if option.disabled else "Include this team in the race entry."
 		option.button_pressed = not option.disabled
@@ -263,6 +263,13 @@ func _on_readiness_action_requested(action: String) -> void:
 func _on_confirm_button_pressed() -> void:
 	if confirm_button.disabled or selected_car == null or GameManager.selected_race == null or selected_race_teams.is_empty():
 		return
+	for race_team in selected_race_teams:
+		var entry_car := GameManager.team.cars[race_team.car_bay] as Car if race_team.car_bay >= 0 and race_team.car_bay < GameManager.team.cars.size() else null
+		if not RaceReadiness.is_car_eligible(entry_car, GameManager.selected_race.series_id):
+			status_label.text = "Entry blocked: every car must be homologated for %s." % SeriesCatalog.get_series(GameManager.selected_race.series_id).get("name", GameManager.selected_race.series_id)
+			back_button.disabled = false
+			refresh_operations_center()
+			return
 	confirm_button.disabled = true
 	back_button.disabled = true
 	status_label.text = "Committing entry fee and opening race weekend..."
