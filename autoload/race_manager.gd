@@ -118,6 +118,98 @@ func _ready() -> void:
 	random_number_generator.randomize()
 
 
+func create_live_simulation(
+	selected_race: Race,
+	player_car: Car,
+	selected_strategy: String,
+	weekend_data: Dictionary
+) -> RaceSimulation:
+	if selected_race == null or player_car == null or GameManager.team == null:
+		return null
+	var player_driver := GameManager.team.get_active_driver()
+	if player_driver == null:
+		return null
+	var ai_scores: Array[float] = []
+	for ai_driver in AI_DRIVERS:
+		ai_scores.append(calculate_ai_score(selected_race, ai_driver))
+	var simulation := RaceSimulation.new()
+	var compound := "Medium"
+	var plan := str(weekend_data.get("pre_race_plan", ""))
+	if plan.begins_with("Hard"):
+		compound = "Hard"
+	elif plan.begins_with("Soft"):
+		compound = "Soft"
+	simulation.setup(
+		selected_race,
+		player_driver,
+		GameManager.team.team_name,
+		calculate_player_score(player_car, player_driver, selected_strategy, selected_race)
+			+ float(weekend_data.get("setup_bonus", 0.0))
+			+ float(weekend_data.get("race_modifier", 0.0)),
+		int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1)),
+		AI_DRIVERS,
+		ai_scores,
+		compound
+	)
+	return simulation
+
+
+func finalize_live_race(
+	simulation: RaceSimulation,
+	player_car: Car,
+	selected_strategy: String,
+	weekend_data: Dictionary
+) -> RaceResult:
+	if simulation == null or not simulation.is_complete or player_car == null:
+		push_error("Cannot finalize an incomplete live race.")
+		return null
+	var selected_race := simulation.race
+	var player_driver := GameManager.team.get_active_driver()
+	initialize_championship_standings(player_driver)
+	var strategy := get_strategy(selected_strategy)
+	var result := RaceResult.new()
+	result.race = selected_race
+	result.player_car = player_car
+	result.player_driver = player_driver
+	result.entry_fee = selected_race.entry_fee
+	result.driver_salary = player_driver.salary
+	result.strategy_id = normalize_strategy_id(selected_strategy)
+	result.strategy_name = str(strategy.get("name", "Balanced"))
+	result.strategy_performance_modifier = float(strategy.get("performance_modifier", 1.0))
+	result.strategy_variance_modifier = float(strategy.get("variance_modifier", 1.0))
+	result.strategy_wear_modifier = float(strategy.get("wear_modifier", 1.0))
+	result.starting_position = int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1))
+	result.practice_focus_name = str(weekend_data.get("practice_focus_name", "None"))
+	result.qualifying_approach_name = str(weekend_data.get("qualifying_approach_name", "Balanced lap"))
+	result.qualifying_score = float(weekend_data.get("qualifying_score", 0.0))
+	result.setup_bonus = float(weekend_data.get("setup_bonus", 0.0))
+	result.strategy_effectiveness = float(weekend_data.get("race_modifier", 0.0))
+	for summary in weekend_data.get("decision_log", []):
+		result.weekend_summary.append(str(summary))
+	result.weekend_summary.append("Live timing completed over %d laps." % selected_race.lap_count)
+	result.standings = simulation.as_final_standings()
+	result.field_size = result.standings.size()
+	result.finishing_position = find_player_position(result.standings)
+	result.positions_gained = result.starting_position - result.finishing_position
+	result.prize_money = calculate_prize_money(selected_race, result.finishing_position)
+	result.championship_points_earned = calculate_championship_points(result.finishing_position)
+	result.mileage_added = calculate_mileage_added(selected_race)
+	result.condition_lost = calculate_condition_loss(selected_race, result.strategy_id)
+	result.condition_lost = maxi(1, roundi(float(result.condition_lost) * float(weekend_data.get("wear_modifier", 1.0))))
+	result.net_earnings = result.prize_money - result.entry_fee - result.driver_salary
+	var staff_payroll := GameManager.team.process_staff_race()
+	result.crew_chief_salary = int(staff_payroll.get("crew_chief_salary", 0))
+	result.engineering_payroll = int(staff_payroll.get("engineering_payroll", 0))
+	for expired_name in staff_payroll.get("expired_names", []):
+		result.expired_staff_names.append(str(expired_name))
+	result.net_earnings -= result.crew_chief_salary + result.engineering_payroll
+	apply_race_effects(result)
+	complete_race(selected_race)
+	last_result = result
+	GameManager.save_game()
+	return result
+
+
 func run_race(
 	selected_race: Race,
 	player_car: Car,
