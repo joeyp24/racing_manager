@@ -133,13 +133,14 @@ func _driver_comparison_tooltip(driver: Driver, active: Driver) -> String:
 
 func create_driver_details(driver: Driver) -> String:
 	var signing_cost := GameManager.team.get_discounted_cost(driver.signing_fee)
-	return "Age %d | Potential %d | Team seasons %d | Skill %d | Consistency %d | Aggression %d | Salary $%s/race | Signing fee $%s" % [
+	return "Age %d | OVR %d | Potential OVR %d | Team seasons %d | Race pace %d | Qualifying %d | Tyre management %d | Salary $%s/race | Signing fee $%s" % [
 		driver.age,
-		driver.potential,
+		driver.get_overall_rating(),
+		driver.get_potential_overall(),
 		driver.seasons_with_team,
-		driver.skill,
-		driver.consistency,
-		driver.aggression,
+		driver.race_pace,
+		driver.qualifying_pace,
+		driver.tyre_management,
 		format_number(driver.salary),
 		format_number(signing_cost)
 	]

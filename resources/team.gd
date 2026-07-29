@@ -712,6 +712,8 @@ func ensure_default_player_driver() -> Driver:
 		):
 			current_driver.age = 24
 			current_driver.potential = 78
+		if current_driver.race_pace == 50 and current_driver.qualifying_pace == 50:
+			current_driver.initialize_detailed_ratings(current_driver.skill, current_driver.consistency, current_driver.aggression, current_driver.potential)
 		return current_driver
 
 	var new_driver := Driver.new()
@@ -724,6 +726,11 @@ func ensure_default_player_driver() -> Driver:
 	new_driver.aggression = 50
 	new_driver.age = 24
 	new_driver.potential = 78
+	new_driver.hometown = "Charlotte, North Carolina"
+	new_driver.racing_background = "Late models and regional stock cars"
+	new_driver.biography = "A composed homegrown prospect stepping up from the regional short-track scene."
+	new_driver.preferred_number = 27
+	new_driver.initialize_detailed_ratings(55, 55, 50, 78)
 
 	new_driver.salary = 1500
 	new_driver.signing_fee = 2000
@@ -796,6 +803,8 @@ func ensure_driver_market() -> void:
 		driver.signing_fee = int(data["fee"])
 		driver.age = int(data["age"])
 		driver.potential = int(data["potential"])
+		driver.initialize_detailed_ratings(driver.skill, driver.consistency, driver.aggression, driver.potential)
+		_apply_driver_profile(driver)
 		drivers.append(driver)
 
 
@@ -813,6 +822,25 @@ func migrate_driver_development(
 		driver.potential,
 		max(driver.skill, max(driver.consistency, driver.aggression))
 	)
+	if driver.race_pace == 50 and driver.qualifying_pace == 50:
+		driver.initialize_detailed_ratings(driver.skill, driver.consistency, driver.aggression, driver.potential)
+	_apply_driver_profile(driver)
+
+
+func _apply_driver_profile(driver: Driver) -> void:
+	var profiles := {
+		"maya_torres": ["Monterrey, Mexico", "Mexican", "Karting and touring cars", "An instinctive qualifier whose fearless rise through touring cars made her a paddock favorite."],
+		"grant_holloway": ["Bristol, Tennessee", "American", "Short tracks and endurance racing", "A respected veteran known for mechanical sympathy and bringing the car home."],
+		"nia_okafor": ["Atlanta, Georgia", "American", "National karting and late models", "A bold young prospect with exceptional wheel-to-wheel instincts and raw speed."],
+		"eli_park": ["Vancouver, Canada", "Canadian", "Karting and rookie stock cars", "A patient academy graduate taking the first steps of a professional career."],
+		"sofia_varga": ["Budapest, Hungary", "Hungarian", "Formula cars and international GT", "A polished international contender chasing the one major title missing from her résumé."]
+	}
+	if profiles.has(driver.driver_id):
+		var profile: Array = profiles[driver.driver_id]
+		driver.hometown = profile[0]
+		driver.nationality = profile[1]
+		driver.racing_background = profile[2]
+		driver.biography = profile[3]
 
 
 func can_hire_driver(driver: Driver = null) -> bool:

@@ -60,7 +60,7 @@ static func _driver_check(team: Team) -> Dictionary:
 	var driver := team.get_active_driver()
 	if not team.driver_hired_for_season or driver == null:
 		return _check(BLOCKED, "DRIVER", "No driver is contracted for this season.", "Open Drivers", "drivers")
-	var rating := (driver.skill + driver.consistency + driver.aggression) / 3
+	var rating := driver.get_overall_rating()
 	if rating < 55:
 		return _check(SUBOPTIMAL, "DRIVER", "%s is contracted, but a %d average rating limits the forecast." % [driver.driver_name, rating], "Open Drivers", "drivers", "Target: 55+")
 	return _check(READY, "DRIVER", "%s is contracted for the season (rating %d)." % [driver.driver_name, rating], "", "", "Season contract")

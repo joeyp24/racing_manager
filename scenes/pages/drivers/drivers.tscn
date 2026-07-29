@@ -25,7 +25,7 @@ theme_override_constants/separation = 12
 [node name="Title" type="Label" parent="Margin/Layout"]
 layout_mode = 2
 theme_type_variation = &"PageTitle"
-text = "Team Drivers"
+text = "Driver Performance Centre"
 [node name="summary_label" type="Label" parent="Margin/Layout"]
 unique_name_in_owner = true
 layout_mode = 2

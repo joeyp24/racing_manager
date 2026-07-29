@@ -1242,20 +1242,18 @@ func get_free_agent_development(driver: Driver) -> int:
 
 func spend_development_points(driver: Driver) -> void:
 	var attempts: int = driver.development_points
-	var development_cycle: Array[String] = [
-		"skill", "consistency", "skill",
-		"aggression", "skill", "consistency"
-	]
+	var development_cycle: Array[String] = Driver.RATING_FIELDS
 
 	for point_index in range(attempts):
 		var attribute: String = development_cycle[
 			point_index % development_cycle.size()
 		]
 		var current_value: int = int(driver.get(attribute))
-		var ceiling: int = min(driver.potential, 100)
+		var ceiling: int = int(driver.get(attribute + "_potential"))
 		if current_value < ceiling and driver.age < 34:
 			driver.set(attribute, current_value + 1)
 		driver.development_points -= 1
+	driver.sync_legacy_ratings()
 
 
 func apply_veteran_decline(driver: Driver) -> void:
@@ -1263,8 +1261,10 @@ func apply_veteran_decline(driver: Driver) -> void:
 		return
 
 	var decline: int = 2 if driver.age >= 39 else 1
-	driver.skill = max(1, driver.skill - decline)
-	driver.consistency = max(1, driver.consistency - 1)
+	for attribute in Driver.RATING_FIELDS:
+		var physical_decline := decline if attribute in ["race_pace", "qualifying_pace", "fitness", "starts_restarts"] else 1
+		driver.set(attribute, maxi(0, int(driver.get(attribute)) - physical_decline))
+	driver.sync_legacy_ratings()
 
 
 func describe_driver_changes(
