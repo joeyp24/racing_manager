@@ -20,6 +20,7 @@ extends Control
 @onready var next_event_label: Label = %next_event_label
 @onready var team_name_label: Label = %team_name_label
 @onready var season_label: Label = %season_label
+@onready var fullscreen_button: Button = %fullscreen_button
 
 var navigation_buttons: Array[Button] = []
 
@@ -59,6 +60,9 @@ func _ready() -> void:
 	hq_button.pressed.connect(_on_hq_button_pressed)
 	identity_button.pressed.connect(_on_identity_button_pressed)
 	scouting_button.pressed.connect(_on_scouting_button_pressed)
+	fullscreen_button.pressed.connect(_on_fullscreen_button_pressed)
+	GameManager.fullscreen_changed.connect(_update_fullscreen_button)
+	_update_fullscreen_button(GameManager.is_fullscreen())
 
 	if not GameManager.team_money_changed.is_connected(
 		_on_team_money_changed
@@ -88,6 +92,8 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	if GameManager.fullscreen_changed.is_connected(_update_fullscreen_button):
+		GameManager.fullscreen_changed.disconnect(_update_fullscreen_button)
 	if GameManager.team_money_changed.is_connected(
 		_on_team_money_changed
 	):
@@ -96,6 +102,17 @@ func _exit_tree() -> void:
 		)
 	if GameManager.team != null and GameManager.team.changed.is_connected(update_team_display):
 		GameManager.team.changed.disconnect(update_team_display)
+
+
+func _on_fullscreen_button_pressed() -> void:
+	GameManager.toggle_fullscreen()
+
+
+func _update_fullscreen_button(is_now_fullscreen: bool) -> void:
+	if is_now_fullscreen:
+		fullscreen_button.text = "  ⛶  Exit Full Screen (F11)"
+	else:
+		fullscreen_button.text = "  ⛶  Full Screen (F11)"
 
 
 func _notification(what: int) -> void:

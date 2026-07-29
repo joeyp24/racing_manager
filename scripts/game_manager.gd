@@ -2,6 +2,7 @@ extends Node
 
 signal team_money_changed(new_amount: int)
 signal team_loaded(team: Team)
+signal fullscreen_changed(is_now_fullscreen: bool)
 
 var team: Team = null
 var active_save_id: String = ""
@@ -14,6 +15,25 @@ var active_race_weekend: Dictionary = {}
 
 func _ready() -> void:
 	SaveManager.migrate_legacy_save()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F11:
+			toggle_fullscreen()
+			get_viewport().set_input_as_handled()
+
+
+func toggle_fullscreen() -> void:
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	fullscreen_changed.emit(is_fullscreen())
+
+
+func is_fullscreen() -> bool:
+	return DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
 
 
 func new_game(slot_id: String = "") -> void:
