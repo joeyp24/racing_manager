@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://dgfgqehc4hl3m"]
+[gd_scene load_steps=2 format=3 uid="uid://dgfgqehc4hl3m"]
 
-[ext_resource type="Script" uid="uid://bnljhcukhcobc" path="res://scenes/home/home.gd" id="1_5q1ba"]
+[ext_resource type="Script" uid="uid://bnljhcukhcobc" path="res://scenes/home/home.gd" id="1"]
 
 [node name="home" type="Control"]
 layout_mode = 3
@@ -9,135 +9,301 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_5q1ba")
+script = ExtResource("1")
 
-[node name="background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.423651, 0.423651, 0.423651, 1)
+color = Color(0.027, 0.038, 0.053, 1)
 
-[node name="page_margin" type="MarginContainer" parent="."]
+[node name="Layout" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/separation = 0
 
-[node name="main_layout" type="HBoxContainer" parent="page_margin"]
+[node name="Sidebar" type="PanelContainer" parent="Layout"]
+custom_minimum_size = Vector2(216, 0)
+layout_mode = 2
+theme_type_variation = &"SidebarPanel"
+
+[node name="Margin" type="MarginContainer" parent="Layout/Sidebar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Content" type="VBoxContainer" parent="Layout/Sidebar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="TeamHeader" type="HBoxContainer" parent="Layout/Sidebar/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Badge" type="Label" parent="Layout/Sidebar/Margin/Content/TeamHeader"]
+custom_minimum_size = Vector2(42, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.3, 0.12, 1)
+theme_override_font_sizes/font_size = 24
+text = "◆"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Identity" type="VBoxContainer" parent="Layout/Sidebar/Margin/Content/TeamHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="team_name_label" type="Label" parent="Layout/Sidebar/Margin/Content/TeamHeader/Identity"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "APEX MOTORSPORT"
+text_overrun_behavior = 3
+
+[node name="season_label" type="Label" parent="Layout/Sidebar/Margin/Content/TeamHeader/Identity"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "SEASON 1 • TEAM HQ"
+
+[node name="Rule" type="HSeparator" parent="Layout/Sidebar/Margin/Content"]
+layout_mode = 2
+
+[node name="OverviewLabel" type="Label" parent="Layout/Sidebar/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "OVERVIEW"
+
+[node name="home_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ◈  Dashboard"
+alignment = 0
+
+[node name="race_calendar_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ◷  Calendar"
+alignment = 0
+
+[node name="championship_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ▥  Championship"
+alignment = 0
+
+[node name="TeamLabel" type="Label" parent="Layout/Sidebar/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "TEAM"
+
+[node name="garage_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ▰  Garage"
+alignment = 0
+
+[node name="drivers_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ◉  Drivers"
+alignment = 0
+
+[node name="staff_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ◫  Staff"
+alignment = 0
+
+[node name="OperationsLabel" type="Label" parent="Layout/Sidebar/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "OPERATIONS"
+
+[node name="shop_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ◆  Parts Shop"
+alignment = 0
+
+[node name="dealership_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ◇  Dealership"
+alignment = 0
+
+[node name="sponsors_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ✦  Sponsors"
+alignment = 0
+
+[node name="finances_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  $  Finances"
+alignment = 0
+
+[node name="FacilitiesLabel" type="Label" parent="Layout/Sidebar/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "FACILITIES"
+
+[node name="hq_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ▦  Headquarters"
+alignment = 0
+
+[node name="scouting_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "  ⌖  Scouting  🔒"
+alignment = 0
+
+[node name="Spacer" type="Control" parent="Layout/Sidebar/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="reset_game_button" type="Button" parent="Layout/Sidebar/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reset career"
+
+[node name="RightSide" type="VBoxContainer" parent="Layout"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="OuterMargin" type="MarginContainer" parent="Layout/RightSide"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="Stack" type="VBoxContainer" parent="Layout/RightSide/OuterMargin"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="sidebar" type="VBoxContainer" parent="page_margin/main_layout"]
-custom_minimum_size = Vector2(180, 0)
+[node name="TopBar" type="PanelContainer" parent="Layout/RightSide/OuterMargin/Stack"]
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_type_variation = &"TopbarPanel"
 
-[node name="home_button" type="Button" parent="page_margin/main_layout/sidebar"]
+[node name="Status" type="HBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="MoneyBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/MoneyBox"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "AVAILABLE CASH"
+
+[node name="money_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/MoneyBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Home"
+text = "$0"
 
-[node name="garage_button" type="Button" parent="page_margin/main_layout/sidebar"]
+[node name="Divider1" type="VSeparator" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+layout_mode = 2
+
+[node name="RepBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "REPUTATION"
+
+[node name="rep_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Garage"
+text = "0 PTS"
 
-[node name="dealership_button" type="Button" parent="page_margin/main_layout/sidebar"]
+[node name="Divider2" type="VSeparator" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+layout_mode = 2
+
+[node name="PositionBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/PositionBox"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "CHAMPIONSHIP"
+
+[node name="position_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/PositionBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Dealership"
+text = "—"
 
-[node name="drivers_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Drivers"
-
-[node name="championship_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Championship"
-
-[node name="staff_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Staff"
-
-[node name="finances_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Finances"
-
-[node name="shop_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Shop"
-
-[node name="hq_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "HQ"
-
-[node name="scouting_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Scouting"
-
-[node name="sponsors_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Sponsors"
-
-[node name="race_calendar_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Race Calendar"
-
-[node name="sidebar_spacer" type="Control" parent="page_margin/main_layout/sidebar"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="reset_game_button" type="Button" parent="page_margin/main_layout/sidebar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Reset Game"
-
-[node name="right_side" type="VBoxContainer" parent="page_margin/main_layout"]
+[node name="Spacer" type="Control" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="top_bar" type="HBoxContainer" parent="page_margin/main_layout/right_side"]
-custom_minimum_size = Vector2(0, 60)
+[node name="NextBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
 layout_mode = 2
+theme_override_constants/separation = 0
 
-[node name="money_label" type="Label" parent="page_margin/main_layout/right_side/top_bar"]
+[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/NextBox"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "NEXT EVENT"
+horizontal_alignment = 2
+
+[node name="next_event_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/NextBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Money: $0"
+text = "Spring 100"
+horizontal_alignment = 2
 
-[node name="spacer" type="Control" parent="page_margin/main_layout/right_side/top_bar"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="rep_label" type="Label" parent="page_margin/main_layout/right_side/top_bar"]
-layout_mode = 2
-text = "Rep: 0"
-
-[node name="main_panel" type="PanelContainer" parent="page_margin/main_layout/right_side"]
+[node name="MainPanel" type="PanelContainer" parent="Layout/RightSide/OuterMargin/Stack"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="page_container" type="Control" parent="page_margin/main_layout/right_side/main_panel"]
+[node name="page_container" type="Control" parent="Layout/RightSide/OuterMargin/Stack/MainPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 clip_contents = true
 
-[connection signal="pressed" from="page_margin/main_layout/sidebar/reset_game_button" to="." method="_on_reset_game_button_pressed"]
+[connection signal="pressed" from="Layout/Sidebar/Margin/Content/reset_game_button" to="." method="_on_reset_game_button_pressed"]

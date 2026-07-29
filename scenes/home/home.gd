@@ -14,10 +14,21 @@ extends Control
 @onready var hq_button: Button = %hq_button
 @onready var scouting_button: Button = %scouting_button
 @onready var money_label: Label = %money_label
+@onready var rep_label: Label = %rep_label
+@onready var position_label: Label = %position_label
+@onready var next_event_label: Label = %next_event_label
+@onready var team_name_label: Label = %team_name_label
+@onready var season_label: Label = %season_label
+
+var navigation_buttons: Array[Button] = []
 
 
 func _ready() -> void:
 	GameManager.page_container = page_container
+	navigation_buttons = [home_button, race_calendar_button, championship_button,
+		garage_button, drivers_button, staff_button, shop_button,
+		dealership_button, sponsors_button, finances_button, hq_button,
+		scouting_button]
 
 	home_button.pressed.connect(
 		_on_home_button_pressed
@@ -60,6 +71,7 @@ func _ready() -> void:
 	GameManager.load_page(
 		"res://scenes/pages/dashboard/dashboard.tscn"
 	)
+	set_active_navigation(home_button)
 
 	if (
 		GameManager.team != null
@@ -68,6 +80,7 @@ func _ready() -> void:
 		GameManager.load_page(
 			"res://scenes/pages/drivers/drivers.tscn"
 		)
+		set_active_navigation(drivers_button)
 
 
 func _exit_tree() -> void:
@@ -86,38 +99,45 @@ func _notification(what: int) -> void:
 
 
 func _on_home_button_pressed() -> void:
+	set_active_navigation(home_button)
 	GameManager.load_page(
 		"res://scenes/pages/dashboard/dashboard.tscn"
 	)
 
 
 func _on_garage_button_pressed() -> void:
+	set_active_navigation(garage_button)
 	GameManager.load_page(
 		"res://scenes/pages/garage/garage.tscn"
 	)
 
 
 func _on_drivers_button_pressed() -> void:
+	set_active_navigation(drivers_button)
 	GameManager.load_page(
 		"res://scenes/pages/drivers/drivers.tscn"
 	)
 
 
 func _on_championship_button_pressed() -> void:
+	set_active_navigation(championship_button)
 	GameManager.load_page(
 		"res://scenes/pages/championship/championship.tscn"
 	)
 
 
 func _on_staff_button_pressed() -> void:
+	set_active_navigation(staff_button)
 	GameManager.load_page("res://scenes/pages/staff/staff.tscn")
 
 
 func _on_finances_button_pressed() -> void:
+	set_active_navigation(finances_button)
 	GameManager.load_page("res://scenes/pages/finances/finances.tscn")
 
 
 func _on_race_calendar_button_pressed() -> void:
+	set_active_navigation(race_calendar_button)
 	GameManager.selected_race = null
 	GameManager.selected_car = null
 
@@ -127,32 +147,39 @@ func _on_race_calendar_button_pressed() -> void:
 
 
 func _on_shop_button_pressed() -> void:
+	set_active_navigation(shop_button)
 	GameManager.load_page("res://scenes/pages/shop/shop.tscn")
 
 
 func _on_dealership_button_pressed() -> void:
+	set_active_navigation(dealership_button)
 	GameManager.selected_car = null
 	GameManager.selected_bay = -1
 	GameManager.load_page("res://scenes/pages/dealership/dealership.tscn")
 
 
 func _on_sponsors_button_pressed() -> void:
+	set_active_navigation(sponsors_button)
 	GameManager.load_page("res://scenes/pages/sponsors/sponsors.tscn")
 
 
 func _on_hq_button_pressed() -> void:
+	set_active_navigation(hq_button)
 	GameManager.load_page("res://scenes/pages/departments/departments.tscn")
 
 
 func _on_scouting_button_pressed() -> void:
+	if scouting_button.disabled:
+		return
+	set_active_navigation(scouting_button)
 	GameManager.load_page("res://scenes/pages/scouting/scouting.tscn")
 
 
 func update_unlocked_navigation() -> void:
-	scouting_button.visible = (
-		GameManager.team != null
-		and GameManager.team.get_department_level("scouting") > 0
-	)
+	var unlocked := GameManager.team != null and GameManager.team.get_department_level("scouting") > 0
+	scouting_button.disabled = not unlocked
+	scouting_button.text = "  ⌖  Scouting" if unlocked else "  ⌖  Scouting  • LOCKED"
+	scouting_button.tooltip_text = "Build the Scouting department at HQ to unlock." if not unlocked else "Find emerging driver talent."
 
 
 func _on_reset_game_button_pressed() -> void:
@@ -167,19 +194,44 @@ func _on_team_money_changed(
 
 func update_team_display() -> void:
 	if GameManager.team == null:
-		money_label.text = "Money: $0"
+		money_label.text = "$0"
 		return
 
-	update_money_label(
-		GameManager.team.money
-	)
+	var team: Team = GameManager.team
+	update_money_label(team.money)
+	team_name_label.text = team.team_name.to_upper()
+	season_label.text = "SEASON %d • TEAM HQ" % team.season_number
+	rep_label.text = "%d PTS" % team.reputation
+	next_event_label.text = get_next_event_name(team)
+	position_label.text = get_championship_position(team)
 
 
 func update_money_label(amount: int) -> void:
 	money_label.text = (
-		"Money: $%s"
+		"$%s"
 		% format_number(amount)
 	)
+
+
+func set_active_navigation(active_button: Button) -> void:
+	for button in navigation_buttons:
+		button.set_pressed_no_signal(button == active_button)
+
+
+func get_next_event_name(team: Team) -> String:
+	if team.season_complete:
+		return "Season complete"
+	if team.unlocked_races.is_empty():
+		return "No event scheduled"
+	return str(team.unlocked_races.back()).capitalize().replace("_", " ")
+
+
+func get_championship_position(team: Team) -> String:
+	var standings := team.get_sorted_championship_standings()
+	for index in range(standings.size()):
+		if bool(standings[index].get("is_player", false)):
+			return "P%d • %d PTS" % [index + 1, int(standings[index].get("points", 0))]
+	return "NOT RANKED"
 
 
 func format_number(number: int) -> String:

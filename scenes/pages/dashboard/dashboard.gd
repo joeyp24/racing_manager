@@ -8,6 +8,9 @@ extends Control
 @onready var garage_value_label: Label = %garage_value_label
 @onready var reputation_label: Label = %reputation_label
 @onready var sponsor_label: Label = %sponsor_label
+@onready var driver_ready_label: Label = %driver_ready_label
+@onready var car_ready_label: Label = %car_ready_label
+@onready var funds_ready_label: Label = %funds_ready_label
 
 
 func _ready() -> void:
@@ -50,25 +53,22 @@ func update_dashboard() -> void:
 	if team == null:
 		return
 
-	team_name_label.text = (
-		"Team: %s"
-		% team.team_name
-	)
+	team_name_label.text = "%s • Season %d race operations" % [team.team_name, team.season_number]
 
 	money_label.text = (
-		"Money: $%s"
+		"$%s"
 		% String.num_int64(team.money)
 	)
 
 	reputation_label.text = (
-		"Reputation: %d"
+		"%d PTS"
 		% team.reputation
 	)
 
 	update_sponsor_summary(team)
 
 	cars_owned_label.text = (
-		"Cars Owned: %d / %d"
+		"%d of %d bays occupied"
 		% [
 			get_cars_owned(team),
 			team.cars.size()
@@ -76,7 +76,7 @@ func update_dashboard() -> void:
 	)
 
 	garage_value_label.text = (
-		"Garage Value: $%s"
+		"$%s total value"
 		% String.num_int64(
 			get_garage_value(team)
 		)
@@ -84,16 +84,17 @@ func update_dashboard() -> void:
 
 	update_next_race()
 	update_championship_summary()
+	update_readiness(team)
 
 
 func update_sponsor_summary(team: Team) -> void:
 	var sponsor := SponsorCatalog.find_by_id(team.active_sponsor_id)
 	if sponsor == null:
-		sponsor_label.text = "Sponsor: No active contract"
+		sponsor_label.text = "No active contract • Visit Sponsors to review offers"
 		return
 
 	sponsor_label.text = (
-		"Sponsor: %s  |  $%s/race  |  Objective: %d/%d%s  |  %d races left"
+		"%s\n$%s per race  •  Objective %d/%d%s  •  %d races left"
 		% [
 			sponsor.sponsor_name,
 			String.num_int64(sponsor.payment_per_race),
@@ -223,6 +224,23 @@ func get_garage_value(team: Team) -> int:
 			total += car.value
 
 	return total
+
+
+func update_readiness(team: Team) -> void:
+	set_readiness(driver_ready_label, team.driver_hired_for_season, "Driver contracted", "Driver required")
+	set_readiness(car_ready_label, get_cars_owned(team) > 0, "Eligible car available", "No car available")
+	set_readiness(funds_ready_label, team.money > 0, "Entry funds available", "Funding required")
+
+
+func set_readiness(label: Label, ready: bool, ready_text: String, blocked_text: String) -> void:
+	label.text = ("✓  " + ready_text) if ready else ("!  " + blocked_text)
+	label.modulate = Color("43d68a") if ready else Color("ffb547")
+
+
+func _on_prepare_race_pressed() -> void:
+	GameManager.selected_race = null
+	GameManager.selected_car = null
+	GameManager.load_page("res://scenes/pages/race_calendar/race_calendar.tscn")
 
 func get_ordinal(number: int) -> String:
 	var final_two_digits: int = number % 100

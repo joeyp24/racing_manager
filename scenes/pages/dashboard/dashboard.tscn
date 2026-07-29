@@ -1,78 +1,202 @@
-[gd_scene format=3 uid="uid://dwjwtqaklogwc"]
-
-[ext_resource type="Script" uid="uid://b2fwq6danpasf" path="res://scenes/pages/dashboard/dashboard.gd" id="1_4gw4d"]
-
-[node name="dashboard" type="Control" unique_id=536900036]
+[gd_scene load_steps=2 format=3 uid="uid://dwjwtqaklogwc"]
+[ext_resource type="Script" uid="uid://b2fwq6danpasf" path="res://scenes/pages/dashboard/dashboard.gd" id="1"]
+[node name="dashboard" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_4gw4d")
-
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1586728777]
+script = ExtResource("1")
+[node name="Scroll" type="ScrollContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+horizontal_scroll_mode = 0
+[node name="Margin" type="MarginContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 20
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1547818402]
+theme_override_constants/margin_bottom = 24
+[node name="Content" type="VBoxContainer" parent="Scroll/Margin"]
 layout_mode = 2
-
-[node name="title_label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=2117199153]
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+[node name="Header" type="HBoxContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+[node name="TitleStack" type="VBoxContainer" parent="Scroll/Margin/Content/Header"]
+layout_mode = 2
+theme_override_constants/separation = 0
+[node name="title_label" type="Label" parent="Scroll/Margin/Content/Header/TitleStack"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Dashboard"
-
-[node name="team_name_label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1167586080]
+theme_type_variation = &"PageTitle"
+text = "Team Overview"
+[node name="team_name_label" type="Label" parent="Scroll/Margin/Content/Header/TitleStack"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Team: Your team name"
-
-[node name="next_race_label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=92855642]
+theme_type_variation = &"MutedLabel"
+text = "Race operations at a glance"
+[node name="HeaderSpacer" type="Control" parent="Scroll/Margin/Content/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="Live" type="Label" parent="Scroll/Margin/Content/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.78, 0.48, 1)
+text = "●  TEAM ONLINE"
+vertical_alignment = 1
+[node name="Hero" type="PanelContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"HeroPanel"
+[node name="HeroLayout" type="HBoxContainer" parent="Scroll/Margin/Content/Hero"]
+layout_mode = 2
+theme_override_constants/separation = 24
+[node name="Race" type="VBoxContainer" parent="Scroll/Margin/Content/Hero/HeroLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+[node name="Eyebrow" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Race"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "NEXT EVENT // RACE WEEK"
+[node name="next_race_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Race"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Next Race: Track Name"
-
-[node name="standings_label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=634231996]
+theme_override_font_sizes/font_size = 25
+text = "Spring Speedway 100"
+[node name="RaceMeta" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Race"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Review your car, driver and race strategy before entry."
+[node name="advance_race_button" type="Button" parent="Scroll/Margin/Content/Hero/HeroLayout/Race"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 46)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"PrimaryButton"
+text = "PREPARE FOR RACE  →"
+[node name="Readiness" type="VBoxContainer" parent="Scroll/Margin/Content/Hero/HeroLayout"]
+custom_minimum_size = Vector2(245, 0)
+layout_mode = 2
+theme_override_constants/separation = 6
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Race Readiness"
+[node name="driver_ready_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Standings: Current Position"
-
-[node name="advance_race_button" type="Button" parent="MarginContainer/VBoxContainer" unique_id=92641230]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 44)
-layout_mode = 2
-text = "Advance To Next Race"
-
-[node name="money_label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1307059990]
+text = "✓  Driver contracted"
+[node name="car_ready_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Money:"
-
-[node name="reputation_label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1446402533]
+text = "✓  Eligible car available"
+[node name="funds_ready_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Reputation:"
-
-[node name="sponsor_label" type="Label" parent="MarginContainer/VBoxContainer"]
+text = "✓  Entry funds available"
+[node name="Kpis" type="HBoxContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+[node name="Cash" type="PanelContainer" parent="Scroll/Margin/Content/Kpis"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Kpis/Cash"]
+layout_mode = 2
+[node name="Caption" type="Label" parent="Scroll/Margin/Content/Kpis/Cash/Stack"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "CASH BALANCE"
+[node name="money_label" type="Label" parent="Scroll/Margin/Content/Kpis/Cash/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Sponsor: No active contract"
-
-[node name="garage_value_label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1021986349]
+theme_type_variation = &"StatValue"
+text = "$0"
+[node name="Hint" type="Label" parent="Scroll/Margin/Content/Kpis/Cash/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.75, 0.46, 1)
+theme_override_font_sizes/font_size = 12
+text = "OPERATING FUNDS"
+[node name="Championship" type="PanelContainer" parent="Scroll/Margin/Content/Kpis"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Kpis/Championship"]
+layout_mode = 2
+[node name="Caption" type="Label" parent="Scroll/Margin/Content/Kpis/Championship/Stack"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "CHAMPIONSHIP"
+[node name="standings_label" type="Label" parent="Scroll/Margin/Content/Kpis/Championship/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Garage Value:"
-
-[node name="cars_owned_label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1288552603]
+theme_override_font_sizes/font_size = 17
+text = "Not ranked"
+autowrap_mode = 2
+[node name="Hint" type="Label" parent="Scroll/Margin/Content/Kpis/Championship/Stack"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "CURRENT STANDING"
+[node name="Reputation" type="PanelContainer" parent="Scroll/Margin/Content/Kpis"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Kpis/Reputation"]
+layout_mode = 2
+[node name="Caption" type="Label" parent="Scroll/Margin/Content/Kpis/Reputation/Stack"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "REPUTATION"
+[node name="reputation_label" type="Label" parent="Scroll/Margin/Content/Kpis/Reputation/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Cars Owned:"
+theme_type_variation = &"StatValue"
+text = "0 PTS"
+[node name="Hint" type="Label" parent="Scroll/Margin/Content/Kpis/Reputation/Stack"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "TEAM PROFILE"
+[node name="Lower" type="HBoxContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+[node name="Sponsor" type="PanelContainer" parent="Scroll/Margin/Content/Lower"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Lower/Sponsor"]
+layout_mode = 2
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Lower/Sponsor/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Sponsor Programme"
+[node name="sponsor_label" type="Label" parent="Scroll/Margin/Content/Lower/Sponsor/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "No active contract"
+autowrap_mode = 2
+[node name="Garage" type="PanelContainer" parent="Scroll/Margin/Content/Lower"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Lower/Garage"]
+layout_mode = 2
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Lower/Garage/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Garage Assets"
+[node name="garage_value_label" type="Label" parent="Scroll/Margin/Content/Lower/Garage/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "$0 total value"
+[node name="cars_owned_label" type="Label" parent="Scroll/Margin/Content/Lower/Garage/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "0 of 6 bays occupied"
+[connection signal="pressed" from="Scroll/Margin/Content/Hero/HeroLayout/Race/advance_race_button" to="." method="_on_prepare_race_pressed"]
