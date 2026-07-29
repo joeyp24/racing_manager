@@ -729,8 +729,14 @@ func can_hire_driver(driver: Driver = null) -> bool:
 	return (
 		not season_complete
 		and completed_races.is_empty()
+		and contracted_driver_ids.size() < MAX_RACE_TEAMS
 		and (driver == null or not contracted_driver_ids.has(driver.driver_id))
 	)
+
+
+func get_driver_roster_limit() -> int:
+	# Every contracted driver can be assigned to one of the team's race entries.
+	return MAX_RACE_TEAMS
 
 
 func hire_driver(driver: Driver) -> bool:

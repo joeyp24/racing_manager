@@ -39,11 +39,17 @@ func display_market() -> void:
 			create_driver_details(active_driver)
 		]
 
-	if not team.can_hire_driver():
+	if team.season_complete or not team.completed_races.is_empty():
 		hiring_status_label.text = "Driver hiring is locked after the first race. Manage assignments on the Race Teams page."
+	elif contracted.size() >= team.get_driver_roster_limit():
+		hiring_status_label.text = "Driver roster full: %d / %d contracted. Manage assignments on the Race Teams page." % [
+			contracted.size(),
+			team.get_driver_roster_limit()
+		]
 	else:
 		hiring_status_label.text = (
-			"Pre-season hiring is open. Signing fees are charged immediately."
+			"Pre-season hiring is open · %d / %d drivers contracted. You can hire more than one driver for your race teams."
+			% [contracted.size(), team.get_driver_roster_limit()]
 		)
 		if not team.last_development_summary.is_empty():
 			hiring_status_label.text += (
@@ -54,8 +60,15 @@ func display_market() -> void:
 	for child in candidates_container.get_children():
 		child.queue_free()
 
+	for driver in team.get_contracted_drivers():
+		if driver == null:
+			continue
+		create_candidate_row(driver)
+
 	for driver in team.drivers:
 		if driver == null:
+			continue
+		if team.contracted_driver_ids.has(driver.driver_id):
 			continue
 		create_candidate_row(driver)
 
@@ -86,10 +99,12 @@ func create_candidate_row(driver: Driver) -> void:
 		driver.career_podiums,
 		driver.career_points
 	]
-	hire_button.text = "Contracted" if GameManager.team.contracted_driver_ids.has(driver.driver_id) else "Hire"
+	var is_contracted := GameManager.team.contracted_driver_ids.has(driver.driver_id)
+	hire_button.text = "Contracted" if is_contracted else "Hire"
 	hire_button.custom_minimum_size = Vector2(100, 0)
 	hire_button.disabled = (
-		not GameManager.team.can_hire_driver(driver)
+		is_contracted
+		or not GameManager.team.can_hire_driver(driver)
 		or GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee)
 	)
 	hire_button.pressed.connect(_on_hire_pressed.bind(driver))
@@ -122,7 +137,7 @@ func _on_hire_pressed(driver: Driver) -> void:
 		"Do you want to sign %s to your multi-team roster?\n\nSigning fee: $%s (charged now)\nSalary: $%s after every race"
 		% [
 			driver.driver_name,
-			format_number(driver.signing_fee),
+			format_number(GameManager.team.get_discounted_cost(driver.signing_fee)),
 			format_number(driver.salary)
 		]
 	)
