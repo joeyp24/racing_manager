@@ -1092,14 +1092,17 @@ func start_new_season() -> bool:
 	GameManager.team.championship_standings.clear()
 	GameManager.team.championship_points = 0
 	GameManager.team.driver_hired_for_season = false
+	for contracted_driver in GameManager.team.get_contracted_drivers():
+		contracted_driver.is_player_driver = false
+		contracted_driver.team_name = "Free Agent"
+	GameManager.team.contracted_driver_ids.clear()
+	for race_team in GameManager.team.race_teams:
+		if race_team != null:
+			race_team.driver_id = ""
 	GameManager.team.active_sponsor_id = ""
 	GameManager.team.sponsor_races_remaining = 0
 	GameManager.team.sponsor_objective_progress = 0
 	GameManager.team.sponsor_objective_completed = false
-	var active_driver := GameManager.team.get_active_driver()
-	if active_driver != null:
-		active_driver.is_player_driver = false
-		active_driver.team_name = "Free Agent"
 	clear_last_result()
 	GameManager.clear_selected_data()
 	GameManager.team.emit_changed()

@@ -64,6 +64,7 @@ func load_game(slot_id: String) -> bool:
 	team.ensure_driver_market()
 	team.ensure_car_parts()
 	team.ensure_staff_market()
+	team.ensure_race_teams()
 	clear_selected_data()
 	refresh_team_money()
 	team_loaded.emit(team)
