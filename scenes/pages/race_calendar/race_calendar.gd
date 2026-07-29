@@ -49,12 +49,10 @@ func rebuild_race_progression() -> void:
 	var progression_changed: bool = false
 	var first_race: Race = valid_races[0]
 
-	if not GameManager.team.unlocked_races.has(
+	if not GameManager.team.get_unlocked_races().has(
 		first_race.race_id
 	):
-		GameManager.team.unlocked_races.append(
-			first_race.race_id
-		)
+		GameManager.team.unlock_race_for_series(GameManager.team.current_series_id, first_race.race_id)
 
 		progression_changed = true
 
@@ -63,7 +61,7 @@ func rebuild_race_progression() -> void:
 		var next_race: Race = valid_races[race_index + 1]
 
 		var current_race_completed: bool = (
-			GameManager.team.completed_races.has(
+			GameManager.team.get_completed_races().has(
 				current_race.race_id
 			)
 		)
@@ -71,12 +69,10 @@ func rebuild_race_progression() -> void:
 		if not current_race_completed:
 			break
 
-		if not GameManager.team.unlocked_races.has(
+		if not GameManager.team.get_unlocked_races().has(
 			next_race.race_id
 		):
-			GameManager.team.unlocked_races.append(
-				next_race.race_id
-			)
+			GameManager.team.unlock_race_for_series(GameManager.team.current_series_id, next_race.race_id)
 
 			progression_changed = true
 

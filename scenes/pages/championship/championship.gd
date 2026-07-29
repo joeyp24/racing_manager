@@ -25,6 +25,36 @@ func _ready() -> void:
 		_on_new_season_button_pressed
 	)
 	display_championship_standings()
+	_build_promotion_controls()
+
+
+func _build_promotion_controls() -> void:
+	var team := GameManager.team
+	if team == null or not team.is_series_season_complete(): return
+	new_season_button.text = "Repeat current series"
+	var next_index := SeriesCatalog.get_index(team.current_series_id) + 1
+	if next_index >= SeriesCatalog.SERIES.size(): return
+	var next: Dictionary = SeriesCatalog.SERIES[next_index]
+	var entry := team.get_discounted_cost(int(next.entry_cost)); var car := int(next.car_price); var reserve := int(next.estimated_race_cost) * 3
+	season_status_label.text += "\n\nPROMOTION REQUIREMENTS — %s\nEntry / license: $%s\nCheapest eligible car: $%s\nThree-race reserve: $%s\nHQ: level %d\nTotal funding required: $%s" % [next.name,format_number(entry),format_number(car),format_number(reserve),int(next.hq_level),format_number(entry+car+reserve)]
+	var promote := Button.new(); promote.text = "Promote to %s" % next.name
+	promote.disabled = not team.can_enter_series(str(next.id))
+	promote.tooltip_text = "All requirements met." if not promote.disabled else " ".join(team.get_series_entry_requirements(str(next.id)))
+	promote.pressed.connect(_confirm_promotion.bind(str(next.id)))
+	new_season_button.get_parent().add_child(promote)
+
+
+func _confirm_promotion(series_id: String) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Confirm championship promotion"
+	dialog.dialog_text = "Enter %s? Series progress is initialized only after confirmation." % SeriesCatalog.get_series(series_id).name
+	dialog.confirmed.connect(_promote.bind(series_id)); add_child(dialog); dialog.popup_centered()
+
+
+func _promote(series_id: String) -> void:
+	if not GameManager.team.enter_series(series_id): return
+	GameManager.save_game()
+	GameManager.load_page("res://scenes/pages/dashboard/dashboard.tscn" if GameManager.team.owns_car_for_series(series_id) else "res://scenes/pages/dealership/dealership.tscn")
 
 
 func display_championship_standings() -> void:
@@ -84,7 +114,7 @@ func update_season_controls() -> void:
 
 	var team: Team = GameManager.team
 
-	if team.season_complete:
+	if team.is_series_season_complete():
 		season_status_label.text = (
 			"Season %d complete — finished %s and earned $%s"
 			% [
@@ -98,7 +128,7 @@ func update_season_controls() -> void:
 
 	season_status_label.text = "Season %d — Race %d of %d" % [
 		team.season_number,
-		team.completed_races.size(),
+		team.get_completed_races().size(),
 		RaceManager.SEASON_RACE_IDS.size()
 	]
 	new_season_button.visible = false

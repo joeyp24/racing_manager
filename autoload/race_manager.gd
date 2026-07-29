@@ -142,26 +142,20 @@ func get_race_by_id(race_id: String) -> Race:
 func get_calendar_for_series(series_id: String) -> Array[Race]:
 	var series := SeriesCatalog.get_series(series_id)
 	var calendar: Array[Race] = []
-	if series.is_empty():
-		return calendar
-	var length := int(series.season_length)
-	for round_index in length:
-		var template_id := SEASON_RACE_IDS[round_index % SEASON_RACE_IDS.size()]
-		var template := get_race_by_id(template_id)
-		if template == null:
-			continue
+	if series.is_empty(): return calendar
+	var template := get_race_by_id("spring_100")
+	for event in CalendarCatalog.get_events(series_id):
 		var race := template.duplicate(true) as Race
 		race.series_id = series_id
-		race.season_round = round_index + 1
-		if series_id != "local_short_track" or round_index >= SEASON_RACE_IDS.size():
-			race.race_id = "%s_round_%02d" % [series_id, round_index + 1]
-			race.race_name = "%s Round %02d" % [series.name, round_index + 1]
+		race.race_id = str(event.race_id); race.race_name = str(event.race_name)
+		race.track_name = str(event.track_name); race.race_date = str(event.race_date)
+		race.travel_region = str(event.travel_region); race.track_type = str(event.track_type)
+		race.season_round = int(event.season_round)
 		var multiplier := float(series.weekend_cost_multiplier)
-		race.entry_fee = roundi(race.entry_fee * multiplier)
-		race.travel_cost = roundi(race.travel_cost * multiplier)
-		race.preparation_cost = roundi(race.preparation_cost * multiplier)
-		race.insurance_cost = roundi(race.insurance_cost * multiplier)
+		race.entry_fee = roundi(race.entry_fee * multiplier); race.travel_cost = roundi(race.travel_cost * multiplier)
+		race.preparation_cost = roundi(race.preparation_cost * multiplier); race.insurance_cost = roundi(race.insurance_cost * multiplier)
 		race.facility_cost = roundi(race.facility_cost * multiplier)
+		race.first_place_prize = roundi(race.first_place_prize * multiplier); race.second_place_prize = roundi(race.second_place_prize * multiplier); race.third_place_prize = roundi(race.third_place_prize * multiplier)
 		calendar.append(race)
 	return calendar
 
@@ -185,12 +179,19 @@ func get_eligible_drivers_for_race(team: Team, race: Race) -> Array[Driver]:
 	return drivers
 
 
+func get_ai_field_for_race(race: Race, player_entry_count: int = 1) -> Array[Dictionary]:
+	if race == null: return []
+	var roster := AIRosterCatalog.get_roster(race.series_id)
+	roster.resize(maxi(0, get_maximum_field_size(race.series_id) - maxi(1, player_entry_count)))
+	return roster
+
+
 func get_next_race(team: Team) -> Race:
-	if team == null or team.season_complete:
+	if team == null or team.is_series_season_complete():
 		return null
 	for race in get_calendar_for_series(team.current_series_id):
 		var race_id := race.race_id
-		if team.unlocked_races.has(race_id) and not team.completed_races.has(race_id):
+		if team.get_unlocked_races().has(race_id) and not team.get_completed_races().has(race_id):
 			return race
 	return null
 
@@ -208,7 +209,9 @@ func create_live_simulation(
 		return null
 	var ai_scores: Array[float] = []
 	var detailed_ai_drivers: Array[Dictionary] = []
-	for ai_driver in AI_DRIVERS:
+	var player_entry_count := maxi(1, (weekend_data.get("entries", []) as Array).size())
+	var ai_roster := get_ai_field_for_race(selected_race, player_entry_count)
+	for ai_driver in ai_roster:
 		ai_scores.append(calculate_ai_score(selected_race, ai_driver))
 		var detailed := ai_driver.duplicate(true)
 		detailed["attributes"] = _normalized_ai_attributes(ai_driver)
@@ -227,7 +230,7 @@ func create_live_simulation(
 		calculate_player_score(player_car, player_driver, selected_strategy, selected_race)
 			+ float(weekend_data.get("setup_bonus", 0.0))
 			+ float(weekend_data.get("race_modifier", 0.0)),
-		int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1)),
+		int(weekend_data.get("starting_position", detailed_ai_drivers.size() + 1)),
 		detailed_ai_drivers,
 		ai_scores,
 		compound,
@@ -252,11 +255,12 @@ func _get_entry_driver(weekend_data: Dictionary) -> Driver:
 func _build_additional_team_entries(selected_race: Race, selected_strategy: String, weekend_data: Dictionary) -> Array:
 	var entries: Array = []
 	var selected_entries := weekend_data.get("entries", []) as Array
-	for index in range(1, selected_entries.size()):
+	var maximum_players := mini(selected_entries.size(), get_maximum_field_size(selected_race.series_id))
+	for index in range(1, maximum_players):
 		var entry := selected_entries[index] as Dictionary
 		var driver := GameManager.team.get_driver_by_id(str(entry.get("driver_id", "")))
 		var car := GameManager.team.get_car(int(entry.get("car_bay", -1)))
-		if driver == null or car == null:
+		if driver == null or car == null or driver.series_id != selected_race.series_id or car.series_id != selected_race.series_id:
 			continue
 		entries.append({
 			"driver_id": driver.driver_id,
@@ -309,7 +313,7 @@ func finalize_live_race(
 	result.positions_gained = result.starting_position - result.finishing_position
 	_populate_decisive_factors(result, simulation)
 	result.prize_money = calculate_prize_money(selected_race, result.finishing_position)
-	result.championship_points_earned = calculate_championship_points(result.finishing_position)
+	result.championship_points_earned = calculate_championship_points(selected_race.series_id, {"position":result.finishing_position})
 	result.mileage_added = calculate_mileage_added(selected_race)
 	result.condition_lost = calculate_condition_loss(selected_race, result.strategy_id)
 	result.condition_lost = maxi(1, roundi(float(result.condition_lost) * float(weekend_data.get("wear_modifier", 1.0))))
@@ -404,7 +408,7 @@ func run_race(
 
 	var race_standings: Array[Dictionary] = []
 
-	for ai_driver in AI_DRIVERS:
+	for ai_driver in get_ai_field_for_race(selected_race):
 		race_standings.append({
 			"driver_id": str(
 				ai_driver.get("driver_id", "")
@@ -471,9 +475,7 @@ func run_race(
 	)
 
 	result.championship_points_earned = (
-		calculate_championship_points(
-			result.finishing_position
-		)
+		calculate_championship_points(selected_race.series_id, {"position":result.finishing_position})
 	)
 
 	result.mileage_added = calculate_mileage_added(
@@ -931,7 +933,7 @@ func initialize_championship_standings(
 		true
 	)
 
-	for ai_driver in AI_DRIVERS:
+	for ai_driver in AIRosterCatalog.get_roster(GameManager.team.current_series_id):
 		ensure_championship_entry(
 			str(ai_driver.get("driver_id", "")),
 			str(
@@ -950,7 +952,7 @@ func initialize_championship_standings(
 		)
 
 	for entry in (
-		GameManager.team.championship_standings
+		GameManager.team.get_championship_standings()
 	):
 		if bool(entry.get("is_player", false)):
 			entry["driver_name"] = (
@@ -974,7 +976,7 @@ func ensure_championship_entry(
 		return
 
 	for entry in (
-		GameManager.team.championship_standings
+		GameManager.team.get_championship_standings()
 	):
 		if str(
 			entry.get("driver_id", "")
@@ -986,7 +988,7 @@ func ensure_championship_entry(
 			entry["is_player"] = is_player
 			return
 
-	GameManager.team.championship_standings.append({
+	GameManager.team.get_championship_standings().append({
 		"driver_id": driver_id,
 		"driver_name": driver_name,
 		"team_name": team_name,
@@ -1036,9 +1038,7 @@ func update_championship_standings(
 		var finishing_position: int = index + 1
 
 		var points_earned: int = (
-			calculate_championship_points(
-				finishing_position
-			)
+			calculate_championship_points(GameManager.team.current_series_id, {"position":finishing_position})
 		)
 
 		var championship_entry: Dictionary = (
@@ -1091,11 +1091,9 @@ func update_championship_standings(
 				)
 				+ 1
 			)
+		championship_entry["best_finish"] = mini(finishing_position, int(championship_entry.get("best_finish", 999)))
 
-	GameManager.team.championship_standings = (
-		GameManager.team
-		.get_sorted_championship_standings()
-	)
+	GameManager.team.set_series_standings(GameManager.team.current_series_id, GameManager.team.get_sorted_championship_standings())
 
 	GameManager.team.emit_changed()
 
@@ -1111,7 +1109,7 @@ func find_championship_entry(
 	)
 
 	for championship_entry in (
-		GameManager.team.championship_standings
+		GameManager.team.get_championship_standings()
 	):
 		if str(
 			championship_entry.get(
@@ -1139,12 +1137,10 @@ func complete_race(
 		)
 		return
 
-	if not GameManager.team.completed_races.has(
+	if not GameManager.team.get_completed_races().has(
 		completed_race.race_id
 	):
-		GameManager.team.completed_races.append(
-			completed_race.race_id
-		)
+		GameManager.team.complete_race_for_series(completed_race.series_id, completed_race.race_id)
 	GameManager.team.save_series_progress()
 	GameManager.team.week_advance_required = true
 
@@ -1156,12 +1152,12 @@ func finish_season_if_complete() -> void:
 	if GameManager.team == null:
 		return
 
-	if GameManager.team.season_complete:
+	if GameManager.team.is_series_season_complete():
 		return
 
 	for race in get_calendar_for_series(GameManager.team.current_series_id):
 		var race_id := race.race_id
-		if not GameManager.team.completed_races.has(race_id):
+		if not GameManager.team.get_completed_races().has(race_id):
 			return
 
 	var standings := (
@@ -1176,8 +1172,7 @@ func finish_season_if_complete() -> void:
 
 	var prize_money: int = calculate_season_prize(player_position, GameManager.team.current_series_id)
 
-	GameManager.team.season_complete = true
-	GameManager.team.save_series_progress()
+	GameManager.team.set_series_season_complete(GameManager.team.current_series_id, true)
 	GameManager.team.last_season_position = player_position
 	GameManager.team.last_season_prize = prize_money
 	if player_position == 1:
@@ -1201,22 +1196,17 @@ func start_new_season() -> bool:
 	if GameManager.team == null:
 		return false
 
-	if not GameManager.team.season_complete:
+	if not GameManager.team.is_series_season_complete():
 		return false
 
 	apply_driver_development()
 	GameManager.team.process_staff_season()
 
-	GameManager.team.season_number += 1
-	GameManager.team.season_complete = false
 	GameManager.team.last_season_position = 0
 	GameManager.team.last_season_prize = 0
-	GameManager.team.completed_races.clear()
 	var calendar := get_calendar_for_series(GameManager.team.current_series_id)
-	GameManager.team.unlocked_races = [calendar[0].race_id] if not calendar.is_empty() else []
-	GameManager.team.championship_standings.clear()
+	GameManager.team.reset_series_season(GameManager.team.current_series_id, calendar[0].race_id if not calendar.is_empty() else "")
 	GameManager.team.championship_points = 0
-	GameManager.team.save_series_progress()
 	GameManager.team.driver_hired_for_season = false
 	GameManager.team.current_race_week = 1
 	GameManager.team.week_advance_required = false
@@ -1364,7 +1354,7 @@ func is_race_completed(
 	if race == null:
 		return false
 
-	return GameManager.team.completed_races.has(
+	return GameManager.team.get_completed_races().has(
 		race.race_id
 	)
 
@@ -1378,7 +1368,7 @@ func is_race_unlocked(
 	if race == null:
 		return false
 
-	return GameManager.team.unlocked_races.has(
+	return GameManager.team.get_unlocked_races().has(
 		race.race_id
 	)
 
@@ -1387,25 +1377,6 @@ func clear_last_result() -> void:
 	last_result = null
 
 
-func calculate_championship_points(
-	finishing_position: int
-) -> int:
-	match finishing_position:
-		1:
-			return 10
-		2:
-			return 8
-		3:
-			return 6
-		4:
-			return 5
-		5:
-			return 4
-		6:
-			return 3
-		7:
-			return 2
-		8:
-			return 1
-		_:
-			return 0
+func calculate_championship_points(series_id: String, result: Dictionary) -> int:
+	var system_id := str(SeriesCatalog.get_series(series_id).get("points_system", "short_track"))
+	return PointsSystemCatalog.calculate(system_id, result)

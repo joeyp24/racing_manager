@@ -352,11 +352,11 @@ func set_active_navigation(active_button: Button) -> void:
 
 
 func get_next_event_name(team: Team) -> String:
-	if team.season_complete:
+	if team.is_series_season_complete():
 		return "Season complete"
-	if team.unlocked_races.is_empty():
+	if team.get_unlocked_races().is_empty():
 		return "No event scheduled"
-	return str(team.unlocked_races.back()).capitalize().replace("_", " ")
+	return str(team.get_unlocked_races().back()).capitalize().replace("_", " ")
 
 
 func get_championship_position(team: Team) -> String:

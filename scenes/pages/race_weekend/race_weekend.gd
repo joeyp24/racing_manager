@@ -115,7 +115,8 @@ func complete_qualifying() -> void:
 		+ RaceManager.random_number_generator.randf_range(-variance, variance)
 	)
 	var rival_scores: Array[float] = []
-	for rival in RaceManager.AI_DRIVERS:
+	var player_entries := maxi(1, (weekend_data.get("entries", []) as Array).size())
+	for rival in RaceManager.get_ai_field_for_race(GameManager.selected_race, player_entries):
 		rival_scores.append(48.0 + float(RaceManager._normalized_ai_attributes(rival)["qualifying_pace"]) * 0.35 + RaceManager.random_number_generator.randf_range(-5.0, 5.0))
 	var position := 1
 	for rival_score in rival_scores:
@@ -275,7 +276,7 @@ func set_string_items(selector: OptionButton, values: Array) -> void:
 
 
 func projected_position() -> int:
-	return clampi(int(weekend_data["starting_position"]) - roundi(float(weekend_data["race_modifier"]) / 2.0), 1, RaceManager.AI_DRIVERS.size() + 1)
+	return clampi(int(weekend_data["starting_position"]) - roundi(float(weekend_data["race_modifier"]) / 2.0), 1, RaceManager.get_maximum_field_size(GameManager.selected_race.series_id))
 
 
 func show_invalid_weekend() -> void:

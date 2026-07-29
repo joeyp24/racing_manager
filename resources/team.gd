@@ -127,7 +127,7 @@ func ensure_departments() -> void:
 
 func ensure_race_week_progression() -> void:
 	# Saves created before race weeks existed derive their position from season progress.
-	current_race_week = maxi(current_race_week, completed_races.size() + (0 if week_advance_required else 1))
+	current_race_week = maxi(current_race_week, get_completed_races().size() + (0 if week_advance_required else 1))
 
 
 func get_department_level(department_id: String) -> int:
@@ -155,7 +155,7 @@ func can_enter_series(series_id: String) -> bool:
 	if index < 0 or entered_series_ids.has(series_id) or index != current_index + 1:
 		return false
 	var series := SeriesCatalog.get_series(series_id)
-	return season_complete and hq_level >= int(series.hq_level) and money >= get_series_required_cash(series_id)
+	return is_series_season_complete(current_series_id) and hq_level >= int(series.hq_level) and money >= get_series_required_cash(series_id)
 
 
 func get_series_required_cash(series_id: String) -> int:
@@ -168,7 +168,7 @@ func get_series_required_cash(series_id: String) -> int:
 func get_series_entry_requirements(series_id: String) -> Array[String]:
 	var unmet: Array[String] = []
 	var series := SeriesCatalog.get_series(series_id)
-	if not season_complete: unmet.append("Finish the current season.")
+	if not is_series_season_complete(current_series_id): unmet.append("Finish the current season.")
 	if not series.is_empty() and hq_level < int(series.hq_level): unmet.append("Upgrade Team HQ to level %d." % int(series.hq_level))
 	if not series.is_empty() and money < get_series_required_cash(series_id): unmet.append("Raise $%s for the entry fee, eligible car, and three-race reserve." % String.num_int64(get_series_required_cash(series_id)))
 	return unmet
@@ -206,7 +206,9 @@ func ensure_series_progress(series_id: String = current_series_id) -> void:
 
 func save_series_progress() -> void:
 	ensure_series_progress()
-	series_progress[current_series_id] = {"completed_races":completed_races.duplicate(), "unlocked_races":unlocked_races.duplicate(), "standings":championship_standings.duplicate(true), "season_number":season_number, "season_complete":season_complete}
+	# Version 4 keeps the exported fields as compatibility mirrors only.  The
+	# per-series dictionary is the single mutable source of truth.
+	_sync_legacy_progress_mirrors()
 
 
 func load_series_progress(series_id: String = current_series_id) -> void:
@@ -220,15 +222,74 @@ func load_series_progress(series_id: String = current_series_id) -> void:
 
 
 func get_completed_races() -> Array[String]:
-	return completed_races
+	ensure_series_progress(current_series_id)
+	return (series_progress[current_series_id] as Dictionary).get("completed_races", [])
 
 
 func get_unlocked_races() -> Array[String]:
-	return unlocked_races
+	ensure_series_progress(current_series_id)
+	return (series_progress[current_series_id] as Dictionary).get("unlocked_races", [])
 
 
 func get_championship_standings() -> Array[Dictionary]:
-	return championship_standings
+	ensure_series_progress(current_series_id)
+	return (series_progress[current_series_id] as Dictionary).get("standings", [])
+
+
+func complete_race_for_series(series_id: String, race_id: String) -> void:
+	ensure_series_progress(series_id)
+	var progress := series_progress[series_id] as Dictionary
+	var races: Array = progress.get("completed_races", [])
+	if not races.has(race_id): races.append(race_id)
+	progress["completed_races"] = races
+	_sync_legacy_progress_mirrors()
+
+
+func unlock_race_for_series(series_id: String, race_id: String) -> void:
+	ensure_series_progress(series_id)
+	var progress := series_progress[series_id] as Dictionary
+	var races: Array = progress.get("unlocked_races", [])
+	if not races.has(race_id): races.append(race_id)
+	progress["unlocked_races"] = races
+	_sync_legacy_progress_mirrors()
+
+
+func set_series_standings(series_id: String, standings: Array[Dictionary]) -> void:
+	ensure_series_progress(series_id)
+	(series_progress[series_id] as Dictionary)["standings"] = standings.duplicate(true)
+	_sync_legacy_progress_mirrors()
+
+
+func set_series_season_complete(series_id: String, value: bool) -> void:
+	ensure_series_progress(series_id)
+	(series_progress[series_id] as Dictionary)["season_complete"] = value
+	_sync_legacy_progress_mirrors()
+
+
+func is_series_season_complete(series_id: String = current_series_id) -> bool:
+	ensure_series_progress(series_id)
+	return bool((series_progress[series_id] as Dictionary).get("season_complete", false))
+
+
+func reset_series_season(series_id: String, first_race_id: String) -> void:
+	ensure_series_progress(series_id)
+	var progress := series_progress[series_id] as Dictionary
+	progress["completed_races"] = []
+	progress["unlocked_races"] = [first_race_id] if not first_race_id.is_empty() else []
+	progress["standings"] = []
+	progress["season_complete"] = false
+	progress["season_number"] = int(progress.get("season_number", 1)) + 1
+	load_series_progress(series_id)
+
+
+func _sync_legacy_progress_mirrors() -> void:
+	if not series_progress.has(current_series_id): return
+	var progress := series_progress[current_series_id] as Dictionary
+	completed_races.assign(progress.get("completed_races", []))
+	unlocked_races.assign(progress.get("unlocked_races", []))
+	championship_standings.assign(progress.get("standings", []))
+	season_number = int(progress.get("season_number", season_number))
+	season_complete = bool(progress.get("season_complete", false))
 
 
 func get_drivers_for_series(series_id: String) -> Array[Driver]:
@@ -650,7 +711,7 @@ func get_total_race_payroll() -> int:
 func record_finance(category: String, amount: int, description: String) -> void:
 	finance_history.push_front({
 		"season": season_number,
-		"race": completed_races.size() + 1,
+		"race": get_completed_races().size() + 1,
 		"category": category,
 		"amount": amount,
 		"description": description
@@ -782,7 +843,7 @@ func complete_engineering_projects() -> Array[String]:
 
 
 func advance_to_next_race_week() -> Array[String]:
-	if not week_advance_required or season_complete:
+	if not week_advance_required or is_series_season_complete():
 		return []
 	current_race_week += 1
 	week_advance_required = false
@@ -1037,8 +1098,8 @@ func _apply_driver_profile(driver: Driver) -> void:
 
 func can_hire_driver(driver: Driver = null) -> bool:
 	return (
-		not season_complete
-		and completed_races.is_empty()
+		not is_series_season_complete()
+		and get_completed_races().is_empty()
 		and contracted_driver_ids.size() < MAX_RACE_TEAMS
 		and (driver == null or not contracted_driver_ids.has(driver.driver_id))
 	)
@@ -1149,7 +1210,7 @@ func get_driver_by_id(
 
 
 func get_player_championship_entry() -> Dictionary:
-	for entry in championship_standings:
+	for entry in get_championship_standings():
 		if bool(entry.get("is_player", false)):
 			return entry
 
@@ -1159,63 +1220,11 @@ func get_player_championship_entry() -> Dictionary:
 func get_sorted_championship_standings() -> Array[Dictionary]:
 	var sorted_standings: Array[Dictionary] = []
 
-	for entry in championship_standings:
+	for entry in get_championship_standings():
 		sorted_standings.append(
 			entry.duplicate(true)
 		)
 
-	sorted_standings.sort_custom(
-		func(
-			first_entry: Dictionary,
-			second_entry: Dictionary
-		) -> bool:
-			var first_points: int = int(
-				first_entry.get("points", 0)
-			)
-
-			var second_points: int = int(
-				second_entry.get("points", 0)
-			)
-
-			if first_points != second_points:
-				return first_points > second_points
-
-			var first_wins: int = int(
-				first_entry.get("wins", 0)
-			)
-
-			var second_wins: int = int(
-				second_entry.get("wins", 0)
-			)
-
-			if first_wins != second_wins:
-				return first_wins > second_wins
-
-			var first_podiums: int = int(
-				first_entry.get("podiums", 0)
-			)
-
-			var second_podiums: int = int(
-				second_entry.get("podiums", 0)
-			)
-
-			if first_podiums != second_podiums:
-				return first_podiums > second_podiums
-
-			return (
-				str(
-					first_entry.get(
-						"driver_name",
-						""
-					)
-				)
-				< str(
-					second_entry.get(
-						"driver_name",
-						""
-					)
-				)
-			)
-	)
+	sorted_standings.sort_custom(PointsSystemCatalog.standings_before)
 
 	return sorted_standings
