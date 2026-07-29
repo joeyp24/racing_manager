@@ -24,6 +24,7 @@ func display(model: Dictionary) -> void:
 	next_label.text = "NEXT  ·  " + str(model.get("title", "Review your team"))
 	blocker_label.text = _status_icon(str(model.get("status", ""))) + "  " + str(model.get("reason", ""))
 	consequence_label.text = str(model.get("consequence", ""))
+	tooltip_text = consequence_label.text
 	primary_button.text = str(model.get("action_label", "Review"))
 	primary_button.disabled = current_action.is_empty()
 	primary_button.tooltip_text = "Go to %s" % primary_button.text.trim_suffix(" →")
@@ -33,7 +34,7 @@ func display(model: Dictionary) -> void:
 func toggle_expanded() -> void:
 	expanded = not expanded
 	checklist.visible = expanded
-	expand_button.text = "Hide checklist  ▴" if expanded else "Checklist  ▾"
+	expand_button.text = "Hide  ▴" if expanded else "List  ▾"
 
 
 func _build_checklist(checks: Array) -> void:

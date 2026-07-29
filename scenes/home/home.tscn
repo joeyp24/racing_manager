@@ -282,23 +282,6 @@ text = "$0"
 [node name="Divider1" type="VSeparator" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
 layout_mode = 2
 
-[node name="RepBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
-layout_mode = 2
-theme_type_variation = &"MutedLabel"
-text = "REPUTATION"
-
-[node name="rep_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "0 PTS"
-
-[node name="Divider2" type="VSeparator" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
-layout_mode = 2
-
 [node name="PositionBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
 layout_mode = 2
 theme_override_constants/separation = 0
@@ -312,6 +295,31 @@ text = "CHAMPIONSHIP"
 unique_name_in_owner = true
 layout_mode = 2
 text = "—"
+
+[node name="Divider2" type="VSeparator" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+layout_mode = 2
+
+[node name="CommandBar" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status" instance=ExtResource("2_command")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Divider3" type="VSeparator" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+layout_mode = 2
+
+[node name="RepBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "REPUTATION"
+
+[node name="rep_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 PTS"
 
 [node name="Spacer" type="Control" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
 layout_mode = 2
@@ -332,9 +340,6 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Spring 100"
 horizontal_alignment = 2
-
-[node name="CommandBar" parent="Layout/RightSide/OuterMargin/Stack" instance=ExtResource("2_command")]
-unique_name_in_owner = true
 
 [node name="MainPanel" type="PanelContainer" parent="Layout/RightSide/OuterMargin/Stack"]
 layout_mode = 2
