@@ -9,6 +9,13 @@ class_name Car
 
 @export var performance: int = 50
 @export var condition: int = 100
+@export_range(0, 100) var horsepower: int = 50
+@export_range(0, 100) var aerodynamic_efficiency: int = 50
+@export_range(0, 100) var mechanical_grip: int = 50
+@export_range(0, 100) var braking: int = 50
+@export_range(0, 100) var tyre_preservation: int = 50
+@export_range(0, 100) var fuel_efficiency: int = 50
+@export_range(0, 100) var reliability: int = 75
 
 @export var mileage: int = 0
 
@@ -50,3 +57,15 @@ func get_total_performance() -> int:
 		if part != null:
 			total += part.get_effective_performance_bonus()
 	return total
+
+
+func get_race_attributes() -> Dictionary:
+	var attributes := {"power": float(horsepower), "aero": float(aerodynamic_efficiency), "grip": float(mechanical_grip), "braking": float(braking), "tyres": float(tyre_preservation), "fuel": float(fuel_efficiency), "reliability": float(reliability)}
+	for part in installed_parts:
+		if part == null:
+			continue
+		var key := part.get_attribute_key()
+		if attributes.has(key):
+			attributes[key] = clampf(float(attributes[key]) + part.get_effective_attribute_modifier(), 1.0, 100.0)
+		attributes["reliability"] = clampf(float(attributes["reliability"]) + part.get_effective_reliability_modifier(), 1.0, 100.0)
+	return attributes

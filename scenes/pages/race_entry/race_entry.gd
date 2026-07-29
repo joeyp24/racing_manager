@@ -125,7 +125,15 @@ func update_entry_information() -> void:
 	for part_type in CarPart.PART_TYPES:
 		var part := selected_car.get_part(part_type)
 		part_lines.append("%s: %s" % [part_type, "%s (%d%%)" % [part.part_name, part.condition] if part != null else "MISSING"])
-	parts_label.text = "  •  ".join(part_lines)
+	var attributes := selected_car.get_race_attributes()
+	var race := GameManager.selected_race
+	var suitability := float(attributes.power) * race.power_demand + (float(attributes.grip) + float(attributes.aero) + float(attributes.braking)) / 3.0 * race.handling_demand
+	var strengths: Array[String] = []
+	if float(attributes.power) >= 65.0 and race.power_demand >= 0.55: strengths.append("power suits the long full-throttle sections")
+	if float(attributes.grip) >= 65.0 and race.handling_demand >= 0.55: strengths.append("mechanical grip suits the corner load")
+	if float(attributes.tyres) >= 65.0 and race.tyre_wear_factor >= 1.0: strengths.append("tyre preservation should extend the pit window")
+	if strengths.is_empty(): strengths.append("a balanced package offers no dominant track advantage")
+	parts_label.text = "  •  ".join(part_lines) + "\nFIT %d/100 — %s." % [roundi(suitability / maxf(0.1, race.power_demand + race.handling_demand)), "; ".join(strengths)]
 
 
 func show_crew_information() -> void:

@@ -124,7 +124,7 @@ func complete_qualifying() -> void:
 	weekend_data["qualifying_score"] = qualifying_score
 	weekend_data["starting_position"] = position
 	weekend_data["qualifying_approach_name"] = choice_selector.get_item_text(choice_selector.selected)
-	weekend_data["setup_emphasis"] = secondary_selector.get_item_text(secondary_selector.selected)
+	weekend_data["setup_emphasis"] = ["High Grip", "Top Speed", "Balanced"][secondary_selector.selected]
 	show_strategy()
 
 
@@ -157,6 +157,8 @@ func start_race() -> void:
 	if secondary_selector.selected == 0:
 		weekend_data["wear_modifier"] = float(weekend_data["wear_modifier"]) * 0.92
 	GameManager.active_race_weekend = weekend_data.duplicate(true)
+	# A crash between the grid and green flag must never lose the paid entry state.
+	GameManager.save_game()
 	GameManager.load_page("res://scenes/pages/live_race/live_race.tscn")
 
 
