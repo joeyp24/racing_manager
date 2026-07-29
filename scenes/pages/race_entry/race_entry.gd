@@ -179,7 +179,7 @@ func update_forecast() -> void:
 	var sponsor_income := sponsor.payment_per_race if sponsor != null else 0
 	var payroll: int = GameManager.team.get_total_race_payroll()
 	var objective_chance := clampi(roundi(72.0 + (strength - 60.0) - float(race.difficulty) * 0.25), 10, 95)
-	var total_fee := race.entry_fee * selected_race_teams.size()
+	var total_fee: int = race.entry_fee * selected_race_teams.size()
 	forecast_label.text = "EXPECTED FINISH  P%d–P%d\nExpected revenue $%s  •  Entry + payroll $%s  •  Net forecast %s$%s\nSponsor objective chance %d%%  •  Expected condition loss %d%%" % [best, worst, format_number(expected_prize + sponsor_income), format_number(total_fee + payroll), "+" if expected_prize + sponsor_income >= total_fee + payroll else "−", format_number(absi(expected_prize + sponsor_income - total_fee - payroll)), objective_chance, wear]
 	var risks: Array[String] = []
 	if selected_car.condition < 70:
@@ -201,7 +201,7 @@ func update_readiness() -> void:
 		return
 	var checks := RaceReadiness.evaluate(GameManager.team, GameManager.selected_race, selected_car)
 	var overall := RaceReadiness.get_overall_status(checks)
-	var total_fee := GameManager.selected_race.entry_fee * selected_race_teams.size()
+	var total_fee: int = GameManager.selected_race.entry_fee * selected_race_teams.size()
 	if selected_race_teams.is_empty() or GameManager.team.money < total_fee:
 		overall = RaceReadiness.BLOCKED
 	readiness_summary_label.text = {RaceReadiness.READY: "READY TO ENTER", RaceReadiness.SUBOPTIMAL: "ENTRY AVAILABLE WITH WARNINGS", RaceReadiness.BLOCKED: "ENTRY BLOCKED"}.get(overall, "REVIEW")
@@ -229,7 +229,7 @@ func _on_confirm_button_pressed() -> void:
 	confirm_button.disabled = true
 	back_button.disabled = true
 	status_label.text = "Committing entry fee and opening race weekend..."
-	var total_fee := GameManager.selected_race.entry_fee * selected_race_teams.size()
+	var total_fee: int = GameManager.selected_race.entry_fee * selected_race_teams.size()
 	if not GameManager.remove_team_money(total_fee):
 		status_label.text = "The entry fee could not be paid."
 		back_button.disabled = false
