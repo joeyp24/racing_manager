@@ -121,7 +121,8 @@ func _ready() -> void:
 func run_race(
 	selected_race: Race,
 	player_car: Car,
-	selected_strategy: String = DEFAULT_STRATEGY
+	selected_strategy: String = DEFAULT_STRATEGY,
+	weekend_data: Dictionary = {}
 ) -> RaceResult:
 	if selected_race == null:
 		push_error(
@@ -182,6 +183,14 @@ func run_race(
 	result.strategy_performance_modifier = float(strategy.get("performance_modifier", 1.0))
 	result.strategy_variance_modifier = float(strategy.get("variance_modifier", 1.0))
 	result.strategy_wear_modifier = float(strategy.get("wear_modifier", 1.0))
+	result.starting_position = int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1))
+	result.practice_focus_name = str(weekend_data.get("practice_focus_name", "None"))
+	result.qualifying_approach_name = str(weekend_data.get("qualifying_approach_name", "Balanced lap"))
+	result.qualifying_score = float(weekend_data.get("qualifying_score", 0.0))
+	result.setup_bonus = float(weekend_data.get("setup_bonus", 0.0))
+	result.strategy_effectiveness = float(weekend_data.get("race_modifier", 0.0))
+	for summary in weekend_data.get("decision_log", []):
+		result.weekend_summary.append(str(summary))
 
 	var race_standings: Array[Dictionary] = []
 
@@ -218,7 +227,7 @@ func run_race(
 			player_driver,
 			result.strategy_id,
 			selected_race
-		),
+		) + result.setup_bonus + result.strategy_effectiveness,
 		"is_player": true
 	})
 
@@ -243,6 +252,7 @@ func run_race(
 	result.finishing_position = (
 		find_player_position(race_standings)
 	)
+	result.positions_gained = result.starting_position - result.finishing_position
 
 	result.prize_money = calculate_prize_money(
 		selected_race,
@@ -263,6 +273,7 @@ func run_race(
 		selected_race,
 		result.strategy_id
 	)
+	result.condition_lost = maxi(1, roundi(float(result.condition_lost) * float(weekend_data.get("wear_modifier", 1.0))))
 
 	result.net_earnings = (
 		result.prize_money

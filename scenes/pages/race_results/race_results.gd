@@ -126,7 +126,13 @@ func create_car_effects_text(result: RaceResult) -> String:
 	var current_mileage: int = result.player_car.mileage
 
 	return (
-		"Car Effects\n\n"
+		"Weekend Breakdown\n\n"
+		+ "Practice: %s (setup +%.1f)\n"
+		+ "Qualifying: %s • Started P%d\n"
+		+ "Finish: P%d • Positions gained: %+d\n"
+		+ "Strategy effect: %+.1f pace points\n"
+		+ "%s\n\n"
+		+ "Car Effects\n"
 		+ "Strategy: %s\n"
 		+ "Performance: %s | Variance: %s | Wear: %s\n"
 		+ "Mileage Added: +%s\n"
@@ -134,6 +140,14 @@ func create_car_effects_text(result: RaceResult) -> String:
 		+ "Current Mileage: %s\n"
 		+ "Current Condition: %d%%"
 	) % [
+		result.practice_focus_name,
+		result.setup_bonus,
+		result.qualifying_approach_name,
+		result.starting_position,
+		result.finishing_position,
+		result.positions_gained,
+		result.strategy_effectiveness,
+		create_decision_summary(result),
 		result.strategy_name,
 		format_modifier(result.strategy_performance_modifier),
 		format_modifier(result.strategy_variance_modifier),
@@ -143,6 +157,15 @@ func create_car_effects_text(result: RaceResult) -> String:
 		format_number(current_mileage),
 		current_condition
 	]
+
+
+func create_decision_summary(result: RaceResult) -> String:
+	if result.weekend_summary.is_empty():
+		return "No live strategy decisions recorded."
+	var lines: Array[String] = ["Key decisions:"]
+	for summary in result.weekend_summary:
+		lines.append("• %s" % summary)
+	return "\n".join(lines)
 
 
 func format_modifier(modifier: float) -> String:
