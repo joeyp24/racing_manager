@@ -46,7 +46,7 @@ func setup_strategy_selector() -> void:
 
 
 func show_event_information() -> void:
-	var race := GameManager.selected_race
+	var race: Race = GameManager.selected_race
 	if race == null:
 		race_name_label.text = "No Race Selected"
 		event_details_label.text = "Return to the calendar and choose an event."
@@ -67,9 +67,9 @@ func create_car_options() -> void:
 	for race_team in GameManager.team.race_teams:
 		if race_team == null:
 			continue
-		var driver := GameManager.team.get_driver_by_id(race_team.driver_id)
-		var car := GameManager.team.get_car(race_team.car_bay)
-		var option := CheckBox.new()
+		var driver: Driver = GameManager.team.get_driver_by_id(race_team.driver_id)
+		var car: Car = GameManager.team.get_car(race_team.car_bay)
+		var option: CheckBox = CheckBox.new()
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.clip_text = true
 		option.disabled = not race_team.is_ready(GameManager.team) or not RaceReadiness.is_car_eligible(car)
@@ -114,8 +114,12 @@ func update_entry_information() -> void:
 		selected_car_label.text = "No eligible car selected"
 		parts_label.text = "Select a car to review its installed package."
 		return
-	var primary_team := selected_race_teams[0]
-	var driver := GameManager.team.get_driver_by_id(primary_team.driver_id)
+	var primary_team: RaceTeam = selected_race_teams[0]
+	var driver: Driver = GameManager.team.get_driver_by_id(primary_team.driver_id)
+	if driver == null:
+		selected_car_label.text = "The primary race team has no assigned driver"
+		parts_label.text = "Assign a contracted driver before reviewing the entry package."
+		return
 	selected_car_label.text = "%d team%s entered  •  Primary: %s / %s" % [selected_race_teams.size(), "s" if selected_race_teams.size() != 1 else "", driver.driver_name, selected_car.name]
 	var part_lines: Array[String] = []
 	for part_type in CarPart.PART_TYPES:
@@ -127,15 +131,15 @@ func update_entry_information() -> void:
 func show_crew_information() -> void:
 	if GameManager.team == null:
 		return
-	var team := GameManager.team
-	var chief := team.get_crew_chief()
-	var chief_name := chief.staff_name if chief != null else "VACANT — REQUIRED"
+	var team: Team = GameManager.team
+	var chief: StaffMember = team.get_crew_chief()
+	var chief_name: String = chief.staff_name if chief != null else "VACANT — REQUIRED"
 	crew_label.text = "Crew Chief: %s\nEngineers: %s  •  Mechanics: %s  •  Spotter: %s  •  Pit Crew: %s" % [chief_name, _role_summary("Engineer"), _role_summary("Mechanic"), _role_summary("Spotter"), _role_summary("Pit Crew")]
 	crew_effects_label.text = "Reliability +%.1f%%  •  Condition-loss reduction %.1f%%  •  Incident risk −%.1f%%  •  Pit mistake risk −%.1f%%" % [team.get_reliability_boost(), minf(30.0, team.get_reliability_boost() + team.get_accident_risk_reduction()), team.get_accident_risk_reduction(), team.get_pit_mistake_reduction()]
 
 
 func _role_summary(role: String) -> String:
-	var members := GameManager.team.get_staff_by_role(role)
+	var members: Array[StaffMember] = GameManager.team.get_staff_by_role(role)
 	if members.is_empty():
 		return "vacant"
 	var total := 0
@@ -154,13 +158,13 @@ func update_strategy_preview() -> void:
 
 
 func update_forecast() -> void:
-	var race := GameManager.selected_race
-	var driver := GameManager.team.get_driver_by_id(selected_race_teams[0].driver_id) if GameManager.team != null and not selected_race_teams.is_empty() else null
+	var race: Race = GameManager.selected_race
+	var driver: Driver = GameManager.team.get_driver_by_id(selected_race_teams[0].driver_id) if GameManager.team != null and not selected_race_teams.is_empty() else null
 	if race == null or selected_car == null or driver == null:
 		forecast_label.text = "Complete the blocked preparation items to generate a race forecast."
 		risks_label.text = "Primary risk: incomplete entry package"
 		return
-	var strategy := RaceManager.get_strategy(selected_strategy)
+	var strategy: Dictionary = RaceManager.get_strategy(selected_strategy)
 	var driver_rating := float(driver.skill + driver.consistency + driver.aggression) / 3.0
 	var strength := float(selected_car.get_total_performance()) * 0.58 + driver_rating * 0.34 + float(selected_car.condition) * 0.08
 	strength *= float(strategy.get("performance_modifier", 1.0))
