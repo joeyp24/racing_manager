@@ -139,12 +139,59 @@ func get_race_by_id(race_id: String) -> Race:
 	return load(path) as Race
 
 
+func get_calendar_for_series(series_id: String) -> Array[Race]:
+	var series := SeriesCatalog.get_series(series_id)
+	var calendar: Array[Race] = []
+	if series.is_empty():
+		return calendar
+	var length := int(series.season_length)
+	for round_index in length:
+		var template_id := SEASON_RACE_IDS[round_index % SEASON_RACE_IDS.size()]
+		var template := get_race_by_id(template_id)
+		if template == null:
+			continue
+		var race := template.duplicate(true) as Race
+		race.series_id = series_id
+		race.season_round = round_index + 1
+		if series_id != "local_short_track" or round_index >= SEASON_RACE_IDS.size():
+			race.race_id = "%s_round_%02d" % [series_id, round_index + 1]
+			race.race_name = "%s Round %02d" % [series.name, round_index + 1]
+		var multiplier := float(series.weekend_cost_multiplier)
+		race.entry_fee = roundi(race.entry_fee * multiplier)
+		race.travel_cost = roundi(race.travel_cost * multiplier)
+		race.preparation_cost = roundi(race.preparation_cost * multiplier)
+		race.insurance_cost = roundi(race.insurance_cost * multiplier)
+		race.facility_cost = roundi(race.facility_cost * multiplier)
+		calendar.append(race)
+	return calendar
+
+
+func get_race_for_series_by_id(series_id: String, race_id: String) -> Race:
+	for race in get_calendar_for_series(series_id):
+		if race.race_id == race_id:
+			return race
+	return null
+
+
+func get_maximum_field_size(series_id: String) -> int:
+	return int(SeriesCatalog.get_series(series_id).get("maximum_field_size", AI_DRIVERS.size() + 1))
+
+
+func get_eligible_drivers_for_race(team: Team, race: Race) -> Array[Driver]:
+	if team == null or race == null:
+		return []
+	var drivers := team.get_drivers_for_series(race.series_id)
+	drivers.resize(mini(drivers.size(), get_maximum_field_size(race.series_id)))
+	return drivers
+
+
 func get_next_race(team: Team) -> Race:
 	if team == null or team.season_complete:
 		return null
-	for race_id in SEASON_RACE_IDS:
+	for race in get_calendar_for_series(team.current_series_id):
+		var race_id := race.race_id
 		if team.unlocked_races.has(race_id) and not team.completed_races.has(race_id):
-			return get_race_by_id(race_id)
+			return race
 	return null
 
 
@@ -1098,6 +1145,7 @@ func complete_race(
 		GameManager.team.completed_races.append(
 			completed_race.race_id
 		)
+	GameManager.team.save_series_progress()
 	GameManager.team.week_advance_required = true
 
 	GameManager.team.emit_changed()
@@ -1111,7 +1159,8 @@ func finish_season_if_complete() -> void:
 	if GameManager.team.season_complete:
 		return
 
-	for race_id in SEASON_RACE_IDS:
+	for race in get_calendar_for_series(GameManager.team.current_series_id):
+		var race_id := race.race_id
 		if not GameManager.team.completed_races.has(race_id):
 			return
 
@@ -1125,11 +1174,10 @@ func finish_season_if_complete() -> void:
 			player_position = index + 1
 			break
 
-	var prize_money: int = calculate_season_prize(
-		player_position
-	)
+	var prize_money: int = calculate_season_prize(player_position, GameManager.team.current_series_id)
 
 	GameManager.team.season_complete = true
+	GameManager.team.save_series_progress()
 	GameManager.team.last_season_position = player_position
 	GameManager.team.last_season_prize = prize_money
 	if player_position == 1:
@@ -1139,14 +1187,14 @@ func finish_season_if_complete() -> void:
 	GameManager.team.emit_changed()
 
 
-func calculate_season_prize(finishing_position: int) -> int:
+func calculate_season_prize(finishing_position: int, series_id: String = "local_short_track") -> int:
 	if finishing_position <= 0:
 		return 0
 
-	if finishing_position > SEASON_PRIZES.size():
+	var payouts: Array = SeriesCatalog.get_series(series_id).get("championship_payouts", SEASON_PRIZES)
+	if finishing_position > payouts.size():
 		return 0
-
-	return SEASON_PRIZES[finishing_position - 1]
+	return int(payouts[finishing_position - 1])
 
 
 func start_new_season() -> bool:
@@ -1164,9 +1212,11 @@ func start_new_season() -> bool:
 	GameManager.team.last_season_position = 0
 	GameManager.team.last_season_prize = 0
 	GameManager.team.completed_races.clear()
-	GameManager.team.unlocked_races = [SEASON_RACE_IDS[0]]
+	var calendar := get_calendar_for_series(GameManager.team.current_series_id)
+	GameManager.team.unlocked_races = [calendar[0].race_id] if not calendar.is_empty() else []
 	GameManager.team.championship_standings.clear()
 	GameManager.team.championship_points = 0
+	GameManager.team.save_series_progress()
 	GameManager.team.driver_hired_for_season = false
 	GameManager.team.current_race_week = 1
 	GameManager.team.week_advance_required = false

@@ -12,7 +12,7 @@ static func evaluate(team: Team, race: Race, selected_car: Car = null) -> Array[
 		return checks
 
 	checks.append(_driver_check(team))
-	checks.append(_car_check(team, selected_car))
+	checks.append(_car_check(team, race, selected_car))
 	checks.append(_staff_check(team))
 	checks.append(_finance_check(team, race))
 	checks.append(_sponsor_check(team))
@@ -30,14 +30,14 @@ static func get_overall_status(checks: Array[Dictionary]) -> String:
 	return overall
 
 
-static func get_recommended_car(team: Team) -> Car:
+static func get_recommended_car(team: Team, series_id: String = "") -> Car:
 	if team == null:
 		return null
 	var best_car: Car = null
 	var best_score := -1
 	for car_value in team.cars:
 		var car := car_value as Car
-		if car == null or not is_car_eligible(car):
+		if car == null or not is_car_eligible(car, series_id):
 			continue
 		var score := car.get_total_performance() + car.condition
 		if score > best_score:
@@ -46,8 +46,10 @@ static func get_recommended_car(team: Team) -> Car:
 	return best_car
 
 
-static func is_car_eligible(car: Car) -> bool:
+static func is_car_eligible(car: Car, series_id: String = "") -> bool:
 	if car == null or car.condition <= 0:
+		return false
+	if not series_id.is_empty() and car.series_id != series_id:
 		return false
 	for part_type in CarPart.PART_TYPES:
 		var part := car.get_part(part_type)
@@ -66,8 +68,12 @@ static func _driver_check(team: Team) -> Dictionary:
 	return _check(READY, "DRIVER", "%s is contracted for the season (rating %d)." % [driver.driver_name, rating], "", "", "Season contract")
 
 
-static func _car_check(team: Team, selected_car: Car) -> Dictionary:
-	var car := selected_car if selected_car != null else get_recommended_car(team)
+static func _car_check(team: Team, race: Race, selected_car: Car) -> Dictionary:
+	var car := selected_car if selected_car != null else get_recommended_car(team, race.series_id)
+	if car != null and car.series_id != race.series_id:
+		var car_series := SeriesCatalog.get_series(car.series_id)
+		var race_series := SeriesCatalog.get_series(race.series_id)
+		return _check(BLOCKED, "CAR HOMOLOGATION", "This car is homologated for the %s and cannot enter a %s event." % [car_series.get("name", car.series_id), race_series.get("name", race.series_id)], "Open Garage", "garage")
 	if car == null:
 		return _check(BLOCKED, "ELIGIBLE CAR", "No race-ready car has a complete, functioning parts package.", "Open Garage", "garage")
 	var worn_parts := 0

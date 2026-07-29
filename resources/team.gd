@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 3
+const CURRENT_SAVE_FORMAT_VERSION: int = 4
 
 @export var team_name: String = "My Team"
 @export var hometown: String = "Charlotte, NC"
@@ -63,6 +63,7 @@ const CURRENT_SAVE_FORMAT_VERSION: int = 3
 ]
 
 @export var championship_standings: Array[Dictionary] = []
+@export var series_progress: Dictionary = {}
 @export var drivers: Array[Driver] = []
 @export var contracted_driver_ids: Array[String] = []
 @export var race_teams: Array[RaceTeam] = []
@@ -88,6 +89,7 @@ const DIFFICULTY_SETTINGS: Dictionary = {
 
 
 func _init() -> void:
+	ensure_series_progress()
 	ensure_departments()
 	ensure_default_player_driver()
 	ensure_driver_market()
@@ -153,7 +155,23 @@ func can_enter_series(series_id: String) -> bool:
 	if index < 0 or entered_series_ids.has(series_id) or index != current_index + 1:
 		return false
 	var series := SeriesCatalog.get_series(series_id)
-	return hq_level >= int(series.hq_level) and money >= get_discounted_cost(int(series.entry_cost))
+	return season_complete and hq_level >= int(series.hq_level) and money >= get_series_required_cash(series_id)
+
+
+func get_series_required_cash(series_id: String) -> int:
+	var series := SeriesCatalog.get_series(series_id)
+	if series.is_empty():
+		return 0
+	return get_discounted_cost(int(series.entry_cost)) + int(series.car_price) + int(series.estimated_race_cost) * 3
+
+
+func get_series_entry_requirements(series_id: String) -> Array[String]:
+	var unmet: Array[String] = []
+	var series := SeriesCatalog.get_series(series_id)
+	if not season_complete: unmet.append("Finish the current season.")
+	if not series.is_empty() and hq_level < int(series.hq_level): unmet.append("Upgrade Team HQ to level %d." % int(series.hq_level))
+	if not series.is_empty() and money < get_series_required_cash(series_id): unmet.append("Raise $%s for the entry fee, eligible car, and three-race reserve." % String.num_int64(get_series_required_cash(series_id)))
+	return unmet
 
 
 func enter_series(series_id: String) -> bool:
@@ -163,6 +181,8 @@ func enter_series(series_id: String) -> bool:
 	money -= cost
 	entered_series_ids.append(series_id)
 	current_series_id = series_id
+	ensure_series_progress(series_id)
+	load_series_progress(series_id)
 	record_finance("Series", -cost, "Entered %s" % SeriesCatalog.get_series(series_id).name)
 	emit_changed()
 	return true
@@ -174,6 +194,49 @@ func owns_car_for_series(series_id: String) -> bool:
 		if car != null and car.series_id == series_id:
 			return true
 	return false
+
+
+func ensure_series_progress(series_id: String = current_series_id) -> void:
+	if series_progress.has(series_id):
+		return
+	var first_race := "spring_100" if series_id == "local_short_track" else "%s_round_01" % series_id
+	var is_legacy_season := series_id == "local_short_track"
+	series_progress[series_id] = {"completed_races":completed_races.duplicate() if is_legacy_season else [], "unlocked_races":unlocked_races.duplicate() if is_legacy_season else [first_race], "standings":championship_standings.duplicate(true) if is_legacy_season else [], "season_number":season_number if is_legacy_season else 1, "season_complete":season_complete if is_legacy_season else false}
+
+
+func save_series_progress() -> void:
+	ensure_series_progress()
+	series_progress[current_series_id] = {"completed_races":completed_races.duplicate(), "unlocked_races":unlocked_races.duplicate(), "standings":championship_standings.duplicate(true), "season_number":season_number, "season_complete":season_complete}
+
+
+func load_series_progress(series_id: String = current_series_id) -> void:
+	ensure_series_progress(series_id)
+	var progress: Dictionary = series_progress[series_id]
+	completed_races.assign(progress.get("completed_races", []))
+	unlocked_races.assign(progress.get("unlocked_races", []))
+	championship_standings.assign(progress.get("standings", []))
+	season_number = int(progress.get("season_number", 1))
+	season_complete = bool(progress.get("season_complete", false))
+
+
+func get_completed_races() -> Array[String]:
+	return completed_races
+
+
+func get_unlocked_races() -> Array[String]:
+	return unlocked_races
+
+
+func get_championship_standings() -> Array[Dictionary]:
+	return championship_standings
+
+
+func get_drivers_for_series(series_id: String) -> Array[Driver]:
+	var eligible: Array[Driver] = []
+	for driver in drivers:
+		if driver != null and driver.series_id == series_id:
+			eligible.append(driver)
+	return eligible
 
 
 func start_scouting_assignment(driver: Driver, assignment_type: String) -> bool:
