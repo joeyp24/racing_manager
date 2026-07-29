@@ -221,31 +221,13 @@ func _on_confirm_button_pressed() -> void:
 		return
 	GameManager.team.record_finance("Race", -selected_race.entry_fee, "%s entry fee" % selected_race.race_name)
 
-	status_label.text = "Running race..."
-
-	var race_result: RaceResult = RaceManager.run_race(
-		selected_race,
-		selected_car,
-		selected_strategy
-	)
-
-	if race_result == null:
-		GameManager.add_team_money(
-			selected_race.entry_fee
-		)
-		GameManager.team.record_finance("Race", selected_race.entry_fee, "Entry fee refund")
-
-		status_label.text = (
-			"The race could not be completed."
-		)
-
-		confirm_button.disabled = false
-		back_button.disabled = false
-		return
-
-	GameManager.load_page(
-		"res://scenes/pages/race_results/race_results.tscn"
-	)
+	GameManager.active_race_weekend = {
+		"strategy_id": selected_strategy,
+		"entry_fee_paid": true
+	}
+	GameManager.save_game()
+	status_label.text = "Opening race weekend..."
+	GameManager.load_page("res://scenes/pages/race_weekend/race_weekend.tscn")
 
 
 func _on_back_button_pressed() -> void:

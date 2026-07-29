@@ -2,6 +2,7 @@ extends Node
 
 signal team_money_changed(new_amount: int)
 signal team_loaded(team: Team)
+signal fullscreen_changed(is_now_fullscreen: bool)
 
 var team: Team = null
 var active_save_id: String = ""
@@ -9,10 +10,30 @@ var selected_car = null
 var selected_bay: int = -1
 var selected_race: Race = null
 var page_container: Control = null
+var active_race_weekend: Dictionary = {}
 
 
 func _ready() -> void:
 	SaveManager.migrate_legacy_save()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F11:
+			toggle_fullscreen()
+			get_viewport().set_input_as_handled()
+
+
+func toggle_fullscreen() -> void:
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	fullscreen_changed.emit(is_fullscreen())
+
+
+func is_fullscreen() -> bool:
+	return DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
 
 
 func new_game(slot_id: String = "") -> void:
@@ -74,6 +95,7 @@ func clear_selected_data() -> void:
 	selected_car = null
 	selected_bay = -1
 	selected_race = null
+	active_race_weekend.clear()
 
 
 func reload_current_page() -> void:
