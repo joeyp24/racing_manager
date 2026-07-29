@@ -92,7 +92,7 @@ func update_dashboard() -> void:
 
 
 func update_week_action(team: Team) -> void:
-	if team.season_complete:
+	if team.is_series_season_complete():
 		advance_race_button.text = "VIEW FINAL STANDINGS  →"
 		week_status_label.text = "Season complete"
 	elif team.week_advance_required:
@@ -123,14 +123,14 @@ func update_sponsor_summary(team: Team) -> void:
 
 
 func update_next_race() -> void:
-	if GameManager.team.season_complete:
+	if GameManager.team.is_series_season_complete():
 		next_race_label.text = (
 			"Season %d Complete — Start a new season from Standings"
 			% GameManager.team.season_number
 		)
 		return
 
-	if GameManager.team.unlocked_races.is_empty():
+	if GameManager.team.get_unlocked_races().is_empty():
 		next_race_label.text = (
 			"Next Race: Season Complete"
 		)
@@ -261,7 +261,7 @@ func update_readiness(team: Team) -> void:
 
 
 func _on_prepare_race_pressed() -> void:
-	if GameManager.team.season_complete:
+	if GameManager.team.is_series_season_complete():
 		GameManager.load_page("res://scenes/pages/championship/championship.tscn")
 		return
 	if GameManager.team.week_advance_required:

@@ -98,6 +98,10 @@ static func load_game(slot_id: String) -> Team:
 
 static func _repair_and_migrate(team: Team) -> void:
 	# Resource defaults cover newly introduced scalar fields; these calls repair collections.
+	if team.save_format_version < 4:
+		# V3 and older stored only the local championship in exported fields.
+		team.series_progress.erase("local_short_track")
+		team.current_series_id = "local_short_track"
 	team.ensure_series_progress(team.current_series_id)
 	team.load_series_progress(team.current_series_id)
 	team.ensure_departments()

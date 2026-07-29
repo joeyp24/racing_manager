@@ -5,7 +5,7 @@ extends RefCounted
 static func derive(team: Team, current_page: String = "") -> Dictionary:
 	if team == null:
 		return _action("Set up your race team", "No career is loaded.", "Create or load a career to continue.", "Dashboard", "dashboard")
-	if team.season_complete:
+	if team.is_series_season_complete():
 		return _action("Review standings and begin Season %d" % (team.season_number + 1), "Season %d is complete." % team.season_number, "Starting a season resets the calendar and seasonal contracts.", "Championship", "championship", RaceReadiness.READY)
 
 	var race := RaceManager.get_next_race(team)

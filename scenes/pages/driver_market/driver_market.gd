@@ -39,7 +39,7 @@ func display_market() -> void:
 			create_driver_details(active_driver)
 		]
 
-	if team.season_complete or not team.completed_races.is_empty():
+	if team.is_series_season_complete() or not team.get_completed_races().is_empty():
 		hiring_status_label.text = "Driver hiring is locked after the first race. Manage assignments on the Race Teams page."
 	elif contracted.size() >= team.get_driver_roster_limit():
 		hiring_status_label.text = "Driver roster full: %d / %d contracted. Manage assignments on the Race Teams page." % [

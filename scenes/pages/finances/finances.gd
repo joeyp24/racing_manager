@@ -22,7 +22,7 @@ func refresh_finances() -> void:
 	for part in team.parts_inventory:
 		if part != null:
 			inventory_value += part.sale_price
-	var remaining_races := maxi(0, RaceManager.SEASON_RACE_IDS.size() - team.completed_races.size())
+	var remaining_races := maxi(0, RaceManager.SEASON_RACE_IDS.size() - team.get_completed_races().size())
 	overview_label.text = "Cash: $%s\nGarage value: $%s\nParts resale value: $%s\nTotal liquid and asset value: $%s\n\nRecorded income: +$%s\nRecorded expenses: -$%s\nRecorded net: %s" % [format_number(team.money), format_number(garage_value), format_number(inventory_value), format_number(team.money + garage_value + inventory_value), format_number(team.get_finance_total(true)), format_number(team.get_finance_total(false)), format_money(team.get_finance_total(true) - team.get_finance_total(false))]
 
 	var driver := team.get_active_driver()

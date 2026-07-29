@@ -50,7 +50,7 @@ func refresh() -> void:
 		chips.append("%s %d/%d" % [role, hired.size(), team.get_role_limit(role)])
 		for member in hired:
 			if member.contract_races_remaining <= 2: expiring += 1
-	var remaining := maxi(0, RaceManager.SEASON_RACE_IDS.size() - team.completed_races.size())
+	var remaining := maxi(0, RaceManager.SEASON_RACE_IDS.size() - team.get_completed_races().size())
 	positions.text = "POSITIONS\n%d / %d" % [members.size(), capacity]
 	payroll.text = "PAYROLL\n$%s / race" % number(team.get_staff_payroll())
 	projection.text = "SEASON PROJECTION\n$%s" % number(team.get_total_race_payroll() * remaining)

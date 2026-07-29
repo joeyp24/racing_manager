@@ -68,3 +68,39 @@ def test_series_ladder_has_progression_cars_and_full_rosters():
     assert "index != current_index + 1" in team
     assert "func ensure_series_rosters()" in team
     assert "SeriesCatalog.create_car_templates(series_id)" in dealership
+
+
+def test_series_progress_is_the_single_live_source():
+    team = (ROOT / "resources/team.gd").read_text()
+    save = (ROOT / "scripts/save_manager.gd").read_text()
+    manager = (ROOT / "autoload/race_manager.gd").read_text()
+    for method in ("complete_race_for_series", "unlock_race_for_series", "set_series_standings", "is_series_season_complete"):
+        assert f"func {method}" in team
+    assert "save_format_version < 4" in save
+    assert 'series_progress.erase("local_short_track")' in save
+    assert "GameManager.team.completed_races" not in manager
+    assert "GameManager.team.championship_standings" not in manager
+
+
+def test_every_configured_field_size_drives_the_grid():
+    catalog = (ROOT / "resources/series_catalog.gd").read_text()
+    roster = (ROOT / "resources/ai_roster_catalog.gd").read_text()
+    manager = (ROOT / "autoload/race_manager.gd").read_text()
+    sizes = [int(value) for value in re.findall(r'"maximum_field_size":(\d+)', catalog)]
+    assert sorted(set(sizes)) == [20, 24, 30, 36, 38, 40]
+    assert "get_maximum_field_size(race.series_id) - maxi(1, player_entry_count)" in manager
+    assert '"driver_id":"%s_ai_%02d"' in roster
+    assert "car_performance_range" in roster
+
+
+def test_points_calendars_and_promotion_are_series_driven():
+    points = (ROOT / "resources/points_system_catalog.gd").read_text()
+    calendar = (ROOT / "resources/calendar_catalog.gd").read_text()
+    championship = (ROOT / "scenes/pages/championship/championship.gd").read_text()
+    for system in ('"short_track"', '"national"', '"cup"'):
+        assert system in points
+    assert "fastest_lap" in points and "stage_wins" in points and "standings_before" in points
+    assert "travel_region" in calendar and "track_type_distribution" in calendar
+    assert "season_round" in calendar and "LOCAL_IDS" in calendar
+    assert "Three-race reserve" in championship and "ConfirmationDialog" in championship
+    assert "Repeat current series" in championship

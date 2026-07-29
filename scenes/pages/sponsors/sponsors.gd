@@ -65,7 +65,7 @@ func create_offer(sponsor: Sponsor, team: Team) -> void:
 		team.reputation < sponsor.required_reputation
 		or team.sponsor_signed_season == team.season_number
 		or not team.active_sponsor_id.is_empty()
-		or team.season_complete
+		or team.is_series_season_complete()
 	)
 	if team.reputation < sponsor.required_reputation:
 		sign_button.text = "Locked"
@@ -78,7 +78,7 @@ func sign_sponsor(sponsor: Sponsor) -> void:
 	if (
 		team == null
 		or sponsor == null
-		or team.season_complete
+		or team.is_series_season_complete()
 		or not team.active_sponsor_id.is_empty()
 		or team.sponsor_signed_season == team.season_number
 		or team.reputation < sponsor.required_reputation
