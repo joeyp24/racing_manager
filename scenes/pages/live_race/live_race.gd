@@ -7,7 +7,7 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 @onready var speed_label: Label = %speed_label
 @onready var message_label: Label = %message_label
 @onready var timing_tower: RichTextLabel = %timing_tower
-@onready var telemetry: Label = %telemetry
+@onready var telemetry: RichTextLabel = %telemetry
 @onready var event_feed: RichTextLabel = %event_feed
 @onready var pause_button: Button = %pause_button
 @onready var speed_selector: OptionButton = %speed_selector
@@ -145,10 +145,10 @@ func _refresh_header() -> void:
 	if simulation == null:
 		return
 	race_title.text = "%s — LAP %d / %d" % [simulation.race.race_name.to_upper(), simulation.current_lap, simulation.race.lap_count]
-	flag_label.text = simulation.race_state
+	flag_label.text = "●  %s" % simulation.race_state
 	flag_label.modulate = Color("55d68b") if simulation.race_state == "GREEN FLAG" else Color("f4f6fa")
 	var speed := SPEEDS[speed_selector.selected] if speed_selector.selected >= 0 else 1
-	speed_label.text = ("PAUSED  •  " if is_paused else "") + "%dx SPEED" % speed
+	speed_label.text = ("PAUSED  •  " if is_paused else "LIVE  •  ") + "%d× SPEED" % speed
 
 
 func _refresh_tower() -> void:
@@ -182,7 +182,15 @@ func _refresh_telemetry() -> void:
 	var change := player.starting_position - player.position
 	var trend := "—" if change == 0 else ("↑%d" % change if change > 0 else "↓%d" % abs(change))
 	var pace := "STRONG" if player.last_lap_time <= player.best_lap_time + 0.18 else "MANAGING"
-	telemetry.text = "POSITION\nP%d  %s\n\nGAP AHEAD\n%s\n\nGAP BEHIND\n%s\n\nTYRES\n%d%% %s\n\nPIT STOPS\n%d\n\nSETUP\n%s\n\nFUEL ESTIMATE\n%d%%\n\nCAR CONDITION\n%d%%\n\nPACE\n%s" % [player.position, trend, ahead, behind, roundi(player.tyre_condition), player.tyre_compound, player.pit_stops, player.setup_mode, roundi(player.fuel_remaining), roundi(player.car_condition), pace]
+	telemetry.text = "[table=2]" + \
+		"[cell][color=#778493]POSITION[/color]\n[b]P%d  %s[/b][/cell]" % [player.position, trend] + \
+		"[cell][color=#778493]TYRES[/color]\n[b]%d%%  %s[/b][/cell]" % [roundi(player.tyre_condition), player.tyre_compound] + \
+		"[cell][color=#778493]GAP AHEAD[/color]\n[b]%s[/b][/cell]" % ahead + \
+		"[cell][color=#778493]GAP BEHIND[/color]\n[b]%s[/b][/cell]" % behind + \
+		"[cell][color=#778493]FUEL / CAR[/color]\n[b]%d%%  /  %d%%[/b][/cell]" % [roundi(player.fuel_remaining), roundi(player.car_condition)] + \
+		"[cell][color=#778493]PACE[/color]\n[b]%s[/b][/cell]" % pace + \
+		"[cell][color=#778493]SETUP[/color]\n[b]%s[/b][/cell]" % player.setup_mode + \
+		"[cell][color=#778493]PIT STOPS[/color]\n[b]%d[/b][/cell][/table]" % player.pit_stops
 
 
 func _refresh_feed() -> void:

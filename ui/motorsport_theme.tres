@@ -1,4 +1,16 @@
-[gd_resource type="Theme" load_steps=18 format=3]
+[gd_resource type="Theme" load_steps=21 format=3]
+
+[sub_resource type="SystemFont" id="FontRegular"]
+font_names = PackedStringArray("Inter", "Aptos", "Segoe UI", "Noto Sans", "Arial")
+font_weight = 400
+
+[sub_resource type="SystemFont" id="FontMedium"]
+font_names = PackedStringArray("Inter", "Aptos", "Segoe UI", "Noto Sans", "Arial")
+font_weight = 600
+
+[sub_resource type="SystemFont" id="FontBold"]
+font_names = PackedStringArray("Inter", "Aptos Display", "Segoe UI", "Noto Sans", "Arial")
+font_weight = 700
 
 [sub_resource type="StyleBoxFlat" id="ButtonNormal"]
 bg_color = Color(0.086, 0.11, 0.145, 1)
@@ -206,6 +218,7 @@ content_margin_right = 10.0
 content_margin_bottom = 7.0
 
 [resource]
+default_font = SubResource("FontRegular")
 default_font_size = 15
 default_base_scale = 1.0
 Button/colors/font_color = Color(0.88, 0.91, 0.95, 1)
@@ -218,6 +231,7 @@ Button/styles/pressed = SubResource("ButtonPressed")
 Button/styles/focus = SubResource("ButtonHover")
 Button/styles/disabled = SubResource("ButtonNormal")
 Button/font_sizes/font_size = 14
+Button/fonts/font = SubResource("FontMedium")
 Label/colors/font_color = Color(0.86, 0.89, 0.93, 1)
 Label/font_sizes/font_size = 15
 Panel/styles/panel = SubResource("Panel")
@@ -237,6 +251,7 @@ PrimaryButton/styles/pressed = SubResource("ButtonPressed")
 PrimaryButton/styles/focus = SubResource("PrimaryHover")
 PrimaryButton/colors/font_color = Color(1, 1, 1, 1)
 PrimaryButton/font_sizes/font_size = 15
+PrimaryButton/fonts/font = SubResource("FontBold")
 NavigationButton/base_type = &"Button"
 NavigationButton/styles/normal = SubResource("NavNormal")
 NavigationButton/styles/hover = SubResource("NavHover")
@@ -247,6 +262,7 @@ NavigationButton/colors/font_color = Color(0.67, 0.72, 0.79, 1)
 NavigationButton/colors/font_pressed_color = Color(1, 1, 1, 1)
 NavigationButton/colors/font_hover_color = Color(0.95, 0.97, 1, 1)
 NavigationButton/font_sizes/font_size = 14
+NavigationButton/fonts/font = SubResource("FontMedium")
 CardPanel/base_type = &"PanelContainer"
 CardPanel/styles/panel = SubResource("Card")
 HeroPanel/base_type = &"PanelContainer"
@@ -258,16 +274,19 @@ TopbarPanel/styles/panel = SubResource("Topbar")
 PageTitle/base_type = &"Label"
 PageTitle/font_sizes/font_size = 28
 PageTitle/colors/font_color = Color(0.98, 0.99, 1, 1)
+PageTitle/fonts/font = SubResource("FontBold")
 SectionTitle/base_type = &"Label"
 SectionTitle/font_sizes/font_size = 17
 SectionTitle/colors/font_color = Color(0.96, 0.97, 0.99, 1)
+SectionTitle/fonts/font = SubResource("FontMedium")
 StatValue/base_type = &"Label"
 StatValue/font_sizes/font_size = 25
 StatValue/colors/font_color = Color(1, 1, 1, 1)
+StatValue/fonts/font = SubResource("FontBold")
 MutedLabel/base_type = &"Label"
 MutedLabel/font_sizes/font_size = 12
 MutedLabel/colors/font_color = Color(0.52, 0.58, 0.66, 1)
 EyebrowLabel/base_type = &"Label"
 EyebrowLabel/font_sizes/font_size = 11
 EyebrowLabel/colors/font_color = Color(0.95, 0.35, 0.18, 1)
-
+EyebrowLabel/fonts/font = SubResource("FontBold")
