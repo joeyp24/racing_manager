@@ -81,25 +81,22 @@ size_flags_horizontal = 0
 theme_type_variation = &"PrimaryButton"
 text = "PREPARE FOR RACE  →"
 [node name="Readiness" type="VBoxContainer" parent="Scroll/Margin/Content/Hero/HeroLayout"]
-custom_minimum_size = Vector2(245, 0)
+custom_minimum_size = Vector2(430, 0)
 layout_mode = 2
 theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
 text = "Race Readiness"
-[node name="driver_ready_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
+[node name="readiness_summary_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "✓  Driver contracted"
-[node name="car_ready_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
+theme_type_variation = &"EyebrowLabel"
+text = "REVIEWING SYSTEMS"
+[node name="readiness_container" type="VBoxContainer" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "✓  Eligible car available"
-[node name="funds_ready_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Readiness"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "✓  Entry funds available"
+theme_override_constants/separation = 5
 [node name="Kpis" type="HBoxContainer" parent="Scroll/Margin/Content"]
 layout_mode = 2
 theme_override_constants/separation = 12

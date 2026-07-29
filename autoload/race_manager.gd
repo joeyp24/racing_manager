@@ -27,6 +27,20 @@ const SEASON_PRIZES: Array[int] = [
 ]
 
 const DEFAULT_STRATEGY := "balanced"
+const RACE_RESOURCE_PATHS: Dictionary = {
+	"spring_100": "res://resources/races/spring_speedway_100.tres",
+	"riverside_200": "res://resources/races/riverside_200.tres",
+	"coastal_150": "res://resources/races/coastal_150.tres",
+	"desert_175": "res://resources/races/desert_175.tres",
+	"mountain_classic": "res://resources/races/mountain_classic.tres",
+	"lakeside_225": "res://resources/races/lakeside_225.tres",
+	"capital_200": "res://resources/races/capital_200.tres",
+	"prairie_250": "res://resources/races/prairie_250.tres",
+	"harbor_180": "res://resources/races/harbor_180.tres",
+	"forest_240": "res://resources/races/forest_240.tres",
+	"national_stock_car": "res://resources/races/national_stock_car_300.tres",
+	"championship_300": "res://resources/races/championship_300.tres"
+}
 const RACE_STRATEGIES: Dictionary = {
 	"conservative": {
 		"name": "Conservative",
@@ -116,6 +130,22 @@ var random_number_generator := (
 
 func _ready() -> void:
 	random_number_generator.randomize()
+
+
+func get_race_by_id(race_id: String) -> Race:
+	var path := str(RACE_RESOURCE_PATHS.get(race_id, ""))
+	if path.is_empty():
+		return null
+	return load(path) as Race
+
+
+func get_next_race(team: Team) -> Race:
+	if team == null or team.season_complete:
+		return null
+	for race_id in SEASON_RACE_IDS:
+		if team.unlocked_races.has(race_id) and not team.completed_races.has(race_id):
+			return get_race_by_id(race_id)
+	return null
 
 
 func create_live_simulation(
