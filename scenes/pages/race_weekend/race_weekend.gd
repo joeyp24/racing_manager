@@ -101,11 +101,11 @@ func show_qualifying() -> void:
 
 func complete_qualifying() -> void:
 	var driver := GameManager.team.get_active_driver()
-	var approach_modifiers := [-1.0, 1.0, 3.0]
-	var variance := [1.5, 3.0, 6.0][choice_selector.selected]
-	var focus_bonus := 3.0 if weekend_data["practice_focus"] == "qualifying" else 0.0
-	var confidence_bonus := 1.5 if weekend_data["practice_focus"] == "confidence" else 0.0
-	var qualifying_score := (
+	var approach_modifiers: Array[float] = [-1.0, 1.0, 3.0]
+	var variance: float = float([1.5, 3.0, 6.0][choice_selector.selected])
+	var focus_bonus: float = 3.0 if weekend_data["practice_focus"] == "qualifying" else 0.0
+	var confidence_bonus: float = 1.5 if weekend_data["practice_focus"] == "confidence" else 0.0
+	var qualifying_score: float = (
 		float(GameManager.selected_car.get_total_performance()) * 0.55
 		+ float(driver.skill) * 0.30
 		+ float(driver.consistency) * 0.15
@@ -149,11 +149,13 @@ func show_strategy() -> void:
 func start_race() -> void:
 	phase = 3
 	decision_index = 0
-	var strategy_ids := ["conservative", "balanced", "aggressive"]
+	var strategy_ids: Array[String] = ["conservative", "balanced", "aggressive"]
 	weekend_data["strategy_id"] = strategy_ids[choice_selector.selected]
 	weekend_data["pre_race_plan"] = secondary_selector.get_item_text(secondary_selector.selected)
-	weekend_data["race_modifier"] = [0.0, 0.5, 1.4][secondary_selector.selected]
+	weekend_data["race_modifier"] = [0.0, 0.5, 1.4][choice_selector.selected]
 	weekend_data["decision_log"] = []
+	if choice_selector.selected == 2:
+		weekend_data["wear_modifier"] = float(weekend_data["wear_modifier"]) * 1.08
 	if secondary_selector.selected == 0:
 		weekend_data["wear_modifier"] = float(weekend_data["wear_modifier"]) * 0.92
 	show_decision()
@@ -165,7 +167,8 @@ func show_decision() -> void:
 	progress_label.text = "Live race • Decision %d of %d" % [decision_index + 1, DECISIONS.size()]
 	briefing_label.text = str(event["text"])
 	choice_label.text = "Pit-wall call"
-	set_string_items(choice_selector, event["choices"])
+	var choices: Array = event["choices"] as Array
+	set_string_items(choice_selector, choices)
 	secondary_label.visible = false
 	secondary_selector.visible = false
 	outcome_label.text = "Current projected position: P%d" % projected_position()
@@ -174,35 +177,41 @@ func show_decision() -> void:
 
 
 func complete_decision() -> void:
-	var choice := choice_selector.selected
-	var outcome := ""
+	var choice: int = choice_selector.selected
+	var outcome: String = ""
+	var race_modifier: float = float(weekend_data["race_modifier"])
+	var wear_modifier: float = float(weekend_data["wear_modifier"])
 	match decision_index:
 		0:
 			if choice == 0:
-				weekend_data["race_modifier"] += 1.4
-				weekend_data["wear_modifier"] *= 0.90
+				race_modifier += 1.4
+				wear_modifier *= 0.90
 				outcome = "Pitting under caution saved time and fitted fresh tyres."
 			else:
-				weekend_data["race_modifier"] += 0.4
+				race_modifier += 0.4
 				outcome = "Staying out preserved track position, but leaves older tyres."
 		1:
 			if choice == 0:
-				weekend_data["race_modifier"] += 1.8
-				weekend_data["wear_modifier"] *= 1.15
+				race_modifier += 1.8
+				wear_modifier *= 1.15
 				outcome = "The driver held the rival off, at the cost of extra wear."
 			else:
-				weekend_data["race_modifier"] -= 0.3
-				weekend_data["wear_modifier"] *= 0.88
+				race_modifier -= 0.3
+				wear_modifier *= 0.88
 				outcome = "The car was protected for a stronger finish."
 		2:
 			if choice == 0:
-				weekend_data["race_modifier"] += 0.5
+				race_modifier += 0.5
 				outcome = "Fuel saving secured a clean run to the flag."
 			else:
-				weekend_data["race_modifier"] += RaceManager.random_number_generator.randf_range(-2.5, 3.5)
-				weekend_data["wear_modifier"] *= 1.08
+				race_modifier += RaceManager.random_number_generator.randf_range(-2.5, 3.5)
+				wear_modifier *= 1.08
 				outcome = "The fuel gamble created an unpredictable final sprint."
-	weekend_data["decision_log"].append(outcome)
+	weekend_data["race_modifier"] = race_modifier
+	weekend_data["wear_modifier"] = wear_modifier
+	var decision_log: Array = weekend_data["decision_log"] as Array
+	decision_log.append(outcome)
+	weekend_data["decision_log"] = decision_log
 	decision_index += 1
 	if decision_index < DECISIONS.size():
 		show_decision()
