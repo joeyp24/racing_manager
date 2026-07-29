@@ -87,7 +87,16 @@ func make_row(member: StaffMember, hiring: bool) -> PanelContainer:
 	var label := Label.new(); label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.text = "%s\n%s  ·  %d %s  ·  $%s/race%s" % [member.staff_name, member.role, member.rating, member.get_rating_grade(), number(member.salary), "  ·  %d races" % member.contract_races_remaining if member.hired else ""]
 	label.theme_type_variation = &"BodyStrong"
-	var action := Button.new(); action.text = "Review" if hiring else "View"; action.pressed.connect(func(): selected = member; show_detail(member))
+	var action := Button.new()
+	if hiring:
+		action.text = "Hire · $%s" % number(GameManager.team.get_discounted_cost(member.signing_fee))
+		action.theme_type_variation = &"PrimaryButton"
+		action.disabled = (not GameManager.team.can_add_staff_role(member.role)
+			or GameManager.team.money < GameManager.team.get_discounted_cost(member.signing_fee))
+		action.pressed.connect(hire_member.bind(member))
+	else:
+		action.text = "View"
+		action.pressed.connect(func(): selected = member; show_detail(member))
 	row.add_child(label); row.add_child(action); card.add_child(row)
 	return card
 

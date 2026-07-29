@@ -12,6 +12,8 @@ const ROLE_LIMITS: Dictionary = {
 }
 const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
+const MAX_RACE_TEAMS: int = 4
+const RACE_TEAM_EXPANSION_COST: int = 25000
 
 @export var team_name: String = "My Team"
 @export var hometown: String = "Charlotte, NC"
@@ -49,6 +51,8 @@ const PART_REPAIR_COST_PER_POINT: int = 12
 
 @export var championship_standings: Array[Dictionary] = []
 @export var drivers: Array[Driver] = []
+@export var contracted_driver_ids: Array[String] = []
+@export var race_teams: Array[RaceTeam] = []
 
 @export var cars: Array = [
 	null,
@@ -68,6 +72,7 @@ func _init() -> void:
 	ensure_departments()
 	ensure_default_player_driver()
 	ensure_driver_market()
+	ensure_race_teams()
 	ensure_car_parts()
 	ensure_staff_market()
 
@@ -606,6 +611,8 @@ func ensure_default_player_driver() -> Driver:
 	var current_driver: Driver = get_active_driver()
 
 	if current_driver != null:
+		if not contracted_driver_ids.has(current_driver.driver_id):
+			contracted_driver_ids.append(current_driver.driver_id)
 		current_driver.team_name = team_name
 		current_driver.is_player_driver = true
 		if (
@@ -637,6 +644,7 @@ func ensure_default_player_driver() -> Driver:
 	new_driver.is_player_driver = true
 
 	drivers.append(new_driver)
+	contracted_driver_ids.append(new_driver.driver_id)
 
 	emit_changed()
 
@@ -717,11 +725,11 @@ func migrate_driver_development(
 	)
 
 
-func can_hire_driver() -> bool:
+func can_hire_driver(driver: Driver = null) -> bool:
 	return (
 		not season_complete
 		and completed_races.is_empty()
-		and not driver_hired_for_season
+		and (driver == null or not contracted_driver_ids.has(driver.driver_id))
 	)
 
 
@@ -729,19 +737,13 @@ func hire_driver(driver: Driver) -> bool:
 	if driver == null or not drivers.has(driver):
 		return false
 	var signing_cost := get_discounted_cost(driver.signing_fee)
-	if not can_hire_driver() or money < signing_cost:
+	if not can_hire_driver(driver) or money < signing_cost:
 		return false
 
-	for roster_driver in drivers:
-		if roster_driver == null:
-			continue
-		roster_driver.is_player_driver = false
-		if roster_driver.team_name == team_name:
-			roster_driver.team_name = "Free Agent"
-
 	money -= signing_cost
-	driver.is_player_driver = true
+	driver.is_player_driver = get_active_driver() == null
 	driver.team_name = team_name
+	contracted_driver_ids.append(driver.driver_id)
 	driver_hired_for_season = true
 	record_finance("Driver", -signing_cost, "Signed %s" % driver.driver_name)
 	emit_changed()
@@ -757,6 +759,64 @@ func get_active_driver() -> Driver:
 			return driver
 
 	return null
+
+
+func get_contracted_drivers() -> Array[Driver]:
+	var roster: Array[Driver] = []
+	for driver_id in contracted_driver_ids:
+		var driver := get_driver_by_id(driver_id)
+		if driver != null:
+			roster.append(driver)
+	return roster
+
+
+func ensure_race_teams() -> void:
+	if race_teams.is_empty():
+		var first_team := RaceTeam.new()
+		first_team.team_id = "team_1"
+		first_team.team_name = "Team 1"
+		var active_driver := get_active_driver()
+		first_team.driver_id = active_driver.driver_id if active_driver != null else ""
+		race_teams.append(first_team)
+	for index in range(race_teams.size()):
+		if race_teams[index] != null and race_teams[index].team_id.is_empty():
+			race_teams[index].team_id = "team_%d" % (index + 1)
+
+
+func add_race_team() -> RaceTeam:
+	if race_teams.size() >= MAX_RACE_TEAMS:
+		return null
+	var cost := get_discounted_cost(RACE_TEAM_EXPANSION_COST)
+	if money < cost:
+		return null
+	money -= cost
+	var race_team := RaceTeam.new()
+	race_team.team_id = "team_%d" % (race_teams.size() + 1)
+	race_team.team_name = "Team %d" % (race_teams.size() + 1)
+	race_teams.append(race_team)
+	record_finance("Race Teams", -cost, "Opened %s" % race_team.team_name)
+	emit_changed()
+	return race_team
+
+
+func assign_race_team(race_team: RaceTeam, driver_id: String, car_bay: int) -> bool:
+	if race_team == null or not race_teams.has(race_team):
+		return false
+	if not driver_id.is_empty() and not contracted_driver_ids.has(driver_id):
+		return false
+	if car_bay >= 0 and get_car(car_bay) == null:
+		return false
+	for other_team in race_teams:
+		if other_team == race_team:
+			continue
+		if not driver_id.is_empty() and other_team.driver_id == driver_id:
+			return false
+		if car_bay >= 0 and other_team.car_bay == car_bay:
+			return false
+	race_team.driver_id = driver_id
+	race_team.car_bay = car_bay
+	emit_changed()
+	return true
 
 
 func get_driver_by_id(

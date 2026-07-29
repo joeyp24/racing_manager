@@ -28,17 +28,19 @@ func _ready() -> void:
 func display_market() -> void:
 	var team: Team = GameManager.team
 	var active_driver: Driver = team.get_active_driver()
+	var contracted := team.get_contracted_drivers()
 
 	if active_driver == null:
 		current_driver_label.text = "Current driver: None — hire a driver for Season %d" % team.season_number
 	else:
-		current_driver_label.text = "Current driver: %s\n%s" % [
+		current_driver_label.text = "Lead driver: %s · %d contracted\n%s" % [
 			active_driver.driver_name,
+			contracted.size(),
 			create_driver_details(active_driver)
 		]
 
-	if team.driver_hired_for_season:
-		hiring_status_label.text = "Driver signed for Season %d. Changes are locked once a contract is signed." % team.season_number
+	if not team.can_hire_driver():
+		hiring_status_label.text = "Driver hiring is locked after the first race. Manage assignments on the Race Teams page."
 	else:
 		hiring_status_label.text = (
 			"Pre-season hiring is open. Signing fees are charged immediately."
@@ -84,10 +86,10 @@ func create_candidate_row(driver: Driver) -> void:
 		driver.career_podiums,
 		driver.career_points
 	]
-	hire_button.text = "Hire"
+	hire_button.text = "Contracted" if GameManager.team.contracted_driver_ids.has(driver.driver_id) else "Hire"
 	hire_button.custom_minimum_size = Vector2(100, 0)
 	hire_button.disabled = (
-		not GameManager.team.can_hire_driver()
+		not GameManager.team.can_hire_driver(driver)
 		or GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee)
 	)
 	hire_button.pressed.connect(_on_hire_pressed.bind(driver))
@@ -115,16 +117,10 @@ func create_driver_details(driver: Driver) -> String:
 
 func _on_hire_pressed(driver: Driver) -> void:
 	pending_driver = driver
-	var current_driver: Driver = GameManager.team.get_active_driver()
-	var replacement_text := "sign"
-	if current_driver != null and current_driver != driver:
-		replacement_text = "replace %s with" % current_driver.driver_name
-
 	confirmation_dialog.title = "Confirm driver contract"
 	confirmation_dialog.dialog_text = (
-		"Do you want to %s %s?\n\nSigning fee: $%s (charged now)\nSalary: $%s after every race"
+		"Do you want to sign %s to your multi-team roster?\n\nSigning fee: $%s (charged now)\nSalary: $%s after every race"
 		% [
-			replacement_text,
 			driver.driver_name,
 			format_number(driver.signing_fee),
 			format_number(driver.salary)
