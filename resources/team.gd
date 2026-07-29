@@ -24,7 +24,9 @@ const RACE_TEAM_EXPANSION_COST: int = 25000
 @export_enum("Diamond", "Shield", "Bolt", "Flag") var team_badge: String = "Diamond"
 @export var tutorial_completed: bool = false
 @export var last_saved_unix_time: int = 0
-@export var money: int = 1000000
+@export var money: int = 50000
+@export_enum("Rookie", "Club", "Pro") var career_difficulty: String = "Club"
+@export var recovery_funding_used: bool = false
 @export var reputation: int = 0
 @export var championship_points: int = 0
 @export var season_number: int = 1
@@ -67,6 +69,12 @@ const RACE_TEAM_EXPANSION_COST: int = 25000
 @export var staff: Array[StaffMember] = []
 @export var finance_history: Array[Dictionary] = []
 
+const DIFFICULTY_SETTINGS: Dictionary = {
+	"Rookie": {"starting_cash": 75000, "sponsor_multiplier": 1.25, "ai_growth": 0.45, "repair_multiplier": 0.75},
+	"Club": {"starting_cash": 50000, "sponsor_multiplier": 1.0, "ai_growth": 0.75, "repair_multiplier": 1.0},
+	"Pro": {"starting_cash": 35000, "sponsor_multiplier": 0.80, "ai_growth": 1.10, "repair_multiplier": 1.35}
+}
+
 
 func _init() -> void:
 	ensure_departments()
@@ -75,6 +83,26 @@ func _init() -> void:
 	ensure_race_teams()
 	ensure_car_parts()
 	ensure_staff_market()
+
+
+func set_career_difficulty(value: String) -> void:
+	career_difficulty = value if DIFFICULTY_SETTINGS.has(value) else "Club"
+	money = int(get_difficulty_setting("starting_cash", 50000))
+	emit_changed()
+
+
+func get_difficulty_setting(key: String, fallback: Variant) -> Variant:
+	return (DIFFICULTY_SETTINGS.get(career_difficulty, DIFFICULTY_SETTINGS["Club"]) as Dictionary).get(key, fallback)
+
+
+func accept_owner_investment() -> bool:
+	if recovery_funding_used or money >= 10000:
+		return false
+	recovery_funding_used = true
+	money += 15000
+	record_finance("Funding", 15000, "Emergency owner investment")
+	emit_changed()
+	return true
 
 
 func ensure_departments() -> void:
@@ -567,7 +595,8 @@ func repair_part(engineer: StaffMember, part: CarPart) -> int:
 	):
 		maximum_restore += 4
 	var restored := mini(100 - part.condition, maximum_restore)
-	var cost := get_discounted_cost(restored * PART_REPAIR_COST_PER_POINT)
+	var difficulty_cost := roundi(float(restored * PART_REPAIR_COST_PER_POINT) * float(get_difficulty_setting("repair_multiplier", 1.0)))
+	var cost := get_discounted_cost(difficulty_cost)
 	if money < cost:
 		return 0
 	money -= cost

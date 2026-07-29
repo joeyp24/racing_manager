@@ -87,7 +87,7 @@ func create_standings_text(
 func create_financial_summary(result: RaceResult) -> String:
 	return (
 		"Financial Summary\n\n"
-		+ "Entry Fee: -$%s\n"
+		+ "Weekend Operations: -$%s\n"
 		+ "Prize Money: +$%s\n"
 		+ "Driver Salary: -$%s\n"
 		+ "Crew Chief Salary: -$%s\n"

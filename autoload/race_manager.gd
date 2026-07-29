@@ -537,9 +537,13 @@ func calculate_ai_score(
 		ai_driver.get("aggression", 50)
 	)
 
+	var career_growth := 0.0
+	if GameManager.team != null:
+		career_growth = float(GameManager.team.season_number - 1) * float(GameManager.team.get_difficulty_setting("ai_growth", 0.75))
 	var difficulty_score: float = (
 		34.0
 		+ float(selected_race.difficulty) * 0.30
+		+ career_growth
 	)
 
 	var skill_score: float = (
@@ -592,15 +596,16 @@ func calculate_prize_money(
 	selected_race: Race,
 	finishing_position: int
 ) -> int:
-	match finishing_position:
-		1:
-			return selected_race.first_place_prize
-		2:
-			return selected_race.second_place_prize
-		3:
-			return selected_race.third_place_prize
-		_:
-			return 0
+	if finishing_position == 1:
+		return selected_race.first_place_prize
+	if finishing_position == 2:
+		return selected_race.second_place_prize
+	if finishing_position == 3:
+		return selected_race.third_place_prize
+	# Weekly short-track purses pay the whole field, including start money.
+	var base_payouts: Array[int] = [175, 150, 125, 110, 100, 90, 85]
+	var base := base_payouts[finishing_position - 4] if finishing_position >= 4 and finishing_position <= 10 else 75
+	return roundi(float(base) * float(selected_race.first_place_prize) / 500.0)
 
 
 func calculate_mileage_added(
@@ -767,7 +772,7 @@ func apply_sponsor_reward(result: RaceResult) -> void:
 		return
 
 	result.sponsor_name = sponsor.sponsor_name
-	result.sponsor_race_payment = sponsor.payment_per_race
+	result.sponsor_race_payment = roundi(float(sponsor.payment_per_race) * float(team.get_difficulty_setting("sponsor_multiplier", 1.0)))
 	GameManager.add_team_money(result.sponsor_race_payment)
 	team.record_finance("Sponsor", result.sponsor_race_payment, "%s race payment" % sponsor.sponsor_name)
 	result.net_earnings += result.sponsor_race_payment
@@ -780,7 +785,7 @@ func apply_sponsor_reward(result: RaceResult) -> void:
 		if team.sponsor_objective_progress >= sponsor.objective_target:
 			team.sponsor_objective_completed = true
 			result.sponsor_objective_completed = true
-			result.sponsor_objective_bonus = sponsor.objective_bonus
+			result.sponsor_objective_bonus = roundi(float(sponsor.objective_bonus) * float(team.get_difficulty_setting("sponsor_multiplier", 1.0)))
 			GameManager.add_team_money(result.sponsor_objective_bonus)
 			team.record_finance("Sponsor", result.sponsor_objective_bonus, "%s objective bonus" % sponsor.sponsor_name)
 			result.net_earnings += result.sponsor_objective_bonus
