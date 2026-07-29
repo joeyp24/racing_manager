@@ -41,3 +41,17 @@ def test_engineering_and_roster_have_dedicated_pages():
     assert "hire_driver" not in drivers
     assert "engineering/engineering.tscn" in home
     assert "driver_market/driver_market.tscn" in home
+
+
+def test_driver_profiles_have_deep_ratings_and_individual_potential_caps():
+    resource = (ROOT / "resources/driver.gd").read_text()
+    page = (ROOT / "scenes/pages/drivers/drivers.gd").read_text()
+    for rating in ("race_pace", "qualifying_pace", "tyre_management", "racecraft", "wet_weather", "starts_restarts", "consistency", "car_feedback", "fitness", "composure"):
+        assert f'"{rating}"' in resource
+        assert f"var {rating}_potential" in resource
+    assert "func get_overall_rating()" in resource
+    assert "float(total) / RATING_FIELDS.size()" in resource
+    assert "hometown" in resource and "racing_background" in resource and "biography" in resource
+    assert "POTENTIAL OVR" in page and "FASTEST LAPS" in page
+    development = (ROOT / "autoload/race_manager.gd").read_text()
+    assert 'driver.get(attribute + "_potential")' in development

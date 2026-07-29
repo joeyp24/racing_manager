@@ -176,7 +176,7 @@ func update_forecast() -> void:
 		risks_label.text = "Primary risk: incomplete entry package"
 		return
 	var strategy: Dictionary = RaceManager.get_strategy(selected_strategy)
-	var driver_rating := float(driver.skill + driver.consistency + driver.aggression) / 3.0
+	var driver_rating := float(driver.get_overall_rating())
 	var strength := float(selected_car.get_total_performance()) * 0.58 + driver_rating * 0.34 + float(selected_car.condition) * 0.08
 	strength *= float(strategy.get("performance_modifier", 1.0))
 	var expected_position := clampi(9 - roundi((strength - 55.0) / 7.0), 1, 8)
