@@ -45,4 +45,16 @@ var setup_bonus: float = 0.0
 var strategy_effectiveness: float = 0.0
 var weekend_summary: Array[String] = []
 
+# Transparent post-race attribution. Positive values helped the player; negative
+# values cost pace or track position. These are display values, not a second
+# simulation, so the results screen can explain the formula that already ran.
+var driver_factor: float = 0.0
+var car_factor: float = 0.0
+var setup_factor: float = 0.0
+var strategy_factor: float = 0.0
+var pit_stop_factor: float = 0.0
+var incident_factor: float = 0.0
+var pit_stop_summary: String = "No pit stops recorded"
+var incident_summary: String = "No significant random incident recorded"
+
 var standings: Array[Dictionary] = []

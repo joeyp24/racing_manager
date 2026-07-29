@@ -252,6 +252,7 @@ func finalize_live_race(
 	result.field_size = result.standings.size()
 	result.finishing_position = find_player_position(result.standings)
 	result.positions_gained = result.starting_position - result.finishing_position
+	_populate_decisive_factors(result, simulation)
 	result.prize_money = calculate_prize_money(selected_race, result.finishing_position)
 	result.championship_points_earned = calculate_championship_points(result.finishing_position)
 	result.mileage_added = calculate_mileage_added(selected_race)
@@ -406,6 +407,7 @@ func run_race(
 		find_player_position(race_standings)
 	)
 	result.positions_gained = result.starting_position - result.finishing_position
+	_populate_decisive_factors(result)
 
 	result.prize_money = calculate_prize_money(
 		selected_race,
@@ -448,6 +450,41 @@ func run_race(
 	GameManager.save_game()
 
 	return result
+
+
+func _populate_decisive_factors(result: RaceResult, simulation: RaceSimulation = null) -> void:
+	if result.player_driver == null or result.player_car == null:
+		return
+	# The neutral 50-rated driver/car baselines mirror the weighted score model.
+	result.driver_factor = (
+		(float(result.player_driver.skill) - 50.0) * 0.20
+		+ (float(result.player_driver.consistency) - 50.0) * 0.10
+		+ (float(result.player_driver.aggression) - 50.0) * 0.03
+	)
+	result.car_factor = (
+		(float(result.player_car.get_total_performance()) - 50.0) * 0.55
+		+ (float(result.player_car.condition) - 75.0) * 0.08
+	)
+	result.setup_factor = result.setup_bonus
+	result.strategy_factor = result.strategy_effectiveness
+	if result.strategy_id == "aggressive":
+		result.strategy_factor += 2.0
+	elif result.strategy_id == "conservative":
+		result.strategy_factor -= 1.5
+	if simulation == null:
+		result.incident_factor = clampf(float(result.positions_gained) * 0.35, -3.0, 3.0)
+		result.incident_summary = "Race variance was estimated from the difference between grid and finish"
+		return
+	var player_entry := simulation.get_player_entry()
+	if player_entry != null:
+		result.pit_stop_factor = -float(player_entry.pit_stops) * 0.8
+		result.pit_stop_summary = "%d stop%s; time loss was partly offset by fresher tyres" % [player_entry.pit_stops, "" if player_entry.pit_stops == 1 else "s"]
+	var mistakes := 0
+	for event in simulation.event_log:
+		if "mistake" in event.to_lower():
+			mistakes += 1
+	result.incident_factor = -float(mistakes) * 1.5
+	result.incident_summary = "%d costly random incident%s recorded" % [mistakes, "" if mistakes == 1 else "s"] if mistakes > 0 else "No significant random incident recorded"
 
 
 func calculate_player_score(

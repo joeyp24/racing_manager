@@ -33,6 +33,8 @@ func refresh_shop() -> void:
 		var buy_button := Button.new()
 		buy_button.text = "Buy — $%s" % format_number(purchase_cost)
 		buy_button.disabled = GameManager.team.money < purchase_cost
+		details.tooltip_text = "Effective bonus already includes condition. Compare the +%d shown here with the same part type installed in your garage." % part.get_effective_performance_bonus()
+		buy_button.tooltip_text = "Disabled: you need $%s more." % format_number(purchase_cost - GameManager.team.money) if buy_button.disabled else "Buy now; install and compare it from Car Inspection."
 		buy_button.pressed.connect(_on_buy_pressed.bind(part))
 		content.add_child(title)
 		content.add_child(details)
