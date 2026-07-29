@@ -65,10 +65,6 @@ static func create_manufactured_part(part_type: String, engineer: StaffMember) -
 	part.tier = "Pro" if engineer.rating >= 80 else "Club"
 	part.effect_value = 5 + roundi(rating_factor * 13.0)
 	part.performance_bonus = 2 + roundi(rating_factor * 8.0) + specialty_bonus
-	part.part_name = "%s Prototype" % engineer.staff_name.split(" ")[0]
-	part.tier = "Pro" if engineer.rating >= 80 else "Club"
-	part.effect_value = 5 + roundi(rating_factor * 13.0)
-	part.performance_bonus = 2 + roundi(rating_factor * 8.0)
 	part.purchase_price = get_manufactured_value(part.performance_bonus)
 	part.sale_price = roundi(float(part.purchase_price) * 0.6)
 	part.condition = 70 + roundi(rating_factor * 30.0)

@@ -19,3 +19,25 @@ def test_save_is_versioned_verified_and_atomic():
     text = (ROOT / "scripts/save_manager.gd").read_text()
     assert "CURRENT_SAVE_FORMAT_VERSION" in text; assert "temporary_resource" in text
     assert "rename_absolute" in text; assert "BACKUP_EXTENSION" in text
+
+
+def test_race_week_progression_is_dashboard_owned():
+    team = (ROOT / "resources/team.gd").read_text()
+    dashboard = (ROOT / "scenes/pages/dashboard/dashboard.gd").read_text()
+    race_manager = (ROOT / "autoload/race_manager.gd").read_text()
+    assert "@export var current_race_week" in team
+    assert "func advance_to_next_race_week()" in team
+    assert "GameManager.team.week_advance_required = true" in race_manager
+    assert "ADVANCE TO NEXT RACE WEEK" in dashboard
+    assert "advance_to_next_race_week()" in dashboard
+
+
+def test_engineering_and_roster_have_dedicated_pages():
+    engineering = (ROOT / "scenes/pages/engineering/engineering.gd").read_text()
+    drivers = (ROOT / "scenes/pages/drivers/drivers.gd").read_text()
+    home = (ROOT / "scenes/home/home.gd").read_text()
+    assert "queue_part_project" in engineering
+    assert "get_contracted_drivers" in drivers
+    assert "hire_driver" not in drivers
+    assert "engineering/engineering.tscn" in home
+    assert "driver_market/driver_market.tscn" in home

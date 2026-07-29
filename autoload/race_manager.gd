@@ -1099,6 +1099,7 @@ func complete_race(
 		GameManager.team.completed_races.append(
 			completed_race.race_id
 		)
+	GameManager.team.week_advance_required = true
 
 	GameManager.team.emit_changed()
 	finish_season_if_complete()
@@ -1168,6 +1169,9 @@ func start_new_season() -> bool:
 	GameManager.team.championship_standings.clear()
 	GameManager.team.championship_points = 0
 	GameManager.team.driver_hired_for_season = false
+	GameManager.team.current_race_week = 1
+	GameManager.team.week_advance_required = false
+	GameManager.team.engineering_projects.clear()
 	for contracted_driver in GameManager.team.get_contracted_drivers():
 		contracted_driver.is_player_driver = false
 		contracted_driver.team_name = "Free Agent"

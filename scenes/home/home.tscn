@@ -142,12 +142,33 @@ toggle_mode = true
 text = "●   Drivers"
 alignment = 0
 
+[node name="engineering_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "⚙   Engineering"
+alignment = 0
+
+[node name="EmployeesLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "EMPLOYEES & HIRING"
+
+[node name="driver_market_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "+   Driver Hiring"
+alignment = 0
+
 [node name="staff_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "◆   Staff"
+text = "◆   Staff Market"
 alignment = 0
 
 [node name="OperationsLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]

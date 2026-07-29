@@ -61,6 +61,7 @@ func load_game(slot_id: String) -> bool:
 	team = loaded_team
 	active_save_id = slot_id
 	team.ensure_departments()
+	team.ensure_race_week_progression()
 	team.ensure_default_player_driver()
 	team.ensure_driver_market()
 	team.ensure_car_parts()

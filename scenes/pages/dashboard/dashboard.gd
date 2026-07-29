@@ -10,6 +10,8 @@ extends Control
 @onready var sponsor_label: Label = %sponsor_label
 @onready var readiness_container: VBoxContainer = %readiness_container
 @onready var readiness_summary_label: Label = %readiness_summary_label
+@onready var advance_race_button: Button = %advance_race_button
+@onready var week_status_label: Label = %week_status_label
 
 const READINESS_ROW_SCENE: PackedScene = preload("res://ui/components/readiness_row.tscn")
 
@@ -86,6 +88,19 @@ func update_dashboard() -> void:
 	update_next_race()
 	update_championship_summary()
 	update_readiness(team)
+	update_week_action(team)
+
+
+func update_week_action(team: Team) -> void:
+	if team.season_complete:
+		advance_race_button.text = "VIEW FINAL STANDINGS  →"
+		week_status_label.text = "Season complete"
+	elif team.week_advance_required:
+		advance_race_button.text = "ADVANCE TO NEXT RACE WEEK  →"
+		week_status_label.text = "Race week %d complete • Advance when your team is ready" % team.current_race_week
+	else:
+		advance_race_button.text = "PREPARE FOR RACE  →"
+		week_status_label.text = "Race week %d • Engineering deadlines: next race week" % team.current_race_week
 
 
 func update_sponsor_summary(team: Team) -> void:
@@ -220,6 +235,9 @@ func update_readiness(team: Team) -> void:
 	for child in readiness_container.get_children():
 		child.queue_free()
 	var race := RaceManager.get_next_race(team)
+	if team.week_advance_required:
+		readiness_summary_label.text = "WEEK COMPLETE • ADVANCE TO CONTINUE"
+		return
 	if race == null:
 		readiness_summary_label.text = "No active event"
 		return
@@ -243,6 +261,18 @@ func update_readiness(team: Team) -> void:
 
 
 func _on_prepare_race_pressed() -> void:
+	if GameManager.team.season_complete:
+		GameManager.load_page("res://scenes/pages/championship/championship.tscn")
+		return
+	if GameManager.team.week_advance_required:
+		var completed := GameManager.team.advance_to_next_race_week()
+		week_status_label.text = "Race week %d started" % GameManager.team.current_race_week
+		if not completed.is_empty():
+			for summary in completed:
+				week_status_label.text += " • " + summary
+		GameManager.save_game()
+		update_dashboard()
+		return
 	GameManager.selected_race = RaceManager.get_next_race(GameManager.team)
 	GameManager.selected_car = null
 	if GameManager.selected_race == null:
@@ -253,7 +283,7 @@ func _on_prepare_race_pressed() -> void:
 
 func _on_readiness_action_requested(action: String) -> void:
 	var pages := {
-		"drivers": "res://scenes/pages/drivers/drivers.tscn",
+		"drivers": "res://scenes/pages/driver_market/driver_market.tscn",
 		"garage": "res://scenes/pages/garage/garage.tscn",
 		"staff": "res://scenes/pages/staff/staff.tscn",
 		"finances": "res://scenes/pages/finances/finances.tscn",
