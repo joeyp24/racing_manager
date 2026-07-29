@@ -5,6 +5,8 @@ extends Control
 @onready var garage_button: Button = %garage_button
 @onready var drivers_button: Button = %drivers_button
 @onready var championship_button: Button = %championship_button
+@onready var staff_button: Button = %staff_button
+@onready var finances_button: Button = %finances_button
 @onready var race_calendar_button: Button = %race_calendar_button
 @onready var shop_button: Button = %shop_button
 @onready var dealership_button: Button = %dealership_button
@@ -32,6 +34,8 @@ func _ready() -> void:
 	championship_button.pressed.connect(
 		_on_championship_button_pressed
 	)
+	staff_button.pressed.connect(_on_staff_button_pressed)
+	finances_button.pressed.connect(_on_finances_button_pressed)
 
 	race_calendar_button.pressed.connect(
 		_on_race_calendar_button_pressed
@@ -103,6 +107,14 @@ func _on_championship_button_pressed() -> void:
 	GameManager.load_page(
 		"res://scenes/pages/championship/championship.tscn"
 	)
+
+
+func _on_staff_button_pressed() -> void:
+	GameManager.load_page("res://scenes/pages/staff/staff.tscn")
+
+
+func _on_finances_button_pressed() -> void:
+	GameManager.load_page("res://scenes/pages/finances/finances.tscn")
 
 
 func _on_race_calendar_button_pressed() -> void:

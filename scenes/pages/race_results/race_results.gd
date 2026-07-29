@@ -90,6 +90,8 @@ func create_financial_summary(result: RaceResult) -> String:
 		+ "Entry Fee: -$%s\n"
 		+ "Prize Money: +$%s\n"
 		+ "Driver Salary: -$%s\n"
+		+ "Crew Chief Salary: -$%s\n"
+		+ "Engineering Payroll: -$%s\n"
 		+ "Repair Costs: -$%s\n"
 		+ "Sponsor Race Payment: +$%s\n"
 		+ "Sponsor Objective Bonus: +$%s\n"
@@ -103,6 +105,8 @@ func create_financial_summary(result: RaceResult) -> String:
 		format_number(result.entry_fee),
 		format_number(result.prize_money),
 		format_number(result.driver_salary),
+		format_number(result.crew_chief_salary),
+		format_number(result.engineering_payroll),
 		format_number(result.repair_cost),
 		format_number(result.sponsor_race_payment),
 		format_number(result.sponsor_objective_bonus),
@@ -112,7 +116,8 @@ func create_financial_summary(result: RaceResult) -> String:
 		result.total_championship_points,
 		result.reputation_earned,
 		result.fans_earned,
-		"\n%s objective completed!" % result.sponsor_name if result.sponsor_objective_completed else ""
+		("\n%s objective completed!" % result.sponsor_name if result.sponsor_objective_completed else "")
+		+ ("\nContracts expired: %s" % ", ".join(result.expired_staff_names) if not result.expired_staff_names.is_empty() else "")
 	]
 
 

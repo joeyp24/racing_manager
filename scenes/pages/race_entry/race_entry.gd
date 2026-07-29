@@ -187,6 +187,7 @@ func _on_confirm_button_pressed() -> void:
 		confirm_button.disabled = false
 		back_button.disabled = false
 		return
+	GameManager.team.record_finance("Race", -selected_race.entry_fee, "%s entry fee" % selected_race.race_name)
 
 	status_label.text = "Running race..."
 
@@ -199,6 +200,7 @@ func _on_confirm_button_pressed() -> void:
 		GameManager.add_team_money(
 			selected_race.entry_fee
 		)
+		GameManager.team.record_finance("Race", selected_race.entry_fee, "Entry fee refund")
 
 		status_label.text = (
 			"The race could not be completed."

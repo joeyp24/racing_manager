@@ -364,3 +364,17 @@ Keep the project beginner-friendly and easy to understand.
 - Financial reports
 - Team reputation expansion
 - Better race simulation
+
+---
+
+# Staff and Workshop
+
+The Staff page allows a team to hire one crew chief and up to three engineers.
+Crew-chief rating supplies a percentage race-performance boost. Engineers can
+manufacture parts and repair worn inventory parts; their rating controls the
+quality of manufactured parts and the condition restored by each repair.
+Staff work on race-based contracts, receive payroll after every event, and can
+be renewed, negotiated with, or released for a termination fee. Specialties
+provide smaller role-specific bonuses alongside each staff member's rating.
+The Finances page summarizes cash, assets, salaries, projected payroll, and a
+persistent history of race, sponsor, workshop, staff, and purchasing activity.

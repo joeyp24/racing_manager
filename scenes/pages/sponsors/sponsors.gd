@@ -91,6 +91,7 @@ func sign_sponsor(sponsor: Sponsor) -> void:
 	team.sponsor_objective_completed = false
 	team.sponsor_signed_season = team.season_number
 	GameManager.add_team_money(sponsor.signing_bonus)
+	team.record_finance("Sponsor", sponsor.signing_bonus, "%s signing bonus" % sponsor.sponsor_name)
 	GameManager.save_game()
 	show_sponsors()
 

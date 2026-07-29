@@ -74,7 +74,7 @@ func show_part_inventory(part_type: String) -> void:
 	for part in available_parts:
 		var row := HBoxContainer.new()
 		var label := Label.new()
-		label.text = "%s\nPerformance +%d  •  Sell $%s" % [part.get_summary(), part.performance_bonus, format_number(part.sale_price)]
+		label.text = "%s\nEffective performance +%d  •  Sell $%s" % [part.get_summary(), part.get_effective_performance_bonus(), format_number(part.sale_price)]
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var install_button := Button.new()
 		install_button.text = "Install"
@@ -132,6 +132,7 @@ func _on_repair_button_pressed() -> void:
 		status_label.text = "Your team cannot afford these repairs."
 		return
 	car.condition = MAX_CAR_CONDITION
+	GameManager.team.record_finance("Repairs", -repair_cost, "Repaired %s" % car.name)
 	car.emit_changed()
 	status_label.text = "%s was fully repaired." % car.name
 	GameManager.save_game()
