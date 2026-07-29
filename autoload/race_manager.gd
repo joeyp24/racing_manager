@@ -156,7 +156,7 @@ func create_live_simulation(
 ) -> RaceSimulation:
 	if selected_race == null or player_car == null or GameManager.team == null:
 		return null
-	var player_driver := GameManager.team.get_active_driver()
+	var player_driver := _get_entry_driver(weekend_data)
 	if player_driver == null:
 		return null
 	var ai_scores: Array[float] = []
@@ -179,9 +179,40 @@ func create_live_simulation(
 		int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1)),
 		AI_DRIVERS,
 		ai_scores,
-		compound
+		compound,
+		_build_additional_team_entries(selected_race, selected_strategy, weekend_data)
 	)
 	return simulation
+
+
+func _get_entry_driver(weekend_data: Dictionary) -> Driver:
+	var entries := weekend_data.get("entries", []) as Array
+	if not entries.is_empty():
+		var entry := entries[0] as Dictionary
+		var assigned := GameManager.team.get_driver_by_id(str(entry.get("driver_id", "")))
+		if assigned != null:
+			return assigned
+	return GameManager.team.get_active_driver()
+
+
+func _build_additional_team_entries(selected_race: Race, selected_strategy: String, weekend_data: Dictionary) -> Array:
+	var entries: Array = []
+	var selected_entries := weekend_data.get("entries", []) as Array
+	for index in range(1, selected_entries.size()):
+		var entry := selected_entries[index] as Dictionary
+		var driver := GameManager.team.get_driver_by_id(str(entry.get("driver_id", "")))
+		var car := GameManager.team.get_car(int(entry.get("car_bay", -1)))
+		if driver == null or car == null:
+			continue
+		entries.append({
+			"driver_id": driver.driver_id,
+			"driver_name": driver.driver_name,
+			"team_name": str(entry.get("team_name", GameManager.team.team_name)),
+			"consistency": driver.consistency,
+			"score": calculate_player_score(car, driver, selected_strategy, selected_race),
+			"starting_position": int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1)) + index
+		})
+	return entries
 
 
 func finalize_live_race(
@@ -194,14 +225,14 @@ func finalize_live_race(
 		push_error("Cannot finalize an incomplete live race.")
 		return null
 	var selected_race := simulation.race
-	var player_driver := GameManager.team.get_active_driver()
+	var player_driver := _get_entry_driver(weekend_data)
 	initialize_championship_standings(player_driver)
 	var strategy := get_strategy(selected_strategy)
 	var result := RaceResult.new()
 	result.race = selected_race
 	result.player_car = player_car
 	result.player_driver = player_driver
-	result.entry_fee = selected_race.entry_fee
+	result.entry_fee = int(weekend_data.get("entry_fee_total", selected_race.entry_fee))
 	result.driver_salary = player_driver.salary
 	result.strategy_id = normalize_strategy_id(selected_strategy)
 	result.strategy_name = str(strategy.get("name", "Balanced"))

@@ -1,6 +1,5 @@
 extends Control
 
-const RACE_CAR_OPTION_SCENE: PackedScene = preload("res://scenes/pages/race_entry/race_car_option.tscn")
 const READINESS_ROW_SCENE: PackedScene = preload("res://ui/components/readiness_row.tscn")
 
 @onready var race_name_label: Label = %race_name_label
@@ -23,7 +22,7 @@ const READINESS_ROW_SCENE: PackedScene = preload("res://ui/components/readiness_
 
 var selected_car: Car = null
 var selected_strategy: String = RaceManager.DEFAULT_STRATEGY
-var car_option_nodes: Array[RaceCarOption] = []
+var selected_race_teams: Array[RaceTeam] = []
 
 
 func _ready() -> void:
@@ -61,28 +60,40 @@ func show_event_information() -> void:
 func create_car_options() -> void:
 	for child in cars_container.get_children():
 		child.queue_free()
-	car_option_nodes.clear()
+	selected_race_teams.clear()
 	if GameManager.team == null:
 		return
-	for car_value in GameManager.team.cars:
-		var car := car_value as Car
-		if car == null:
+	GameManager.team.ensure_race_teams()
+	for race_team in GameManager.team.race_teams:
+		if race_team == null:
 			continue
-		var option := RACE_CAR_OPTION_SCENE.instantiate() as RaceCarOption
+		var driver := GameManager.team.get_driver_by_id(race_team.driver_id)
+		var car := GameManager.team.get_car(race_team.car_bay)
+		var option := CheckBox.new()
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.clip_text = true
+		option.disabled = not race_team.is_ready(GameManager.team) or not RaceReadiness.is_car_eligible(car)
+		option.text = "%s  •  %s  •  %s" % [race_team.team_name, driver.driver_name if driver != null else "No driver", car.name if car != null else "No car"]
+		option.tooltip_text = "Assign a contracted driver and eligible car on the Race Teams page." if option.disabled else "Include this team in the race entry."
+		option.button_pressed = not option.disabled
+		option.toggled.connect(_on_race_team_toggled.bind(race_team))
 		cars_container.add_child(option)
-		option.setup(car)
-		option.car_selected.connect(_on_car_selected)
-		car_option_nodes.append(option)
-	var recommended := RaceReadiness.get_recommended_car(GameManager.team)
-	if recommended != null:
-		_on_car_selected(recommended)
+		if option.button_pressed:
+			selected_race_teams.append(race_team)
+	_sync_primary_entry()
 
 
-func _on_car_selected(car: Car) -> void:
-	selected_car = car
-	GameManager.selected_car = car
-	for option in car_option_nodes:
-		option.set_selected(option.car == selected_car)
+func _on_race_team_toggled(enabled: bool, race_team: RaceTeam) -> void:
+	if enabled and not selected_race_teams.has(race_team):
+		selected_race_teams.append(race_team)
+	elif not enabled:
+		selected_race_teams.erase(race_team)
+	_sync_primary_entry()
+
+
+func _sync_primary_entry() -> void:
+	selected_car = GameManager.team.get_car(selected_race_teams[0].car_bay) if not selected_race_teams.is_empty() else null
+	GameManager.selected_car = selected_car
 	refresh_operations_center()
 
 
@@ -103,7 +114,9 @@ func update_entry_information() -> void:
 		selected_car_label.text = "No eligible car selected"
 		parts_label.text = "Select a car to review its installed package."
 		return
-	selected_car_label.text = "%s  •  Condition %d%%  •  Performance %d" % [selected_car.name, selected_car.condition, selected_car.get_total_performance()]
+	var primary_team := selected_race_teams[0]
+	var driver := GameManager.team.get_driver_by_id(primary_team.driver_id)
+	selected_car_label.text = "%d team%s entered  •  Primary: %s / %s" % [selected_race_teams.size(), "s" if selected_race_teams.size() != 1 else "", driver.driver_name, selected_car.name]
 	var part_lines: Array[String] = []
 	for part_type in CarPart.PART_TYPES:
 		var part := selected_car.get_part(part_type)
@@ -142,7 +155,7 @@ func update_strategy_preview() -> void:
 
 func update_forecast() -> void:
 	var race := GameManager.selected_race
-	var driver := GameManager.team.get_active_driver() if GameManager.team != null else null
+	var driver := GameManager.team.get_driver_by_id(selected_race_teams[0].driver_id) if GameManager.team != null and not selected_race_teams.is_empty() else null
 	if race == null or selected_car == null or driver == null:
 		forecast_label.text = "Complete the blocked preparation items to generate a race forecast."
 		risks_label.text = "Primary risk: incomplete entry package"
@@ -162,7 +175,8 @@ func update_forecast() -> void:
 	var sponsor_income := sponsor.payment_per_race if sponsor != null else 0
 	var payroll := GameManager.team.get_total_race_payroll()
 	var objective_chance := clampi(roundi(72.0 + (strength - 60.0) - float(race.difficulty) * 0.25), 10, 95)
-	forecast_label.text = "EXPECTED FINISH  P%d–P%d\nExpected revenue $%s  •  Entry + payroll $%s  •  Net forecast %s$%s\nSponsor objective chance %d%%  •  Expected condition loss %d%%" % [best, worst, format_number(expected_prize + sponsor_income), format_number(race.entry_fee + payroll), "+" if expected_prize + sponsor_income >= race.entry_fee + payroll else "−", format_number(absi(expected_prize + sponsor_income - race.entry_fee - payroll)), objective_chance, wear]
+	var total_fee := race.entry_fee * selected_race_teams.size()
+	forecast_label.text = "EXPECTED FINISH  P%d–P%d\nExpected revenue $%s  •  Entry + payroll $%s  •  Net forecast %s$%s\nSponsor objective chance %d%%  •  Expected condition loss %d%%" % [best, worst, format_number(expected_prize + sponsor_income), format_number(total_fee + payroll), "+" if expected_prize + sponsor_income >= total_fee + payroll else "−", format_number(absi(expected_prize + sponsor_income - total_fee - payroll)), objective_chance, wear]
 	var risks: Array[String] = []
 	if selected_car.condition < 70:
 		risks.append("low car condition")
@@ -183,6 +197,9 @@ func update_readiness() -> void:
 		return
 	var checks := RaceReadiness.evaluate(GameManager.team, GameManager.selected_race, selected_car)
 	var overall := RaceReadiness.get_overall_status(checks)
+	var total_fee := GameManager.selected_race.entry_fee * selected_race_teams.size()
+	if selected_race_teams.is_empty() or GameManager.team.money < total_fee:
+		overall = RaceReadiness.BLOCKED
 	readiness_summary_label.text = {RaceReadiness.READY: "READY TO ENTER", RaceReadiness.SUBOPTIMAL: "ENTRY AVAILABLE WITH WARNINGS", RaceReadiness.BLOCKED: "ENTRY BLOCKED"}.get(overall, "REVIEW")
 	readiness_summary_label.modulate = {RaceReadiness.READY: Color("43d68a"), RaceReadiness.SUBOPTIMAL: Color("ffb547"), RaceReadiness.BLOCKED: Color("ff667a")}.get(overall, Color.WHITE)
 	for check in checks:
@@ -191,7 +208,8 @@ func update_readiness() -> void:
 		row.setup(check)
 		row.action_requested.connect(_on_readiness_action_requested)
 	confirm_button.disabled = overall == RaceReadiness.BLOCKED or selected_car == null
-	status_label.text = "Resolve blocked items before entry." if confirm_button.disabled else "Review the forecast, then commit the entry fee."
+	confirm_button.text = "COMMIT %d ENTR%s  •  $%s  →" % [selected_race_teams.size(), "Y" if selected_race_teams.size() == 1 else "IES", format_number(total_fee)]
+	status_label.text = "Select at least one ready race team and resolve blocked items." if confirm_button.disabled else "All selected teams will compete in this race."
 
 
 func _on_readiness_action_requested(action: String) -> void:
@@ -202,18 +220,22 @@ func _on_readiness_action_requested(action: String) -> void:
 
 
 func _on_confirm_button_pressed() -> void:
-	if confirm_button.disabled or selected_car == null or GameManager.selected_race == null:
+	if confirm_button.disabled or selected_car == null or GameManager.selected_race == null or selected_race_teams.is_empty():
 		return
 	confirm_button.disabled = true
 	back_button.disabled = true
 	status_label.text = "Committing entry fee and opening race weekend..."
-	if not GameManager.remove_team_money(GameManager.selected_race.entry_fee):
+	var total_fee := GameManager.selected_race.entry_fee * selected_race_teams.size()
+	if not GameManager.remove_team_money(total_fee):
 		status_label.text = "The entry fee could not be paid."
 		back_button.disabled = false
 		refresh_operations_center()
 		return
-	GameManager.team.record_finance("Race", -GameManager.selected_race.entry_fee, "%s entry fee" % GameManager.selected_race.race_name)
-	GameManager.active_race_weekend = {"strategy_id": selected_strategy, "entry_fee_paid": true}
+	GameManager.team.record_finance("Race", -total_fee, "%s entry fees (%d teams)" % [GameManager.selected_race.race_name, selected_race_teams.size()])
+	var entries: Array[Dictionary] = []
+	for race_team in selected_race_teams:
+		entries.append({"team_id": race_team.team_id, "team_name": race_team.team_name, "driver_id": race_team.driver_id, "car_bay": race_team.car_bay})
+	GameManager.active_race_weekend = {"strategy_id": selected_strategy, "entry_fee_paid": true, "entry_fee_total": total_fee, "entries": entries}
 	GameManager.save_game()
 	GameManager.load_page("res://scenes/pages/race_weekend/race_weekend.tscn")
 

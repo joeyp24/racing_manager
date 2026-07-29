@@ -57,7 +57,7 @@ func show_practice() -> void:
 func complete_practice() -> void:
 	var focus: Dictionary = PRACTICE_FOCUSES[choice_selector.selected]
 	var team := GameManager.team
-	var driver := team.get_active_driver()
+	var driver := _get_primary_driver()
 	var staff_rating := 0.0
 	var staff_count := 0
 	for member in team.staff:
@@ -100,7 +100,7 @@ func show_qualifying() -> void:
 
 
 func complete_qualifying() -> void:
-	var driver := GameManager.team.get_active_driver()
+	var driver := _get_primary_driver()
 	var approach_modifiers: Array[float] = [-1.0, 1.0, 3.0]
 	var variance: float = float([1.5, 3.0, 6.0][choice_selector.selected])
 	var focus_bonus: float = 3.0 if weekend_data["practice_focus"] == "qualifying" else 0.0
@@ -231,7 +231,7 @@ func finish_race() -> void:
 	GameManager.active_race_weekend.clear()
 	if result == null:
 		briefing_label.text = "The race could not be completed. Your entry fee has been refunded."
-		GameManager.add_team_money(GameManager.selected_race.entry_fee)
+		GameManager.add_team_money(int(weekend_data.get("entry_fee_total", GameManager.selected_race.entry_fee)))
 		return
 	GameManager.load_page("res://scenes/pages/race_results/race_results.tscn")
 
@@ -292,3 +292,12 @@ func format_position(position: int) -> String:
 	if position % 100 in [11, 12, 13]:
 		return "%dth" % position
 	return "%d%s" % [position, {1: "st", 2: "nd", 3: "rd"}.get(position % 10, "th")]
+
+
+func _get_primary_driver() -> Driver:
+	var entries := weekend_data.get("entries", []) as Array
+	if not entries.is_empty():
+		var driver := GameManager.team.get_driver_by_id(str((entries[0] as Dictionary).get("driver_id", "")))
+		if driver != null:
+			return driver
+	return GameManager.team.get_active_driver()
