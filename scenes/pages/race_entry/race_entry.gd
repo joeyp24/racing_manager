@@ -8,11 +8,14 @@ const RACE_CAR_OPTION_SCENE: PackedScene = preload(
 @onready var race_details_label: Label = %race_details_label
 @onready var cars_container: GridContainer = %cars_container
 @onready var selected_car_label: Label = %selected_car_label
+@onready var strategy_selector: OptionButton = %strategy_selector
+@onready var strategy_preview_label: Label = %strategy_preview_label
 @onready var status_label: Label = %status_label
 @onready var back_button: Button = %back_button
 @onready var confirm_button: Button = %confirm_button
 
 var selected_car: Car = null
+var selected_strategy: String = RaceManager.DEFAULT_STRATEGY
 var car_option_nodes: Array[RaceCarOption] = []
 
 
@@ -24,11 +27,40 @@ func _ready() -> void:
 	confirm_button.pressed.connect(
 		_on_confirm_button_pressed
 	)
+	strategy_selector.item_selected.connect(
+		_on_strategy_selected
+	)
 
 	confirm_button.disabled = true
 
 	show_race_information()
+	setup_strategy_selector()
 	create_car_options()
+
+
+func setup_strategy_selector() -> void:
+	strategy_selector.clear()
+	for strategy_id in ["conservative", "balanced", "aggressive"]:
+		var strategy: Dictionary = RaceManager.get_strategy(strategy_id)
+		strategy_selector.add_item(str(strategy.get("name", strategy_id.capitalize())))
+		strategy_selector.set_item_metadata(strategy_selector.item_count - 1, strategy_id)
+	strategy_selector.select(1)
+	update_strategy_preview()
+
+
+func _on_strategy_selected(index: int) -> void:
+	selected_strategy = str(strategy_selector.get_item_metadata(index))
+	update_strategy_preview()
+
+
+func update_strategy_preview() -> void:
+	match selected_strategy:
+		"conservative":
+			strategy_preview_label.text = "Lower result variance and 25% less wear, with a 3% performance penalty. Best for consistent drivers or fragile cars."
+		"aggressive":
+			strategy_preview_label.text = "4% higher potential score and 35% more wear. Result variance rises further on difficult races."
+		_:
+			strategy_preview_label.text = "Normal performance, result variance, and wear. This is the default race behavior."
 
 
 func show_race_information() -> void:
@@ -193,7 +225,8 @@ func _on_confirm_button_pressed() -> void:
 
 	var race_result: RaceResult = RaceManager.run_race(
 		selected_race,
-		selected_car
+		selected_car,
+		selected_strategy
 	)
 
 	if race_result == null:
