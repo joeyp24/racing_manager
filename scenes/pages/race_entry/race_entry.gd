@@ -26,6 +26,9 @@ var selected_race_teams: Array[RaceTeam] = []
 
 
 func _ready() -> void:
+	if GameManager.team != null and GameManager.team.week_advance_required:
+		GameManager.call_deferred("load_page", "res://scenes/pages/dashboard/dashboard.tscn")
+		return
 	back_button.pressed.connect(_on_back_button_pressed)
 	confirm_button.pressed.connect(_on_confirm_button_pressed)
 	strategy_selector.item_selected.connect(_on_strategy_selected)
@@ -251,7 +254,7 @@ func _get_commit_block_reason(total_fee: int) -> String:
 
 
 func _on_readiness_action_requested(action: String) -> void:
-	var pages := {"drivers": "res://scenes/pages/drivers/drivers.tscn", "garage": "res://scenes/pages/garage/garage.tscn", "staff": "res://scenes/pages/staff/staff.tscn", "finances": "res://scenes/pages/finances/finances.tscn", "sponsors": "res://scenes/pages/sponsors/sponsors.tscn"}
+	var pages := {"drivers": "res://scenes/pages/driver_market/driver_market.tscn", "garage": "res://scenes/pages/garage/garage.tscn", "staff": "res://scenes/pages/staff/staff.tscn", "finances": "res://scenes/pages/finances/finances.tscn", "sponsors": "res://scenes/pages/sponsors/sponsors.tscn"}
 	var path := str(pages.get(action, ""))
 	if not path.is_empty():
 		GameManager.load_page(path)

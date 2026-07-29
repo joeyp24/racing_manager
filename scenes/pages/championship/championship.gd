@@ -107,7 +107,7 @@ func update_season_controls() -> void:
 func _on_new_season_button_pressed() -> void:
 	if RaceManager.start_new_season():
 		GameManager.load_page(
-			"res://scenes/pages/drivers/drivers.tscn"
+			"res://scenes/pages/driver_market/driver_market.tscn"
 		)
 
 

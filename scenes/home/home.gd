@@ -4,6 +4,8 @@ extends Control
 @onready var home_button: Button = %home_button
 @onready var garage_button: Button = %garage_button
 @onready var drivers_button: Button = %drivers_button
+@onready var engineering_button: Button = %engineering_button
+@onready var driver_market_button: Button = %driver_market_button
 @onready var race_teams_button: Button = %race_teams_button
 @onready var championship_button: Button = %championship_button
 @onready var staff_button: Button = %staff_button
@@ -33,7 +35,7 @@ var navigation_buttons: Array[Button] = []
 func _ready() -> void:
 	GameManager.page_container = page_container
 	navigation_buttons = [home_button, race_calendar_button, championship_button,
-		garage_button, race_teams_button, drivers_button, staff_button, shop_button,
+		garage_button, race_teams_button, drivers_button, engineering_button, staff_button, driver_market_button, shop_button,
 		dealership_button, sponsors_button, finances_button, hq_button, identity_button,
 		scouting_button]
 
@@ -48,6 +50,8 @@ func _ready() -> void:
 	drivers_button.pressed.connect(
 		_on_drivers_button_pressed
 	)
+	engineering_button.pressed.connect(_on_engineering_button_pressed)
+	driver_market_button.pressed.connect(_on_driver_market_button_pressed)
 	race_teams_button.pressed.connect(_on_race_teams_button_pressed)
 
 	championship_button.pressed.connect(
@@ -96,9 +100,9 @@ func _ready() -> void:
 		and not GameManager.team.driver_hired_for_season
 	):
 		GameManager.load_page(
-			"res://scenes/pages/drivers/drivers.tscn"
+			"res://scenes/pages/driver_market/driver_market.tscn"
 		)
-		set_active_navigation(drivers_button)
+		set_active_navigation(driver_market_button)
 
 
 func _exit_tree() -> void:
@@ -178,6 +182,16 @@ func _on_drivers_button_pressed() -> void:
 	GameManager.load_page(
 		"res://scenes/pages/drivers/drivers.tscn"
 	)
+
+
+func _on_engineering_button_pressed() -> void:
+	set_active_navigation(engineering_button)
+	GameManager.load_page("res://scenes/pages/engineering/engineering.tscn")
+
+
+func _on_driver_market_button_pressed() -> void:
+	set_active_navigation(driver_market_button)
+	GameManager.load_page("res://scenes/pages/driver_market/driver_market.tscn")
 
 
 func _on_race_teams_button_pressed() -> void:
@@ -291,6 +305,8 @@ func _on_command_action_requested(action: String) -> void:
 		"calendar": "res://scenes/pages/race_calendar/race_calendar.tscn",
 		"championship": "res://scenes/pages/championship/championship.tscn",
 		"drivers": "res://scenes/pages/drivers/drivers.tscn",
+		"driver_market": "res://scenes/pages/driver_market/driver_market.tscn",
+		"engineering": "res://scenes/pages/engineering/engineering.tscn",
 		"garage": "res://scenes/pages/garage/garage.tscn",
 		"dealership": "res://scenes/pages/dealership/dealership.tscn",
 		"staff": "res://scenes/pages/staff/staff.tscn",
@@ -311,7 +327,8 @@ func _on_page_changed(scene_path: String) -> void:
 		"race_entry": race_calendar_button, "race_weekend": race_calendar_button,
 		"live_race": race_calendar_button, "race_results": race_calendar_button,
 		"championship": championship_button, "garage": garage_button,
-		"drivers": drivers_button, "race_teams": race_teams_button,
+		"drivers": drivers_button, "driver_market": driver_market_button,
+		"engineering": engineering_button, "race_teams": race_teams_button,
 		"staff": staff_button, "finances": finances_button, "shop": shop_button,
 		"dealership": shop_button, "sponsors": sponsors_button,
 		"departments": hq_button, "team_identity": identity_button,

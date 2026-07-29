@@ -73,6 +73,11 @@ text = "Spring Speedway 100"
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "Review your car, driver and race strategy before entry."
+[node name="week_status_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Race"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "Race week 1"
 [node name="advance_race_button" type="Button" parent="Scroll/Margin/Content/Hero/HeroLayout/Race"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(230, 46)

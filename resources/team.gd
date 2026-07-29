@@ -40,6 +40,9 @@ const CURRENT_SAVE_FORMAT_VERSION: int = 2
 @export var fans: int = 0
 @export var department_levels: Dictionary = {}
 @export var driver_development_progress: float = 0.0
+@export var current_race_week: int = 1
+@export var week_advance_required: bool = false
+@export var engineering_projects: Array[Dictionary] = []
 
 @export var active_sponsor_id: String = ""
 @export var sponsor_races_remaining: int = 0
@@ -111,6 +114,11 @@ func ensure_departments() -> void:
 	for department_id in DepartmentCatalog.get_ids():
 		if not department_levels.has(department_id):
 			department_levels[department_id] = 0
+
+
+func ensure_race_week_progression() -> void:
+	# Saves created before race weeks existed derive their position from season progress.
+	current_race_week = maxi(current_race_week, completed_races.size() + (0 if week_advance_required else 1))
 
 
 func get_department_level(department_id: String) -> int:
@@ -564,6 +572,57 @@ func process_staff_season() -> Array[String]:
 			member.salary = roundi(float(member.salary) * 1.08)
 			member.signing_fee = roundi(float(member.signing_fee) * 1.08)
 	return updates
+
+
+func is_engineer_available(engineer: StaffMember) -> bool:
+	if engineer == null or not engineer.hired or engineer.role != "Engineer":
+		return false
+	for project in engineering_projects:
+		if str(project.get("engineer_id", "")) == engineer.staff_id:
+			return false
+	return true
+
+
+func queue_part_project(engineer: StaffMember, part_type: String) -> bool:
+	if not is_engineer_available(engineer) or not CarPart.PART_TYPES.has(part_type):
+		return false
+	var cost := get_discounted_cost(MANUFACTURING_BASE_COST)
+	if money < cost:
+		return false
+	money -= cost
+	engineering_projects.append({
+		"engineer_id": engineer.staff_id,
+		"engineer_name": engineer.staff_name,
+		"part_type": part_type,
+		"started_week": current_race_week
+	})
+	record_finance("Workshop", -cost, "Started %s development" % part_type)
+	emit_changed()
+	return true
+
+
+func complete_engineering_projects() -> Array[String]:
+	var completed: Array[String] = []
+	for project in engineering_projects:
+		var engineer := get_staff_by_id(str(project.get("engineer_id", "")))
+		if engineer == null:
+			continue
+		var part_type := str(project.get("part_type", "Engine"))
+		var part := PartCatalog.create_manufactured_part(part_type, engineer)
+		parts_inventory.append(part)
+		completed.append("%s completed %s" % [engineer.staff_name, part.part_name])
+	engineering_projects.clear()
+	return completed
+
+
+func advance_to_next_race_week() -> Array[String]:
+	if not week_advance_required or season_complete:
+		return []
+	current_race_week += 1
+	week_advance_required = false
+	var completed := complete_engineering_projects()
+	emit_changed()
+	return completed
 
 
 func manufacture_part(engineer: StaffMember, part_type: String) -> CarPart:
