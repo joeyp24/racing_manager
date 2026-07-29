@@ -410,10 +410,12 @@ func calculate_player_score(
 		car_performance += float(body_bonus) * team.get_department_bonus("wind_tunnel") / 100.0
 		car_performance *= 1.0 + team.get_department_bonus("cheating") / 100.0
 		car_performance *= 1.0 + team.get_crew_chief_performance_boost() / 100.0
-	var performance_score: float = car_performance * 0.50
+	# A stock car should run in the midfield; several meaningful part upgrades
+	# are required before its raw pace matches the established front-runners.
+	var performance_score: float = car_performance * 0.55
 
 	var condition_score: float = (
-		float(player_car.condition) * 0.20
+		float(player_car.condition) * 0.08
 	)
 
 	var driver_boost := team.get_department_bonus("driver_development") if team != null else 0.0
@@ -473,12 +475,12 @@ func calculate_ai_score(
 	)
 
 	var difficulty_score: float = (
-		25.0
-		+ float(selected_race.difficulty) * 0.25
+		34.0
+		+ float(selected_race.difficulty) * 0.30
 	)
 
 	var skill_score: float = (
-		float(skill) * 0.25
+		float(skill) * 0.28
 	)
 
 	var consistency_score: float = (

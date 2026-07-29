@@ -60,9 +60,22 @@ func simulate_lap() -> void:
 	current_lap += 1
 	var old_player_position := get_player_entry().position
 	for entry in entries:
+		var pit_loss := 0.0
+		if entry.is_player and not entry.pending_pit_compound.is_empty():
+			pit_loss = _perform_pit_stop(entry, entry.pending_pit_compound)
+		elif not entry.is_player and entry.tyre_condition < 24.0 and current_lap < race.lap_count - 2:
+			pit_loss = _perform_pit_stop(entry, _choose_ai_compound())
 		entry.pace_mode = entry.pending_pace_mode
 		var mode_modifier := 0.0
 		var wear_rate := 100.0 / maxf(12.0, float(race.lap_count) * 0.72)
+		var compound_modifier := 0.0
+		match entry.tyre_compound:
+			"Soft":
+				compound_modifier = -0.18
+				wear_rate *= 1.28
+			"Hard":
+				compound_modifier = 0.16
+				wear_rate *= 0.72
 		match entry.pace_mode:
 			"Conserve":
 				mode_modifier = 0.32
@@ -73,8 +86,9 @@ func simulate_lap() -> void:
 		var base_lap := 34.0 + float(race.difficulty) * 0.035
 		var rating_bonus := (entry.base_pace - 55.0) * 0.045
 		var tyre_penalty := pow(1.0 - entry.tyre_condition / 100.0, 2.0) * 1.8
+		var setup_modifier := _get_setup_modifier(entry)
 		var variance_limit := lerpf(0.45, 0.10, float(entry.consistency) / 100.0)
-		entry.last_lap_time = maxf(20.0, base_lap - rating_bonus + tyre_penalty + mode_modifier + random_number_generator.randf_range(-variance_limit, variance_limit))
+		entry.last_lap_time = maxf(20.0, base_lap - rating_bonus + tyre_penalty + mode_modifier + compound_modifier + setup_modifier + pit_loss + random_number_generator.randf_range(-variance_limit, variance_limit))
 		entry.elapsed_time += entry.last_lap_time
 		entry.completed_laps = current_lap
 		entry.best_lap_time = entry.last_lap_time if entry.best_lap_time <= 0.0 else minf(entry.best_lap_time, entry.last_lap_time)
@@ -115,6 +129,47 @@ func set_player_pace(mode: String) -> void:
 	if player != null and mode in ["Conserve", "Balanced", "Attack"]:
 		player.pending_pace_mode = mode
 		event_log.append("LAP %d  Pit wall: %s mode requested for next lap." % [current_lap, mode])
+
+
+func request_player_pit_stop(compound: String) -> bool:
+	var player := get_player_entry()
+	if player == null or is_complete or compound not in ["Soft", "Medium", "Hard"]:
+		return false
+	player.pending_pit_compound = compound
+	event_log.append("LAP %d  Pit wall: box next lap for %s tyres." % [current_lap, compound])
+	return true
+
+
+func set_player_setup(mode: String) -> void:
+	var player := get_player_entry()
+	if player != null and mode in ["Top Speed", "Balanced", "High Grip"]:
+		player.setup_mode = mode
+		event_log.append("LAP %d  Setup changed to %s." % [current_lap, mode])
+
+
+func _perform_pit_stop(entry: RaceEntryState, compound: String) -> float:
+	entry.pending_pit_compound = ""
+	entry.tyre_compound = compound
+	entry.tyre_condition = 100.0
+	entry.pit_stops += 1
+	var pit_loss := random_number_generator.randf_range(6.5, 8.5)
+	event_log.append("LAP %d  %s pits for %s tyres (%.1fs)." % [current_lap, entry.driver_name, compound, pit_loss])
+	return pit_loss
+
+
+func _choose_ai_compound() -> String:
+	var remaining := race.lap_count - current_lap
+	return "Soft" if remaining < race.lap_count / 4 else "Medium"
+
+
+func _get_setup_modifier(entry: RaceEntryState) -> float:
+	match entry.setup_mode:
+		"Top Speed":
+			return -0.12 + (100.0 - entry.tyre_condition) * 0.004
+		"High Grip":
+			return 0.10 - (100.0 - entry.tyre_condition) * 0.004
+		_:
+			return 0.0
 
 
 func as_final_standings() -> Array[Dictionary]:

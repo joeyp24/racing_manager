@@ -35,24 +35,33 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="standings_scroll_container" type="ScrollContainer" parent="margin_container/results_container" unique_id=768077961]
+[node name="results_scroll_container" type="ScrollContainer" parent="margin_container/results_container" unique_id=768077961]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="standings_label" type="Label" parent="margin_container/results_container/standings_scroll_container" unique_id=1089533720]
+[node name="ScrollableResults" type="VBoxContainer" parent="margin_container/results_container/results_scroll_container"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="standings_label" type="Label" parent="margin_container/results_container/results_scroll_container/ScrollableResults" unique_id=1089533720]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 autowrap_mode = 3
 
-[node name="summary_label" type="Label" parent="margin_container/results_container" unique_id=1121546790]
+[node name="summary_label" type="Label" parent="margin_container/results_container/results_scroll_container/ScrollableResults" unique_id=1121546790]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
 
-[node name="car_effects_label" type="Label" parent="margin_container/results_container" unique_id=1569523567]
+[node name="car_effects_label" type="Label" parent="margin_container/results_container/results_scroll_container/ScrollableResults" unique_id=1569523567]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
 
 [node name="continue_button" type="Button" parent="margin_container/results_container" unique_id=950594644]
 unique_name_in_owner = true
