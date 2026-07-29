@@ -147,8 +147,6 @@ func show_strategy() -> void:
 
 
 func start_race() -> void:
-	phase = 3
-	decision_index = 0
 	var strategy_ids: Array[String] = ["conservative", "balanced", "aggressive"]
 	weekend_data["strategy_id"] = strategy_ids[choice_selector.selected]
 	weekend_data["pre_race_plan"] = secondary_selector.get_item_text(secondary_selector.selected)
@@ -158,7 +156,8 @@ func start_race() -> void:
 		weekend_data["wear_modifier"] = float(weekend_data["wear_modifier"]) * 1.08
 	if secondary_selector.selected == 0:
 		weekend_data["wear_modifier"] = float(weekend_data["wear_modifier"]) * 0.92
-	show_decision()
+	GameManager.active_race_weekend = weekend_data.duplicate(true)
+	GameManager.load_page("res://scenes/pages/live_race/live_race.tscn")
 
 
 func show_decision() -> void:
