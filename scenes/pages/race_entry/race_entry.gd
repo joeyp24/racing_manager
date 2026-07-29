@@ -177,7 +177,7 @@ func update_forecast() -> void:
 	var expected_prize := _prize_for_position(race, expected_position)
 	var sponsor := SponsorCatalog.find_by_id(GameManager.team.active_sponsor_id)
 	var sponsor_income := sponsor.payment_per_race if sponsor != null else 0
-	var payroll := GameManager.team.get_total_race_payroll()
+	var payroll: int = GameManager.team.get_total_race_payroll()
 	var objective_chance := clampi(roundi(72.0 + (strength - 60.0) - float(race.difficulty) * 0.25), 10, 95)
 	var total_fee := race.entry_fee * selected_race_teams.size()
 	forecast_label.text = "EXPECTED FINISH  P%d–P%d\nExpected revenue $%s  •  Entry + payroll $%s  •  Net forecast %s$%s\nSponsor objective chance %d%%  •  Expected condition loss %d%%" % [best, worst, format_number(expected_prize + sponsor_income), format_number(total_fee + payroll), "+" if expected_prize + sponsor_income >= total_fee + payroll else "−", format_number(absi(expected_prize + sponsor_income - total_fee - payroll)), objective_chance, wear]
