@@ -70,7 +70,7 @@ func complete_practice() -> void:
 		staff_rating = 35.0
 	var information_quality := (
 		float(GameManager.selected_car.condition) * 0.025
-		+ float(driver.skill + driver.consistency) * 0.015
+		+ float(driver.car_feedback + driver.consistency) * 0.015
 		+ staff_rating * 0.025
 		+ team.get_department_bonus("engineering") * 0.08
 	)
@@ -107,7 +107,7 @@ func complete_qualifying() -> void:
 	var confidence_bonus: float = 1.5 if weekend_data["practice_focus"] == "confidence" else 0.0
 	var qualifying_score: float = (
 		float(GameManager.selected_car.get_total_performance()) * 0.55
-		+ float(driver.skill) * 0.30
+		+ float(driver.qualifying_pace) * 0.30
 		+ float(driver.consistency) * 0.15
 		+ float(weekend_data["practice_quality"]) * 0.45
 		+ approach_modifiers[choice_selector.selected]
@@ -116,7 +116,7 @@ func complete_qualifying() -> void:
 	)
 	var rival_scores: Array[float] = []
 	for rival in RaceManager.AI_DRIVERS:
-		rival_scores.append(48.0 + float(rival["skill"]) * 0.35 + RaceManager.random_number_generator.randf_range(-5.0, 5.0))
+		rival_scores.append(48.0 + float(RaceManager._normalized_ai_attributes(rival)["qualifying_pace"]) * 0.35 + RaceManager.random_number_generator.randf_range(-5.0, 5.0))
 	var position := 1
 	for rival_score in rival_scores:
 		if rival_score > qualifying_score:

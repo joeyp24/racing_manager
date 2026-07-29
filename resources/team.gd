@@ -43,6 +43,9 @@ const CURRENT_SAVE_FORMAT_VERSION: int = 2
 @export var current_race_week: int = 1
 @export var week_advance_required: bool = false
 @export var engineering_projects: Array[Dictionary] = []
+@export var scouting_assignments: Array[Dictionary] = []
+@export var scouting_reports: Dictionary = {}
+@export var driver_training_programs: Dictionary = {}
 
 @export var active_sponsor_id: String = ""
 @export var sponsor_races_remaining: int = 0
@@ -123,6 +126,56 @@ func ensure_race_week_progression() -> void:
 
 func get_department_level(department_id: String) -> int:
 	return clampi(int(department_levels.get(department_id, 0)), 0, DepartmentCatalog.MAX_LEVEL)
+
+
+func start_scouting_assignment(driver: Driver, assignment_type: String) -> bool:
+	var types := {"Background check":500, "Current ability assessment":900, "Potential assessment":1200, "Technical evaluation":850, "Personality evaluation":700}
+	if driver == null or not types.has(assignment_type) or get_department_level("scouting") <= 0: return false
+	for assignment in scouting_assignments:
+		if assignment.get("driver_id") == driver.driver_id: return false
+	var cost := get_discounted_cost(int(types[assignment_type]))
+	if money < cost: return false
+	money -= cost
+	scouting_assignments.append({"driver_id":driver.driver_id, "type":assignment_type, "weeks_remaining":maxi(1, 4-get_department_level("scouting")), "cost":cost})
+	record_finance("Scouting", -cost, "%s: %s" % [driver.driver_name, assignment_type])
+	emit_changed(); return true
+
+
+func advance_driver_programs() -> void:
+	for index in range(scouting_assignments.size() - 1, -1, -1):
+		var assignment := scouting_assignments[index]
+		assignment["weeks_remaining"] = int(assignment["weeks_remaining"]) - 1
+		if int(assignment["weeks_remaining"]) <= 0:
+			var driver := get_driver_by_id(str(assignment["driver_id"]))
+			if driver != null: scouting_reports[driver.driver_id] = build_scouting_report(driver, str(assignment["type"]))
+			scouting_assignments.remove_at(index)
+	for driver_id in driver_training_programs:
+		var driver := get_driver_by_id(str(driver_id)); var program := driver_training_programs[driver_id] as Dictionary
+		if driver == null or money < int(program.get("cost", 0)): continue
+		money -= int(program.get("cost", 0)); driver.development_points += 1; driver.fatigue = mini(100, driver.fatigue + int(program.get("fatigue", 5)))
+	process_driver_availability()
+
+
+func build_scouting_report(driver: Driver, assignment_type: String) -> Dictionary:
+	var level := get_department_level("scouting"); var spread := maxi(2, 12-level*3); var ratings := {}
+	for field in Driver.RATING_FIELDS:
+		var value := int(driver.get(field)); ratings[field] = {"low":maxi(0,value-spread), "high":mini(99,value+spread), "confidence":mini(95,45+level*14)}
+	return {"assignment":assignment_type, "ratings":ratings, "potential_low":maxi(driver.get_overall_rating(),driver.get_potential_overall()-spread), "potential_high":mini(99,driver.get_potential_overall()+spread), "personality":driver.archetype, "strength":driver.archetype, "risk":"High expectations" if driver.ambition > 75 else "No major concern", "projected_role":driver.expected_role}
+
+
+func set_driver_training(driver: Driver, focus: String) -> bool:
+	var programs := {"Race pace":"race_pace", "Qualifying":"qualifying_pace", "Tyre conservation":"tyre_management", "Racecraft":"racecraft", "Wet-weather training":"wet_weather", "Fitness":"fitness", "Simulator work":"consistency", "Technical feedback":"car_feedback", "Mental coaching":"composure"}
+	if driver == null or not contracted_driver_ids.has(driver.driver_id) or not programs.has(focus): return false
+	driver.development_focus = focus; driver_training_programs[driver.driver_id] = {"attribute":programs[focus], "cost":350, "fatigue":8 if focus == "Fitness" else 4}; return true
+
+
+func process_driver_availability() -> void:
+	for driver in drivers:
+		if driver == null: continue
+		driver.fatigue = maxi(0, driver.fatigue - 8)
+		if driver.unavailable_weeks > 0:
+			driver.unavailable_weeks -= 1
+			if driver.unavailable_weeks == 0: driver.availability_status = "Available"
 
 
 func get_department_bonus(department_id: String) -> float:
@@ -621,6 +674,7 @@ func advance_to_next_race_week() -> Array[String]:
 	current_race_week += 1
 	week_advance_required = false
 	var completed := complete_engineering_projects()
+	advance_driver_programs()
 	emit_changed()
 	return completed
 

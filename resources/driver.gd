@@ -6,6 +6,7 @@ const RATING_FIELDS: Array[String] = [
 	"wet_weather", "starts_restarts", "consistency", "car_feedback",
 	"fitness", "composure"
 ]
+const PERSONALITY_FIELDS: Array[String] = ["ambition", "loyalty", "professionalism", "adaptability", "marketability", "coachability", "teamwork", "pressure_tolerance"]
 
 @export var driver_id: String = ""
 @export var driver_name: String = "Unnamed Driver"
@@ -36,6 +37,23 @@ const RATING_FIELDS: Array[String] = [
 @export_range(0, 99) var car_feedback: int = 50
 @export_range(0, 99) var fitness: int = 50
 @export_range(0, 99) var composure: int = 50
+
+@export_category("Personality & Wellbeing")
+@export_range(0, 99) var ambition: int = 50
+@export_range(0, 99) var loyalty: int = 50
+@export_range(0, 99) var professionalism: int = 50
+@export_range(0, 99) var adaptability: int = 50
+@export_range(0, 99) var marketability: int = 50
+@export_range(0, 99) var coachability: int = 50
+@export_range(0, 99) var confidence: int = 60
+@export_range(0, 99) var morale: int = 70
+@export_range(0, 99) var teamwork: int = 50
+@export_range(0, 99) var pressure_tolerance: int = 50
+@export_range(0, 100) var fatigue: int = 0
+@export var availability_status: String = "Available"
+@export var unavailable_weeks: int = 0
+@export var development_focus: String = "Balanced"
+@export var relationship_scores: Dictionary = {}
 
 @export_category("Attribute Potential Caps")
 @export_range(0, 99) var race_pace_potential: int = 80
@@ -69,6 +87,18 @@ const RATING_FIELDS: Array[String] = [
 @export var career_fastest_laps: int = 0
 @export var championships: int = 0
 @export var best_championship_finish: int = 0
+@export var race_history: Array[Dictionary] = []
+
+@export_category("Contract")
+@export var contract_races_remaining: int = 0
+@export var contract_length: int = 12
+@export var performance_bonus: int = 0
+@export var championship_bonus: int = 0
+@export var release_clause: int = 0
+@export_enum("None", "Team", "Driver") var contract_option: String = "None"
+@export_enum("Lead", "Second", "Equal", "Prospect") var expected_role: String = "Equal"
+@export_range(0, 3) var minimum_facility_level: int = 0
+@export_range(0, 99) var desired_competitiveness: int = 40
 
 
 func get_overall_rating() -> int:
@@ -122,3 +152,48 @@ func get_development_rate() -> String:
 	if age <= 29 and growth_room >= 6:
 		return "Steady"
 	return "Limited"
+
+
+func get_attribute_dictionary() -> Dictionary:
+	var result := {}
+	for field in RATING_FIELDS:
+		result[field] = int(get(field))
+	return result
+
+
+func update_archetype() -> void:
+	var best := "race_pace"
+	for field in RATING_FIELDS:
+		if int(get(field)) > int(get(best)):
+			best = field
+	var names := {"qualifying_pace":"Qualifying specialist", "tyre_management":"Tyre whisperer", "wet_weather":"Wet-weather specialist", "racecraft":"Aggressive overtaker", "car_feedback":"Technical development driver", "consistency":"Consistent points scorer", "starts_restarts":"Short-track specialist", "fitness":"Late-race closer", "composure":"Pressure specialist", "race_pace":"Complete racer"}
+	archetype = str(names.get(best, "Balanced racer"))
+	if get_overall_rating() >= 90:
+		archetype = "Complete champion"
+
+
+func is_available() -> bool:
+	return availability_status == "Available" and unavailable_weeks <= 0 and fatigue < 95
+
+
+func record_race(result: Dictionary) -> void:
+	race_history.push_front(result.duplicate(true))
+	if race_history.size() > 60:
+		race_history.resize(60)
+
+
+func get_form_summary(limit: int = 5) -> Dictionary:
+	var count := mini(limit, race_history.size())
+	if count == 0:
+		return {"races":0, "average_start":0.0, "average_finish":0.0, "positions_gained":0.0, "finish_rate":0.0, "incident_rate":0.0}
+	var starts := 0.0
+	var finishes := 0.0
+	var gained := 0.0
+	var completed := 0
+	var incidents := 0
+	for index in count:
+		var item := race_history[index]
+		starts += float(item.get("start", 0)); finishes += float(item.get("finish", 0)); gained += float(item.get("positions_gained", 0))
+		if str(item.get("status", "Finished")) != "Retired": completed += 1
+		if bool(item.get("incident", false)): incidents += 1
+	return {"races":count, "average_start":starts/count, "average_finish":finishes/count, "positions_gained":gained/count, "finish_rate":float(completed)/count, "incident_rate":float(incidents)/count}
