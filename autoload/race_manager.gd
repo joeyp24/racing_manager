@@ -252,21 +252,30 @@ func calculate_player_score(
 	player_car: Car,
 	player_driver: Driver
 ) -> float:
-	var performance_score: float = (
-		float(player_car.get_total_performance()) * 0.50
-	)
+	var car_performance := float(player_car.get_total_performance())
+	var team := GameManager.team
+	if team != null:
+		var part_bonus := 0
+		var body_bonus := 0
+		for part in player_car.installed_parts:
+			if part is CarPart:
+				part_bonus += part.performance_bonus
+				if part.part_type == "Body":
+					body_bonus += part.performance_bonus
+		car_performance += float(part_bonus) * team.get_department_bonus("engineering") / 100.0
+		car_performance += float(body_bonus) * team.get_department_bonus("wind_tunnel") / 100.0
+		car_performance *= 1.0 + team.get_department_bonus("cheating") / 100.0
+	var performance_score: float = car_performance * 0.50
 
 	var condition_score: float = (
 		float(player_car.condition) * 0.20
 	)
 
-	var skill_score: float = (
-		float(player_driver.skill) * 0.20
-	)
+	var driver_boost := team.get_department_bonus("driver_development") if team != null else 0.0
+	var simulator_boost := team.get_department_bonus("simulator") if team != null else 0.0
+	var skill_score: float = float(player_driver.skill) * (1.0 + driver_boost / 100.0) * 0.20
 
-	var consistency_score: float = (
-		float(player_driver.consistency) * 0.10
-	)
+	var consistency_score: float = float(player_driver.consistency) * (1.0 + simulator_boost / 100.0) * 0.10
 
 	var variance_limit: float = lerpf(
 		12.0,
@@ -439,6 +448,7 @@ func apply_race_effects(
 	GameManager.charge_team_money(
 		result.driver_salary
 	)
+	apply_department_race_effects(result)
 
 	apply_reputation_reward(result)
 	apply_sponsor_reward(result)
@@ -463,6 +473,21 @@ func apply_race_effects(
 	)
 
 	GameManager.team.emit_changed()
+
+
+func apply_department_race_effects(result: RaceResult) -> void:
+	var team := GameManager.team
+	var base_fans := maxi(10, 110 - result.finishing_position * 5)
+	result.fans_earned = roundi(float(base_fans) * (1.0 + team.get_department_bonus("marketing") / 100.0))
+	team.fans += result.fans_earned
+
+	var cheating_level := team.get_department_level("cheating")
+	if cheating_level > 0:
+		var penalty_chance := 0.04 + float(cheating_level) * 0.04
+		if random_number_generator.randf() < penalty_chance:
+			result.cheating_penalty = 1000 * cheating_level * cheating_level
+			GameManager.charge_team_money(result.cheating_penalty)
+			result.net_earnings -= result.cheating_penalty
 
 
 func apply_reputation_reward(result: RaceResult) -> void:
@@ -529,6 +554,11 @@ func update_driver_career_stats(
 		result.championship_points_earned
 	)
 	driver.development_points += 1
+	var development_bonus := GameManager.team.get_department_bonus("driver_development") / 100.0
+	GameManager.team.driver_development_progress += development_bonus
+	if GameManager.team.driver_development_progress >= 1.0:
+		driver.development_points += floori(GameManager.team.driver_development_progress)
+		GameManager.team.driver_development_progress = fmod(GameManager.team.driver_development_progress, 1.0)
 
 	if result.finishing_position == 1:
 		driver.career_wins += 1
@@ -867,6 +897,11 @@ func apply_driver_development() -> void:
 		var represented_team: bool = driver.season_starts > 0
 		if represented_team:
 			driver.seasons_with_team += 1
+			var season_bonus := GameManager.team.get_department_bonus("driver_development") / 100.0
+			GameManager.team.driver_development_progress += float(driver.development_points) * season_bonus
+			if GameManager.team.driver_development_progress >= 1.0:
+				driver.development_points += floori(GameManager.team.driver_development_progress)
+				GameManager.team.driver_development_progress = fmod(GameManager.team.driver_development_progress, 1.0)
 		else:
 			driver.development_points += get_free_agent_development(driver)
 

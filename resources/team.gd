@@ -13,6 +13,9 @@ const GARAGE_SIZE: int = 6
 @export var last_season_position: int = 0
 @export var last_season_prize: int = 0
 @export var last_development_summary: Array[String] = []
+@export var fans: int = 0
+@export var department_levels: Dictionary = {}
+@export var driver_development_progress: float = 0.0
 
 @export var active_sponsor_id: String = ""
 @export var sponsor_races_remaining: int = 0
@@ -42,9 +45,61 @@ const GARAGE_SIZE: int = 6
 
 
 func _init() -> void:
+	ensure_departments()
 	ensure_default_player_driver()
 	ensure_driver_market()
 	ensure_car_parts()
+
+
+func ensure_departments() -> void:
+	for department_id in DepartmentCatalog.get_ids():
+		if not department_levels.has(department_id):
+			department_levels[department_id] = 0
+
+
+func get_department_level(department_id: String) -> int:
+	return clampi(int(department_levels.get(department_id, 0)), 0, DepartmentCatalog.MAX_LEVEL)
+
+
+func get_department_bonus(department_id: String) -> float:
+	return DepartmentCatalog.get_bonus(get_department_level(department_id))
+
+
+func is_secret_department_unlocked() -> bool:
+	return season_number >= 3 or championship_points >= 100
+
+
+func get_discounted_cost(base_cost: int, include_accounting: bool = true) -> int:
+	if base_cost <= 0:
+		return 0
+	var discount: float = get_department_bonus("accounting") if include_accounting else 0.0
+	return maxi(1, ceili(float(base_cost) * (1.0 - discount / 100.0)))
+
+
+func get_department_cost(department_id: String) -> int:
+	var level := get_department_level(department_id)
+	var base_cost := DepartmentCatalog.get_base_cost(department_id, level)
+	# Accounting cannot discount its own construction, avoiding a circular price change.
+	return get_discounted_cost(base_cost, department_id != "accounting")
+
+
+func can_purchase_department(department_id: String) -> bool:
+	if not DepartmentCatalog.DEPARTMENTS.has(department_id):
+		return false
+	if department_id == "cheating" and not is_secret_department_unlocked():
+		return false
+	var cost := get_department_cost(department_id)
+	return cost > 0 and money >= cost
+
+
+func purchase_department(department_id: String) -> bool:
+	if not can_purchase_department(department_id):
+		return false
+	var cost := get_department_cost(department_id)
+	money -= cost
+	department_levels[department_id] = get_department_level(department_id) + 1
+	emit_changed()
+	return true
 
 
 func ensure_car_parts() -> void:
@@ -81,7 +136,8 @@ func buy_car(
 	if cars[bay_index] != null:
 		return false
 
-	if money < car_template.purchase_price:
+	var purchase_cost := get_discounted_cost(car_template.purchase_price)
+	if money < purchase_cost:
 		return false
 
 	var purchased_car: Car = (
@@ -96,7 +152,7 @@ func buy_car(
 
 	purchased_car.ensure_standard_parts()
 
-	money -= car_template.purchase_price
+	money -= purchase_cost
 	cars[bay_index] = purchased_car
 
 	emit_changed()
@@ -128,9 +184,12 @@ func sell_car(bay_index: int) -> int:
 
 
 func buy_part(part_template: CarPart) -> bool:
-	if part_template == null or money < part_template.purchase_price:
+	if part_template == null:
 		return false
-	money -= part_template.purchase_price
+	var purchase_cost := get_discounted_cost(part_template.purchase_price)
+	if money < purchase_cost:
+		return false
+	money -= purchase_cost
 	parts_inventory.append(part_template.duplicate(true) as CarPart)
 	emit_changed()
 	return true
@@ -181,7 +240,7 @@ func can_afford_car(
 	if car_template == null:
 		return false
 
-	return money >= car_template.purchase_price
+	return money >= get_discounted_cost(car_template.purchase_price)
 
 
 func is_valid_bay_index(
@@ -319,7 +378,8 @@ func can_hire_driver() -> bool:
 func hire_driver(driver: Driver) -> bool:
 	if driver == null or not drivers.has(driver):
 		return false
-	if not can_hire_driver() or money < driver.signing_fee:
+	var signing_cost := get_discounted_cost(driver.signing_fee)
+	if not can_hire_driver() or money < signing_cost:
 		return false
 
 	for roster_driver in drivers:
@@ -329,7 +389,7 @@ func hire_driver(driver: Driver) -> bool:
 		if roster_driver.team_name == team_name:
 			roster_driver.team_name = "Free Agent"
 
-	money -= driver.signing_fee
+	money -= signing_cost
 	driver.is_player_driver = true
 	driver.team_name = team_name
 	driver_hired_for_season = true

@@ -37,7 +37,7 @@ func update_offer_display() -> void:
 
 	price_label.text = (
 		"Price: $%s"
-		% format_number(car_template.purchase_price)
+		% format_number(GameManager.team.get_discounted_cost(car_template.purchase_price))
 	)
 
 	buy_button.disabled = false

@@ -88,7 +88,7 @@ func create_candidate_row(driver: Driver) -> void:
 	hire_button.custom_minimum_size = Vector2(100, 0)
 	hire_button.disabled = (
 		not GameManager.team.can_hire_driver()
-		or GameManager.team.money < driver.signing_fee
+		or GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee)
 	)
 	hire_button.pressed.connect(_on_hire_pressed.bind(driver))
 
@@ -100,6 +100,7 @@ func create_candidate_row(driver: Driver) -> void:
 
 
 func create_driver_details(driver: Driver) -> String:
+	var signing_cost := GameManager.team.get_discounted_cost(driver.signing_fee)
 	return "Age %d | Potential %d | Team seasons %d | Skill %d | Consistency %d | Aggression %d | Salary $%s/race | Signing fee $%s" % [
 		driver.age,
 		driver.potential,
@@ -108,7 +109,7 @@ func create_driver_details(driver: Driver) -> String:
 		driver.consistency,
 		driver.aggression,
 		format_number(driver.salary),
-		format_number(driver.signing_fee)
+		format_number(signing_cost)
 	]
 
 
