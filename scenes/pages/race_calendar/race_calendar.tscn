@@ -36,6 +36,7 @@ grow_vertical = 2
 
 [node name="race_calendar_container" type="VBoxContainer" parent="margin_container" unique_id=497961398]
 layout_mode = 2
+theme_override_constants/separation = 10
 
 [node name="title_label" type="Label" parent="margin_container/race_calendar_container" unique_id=514835337]
 unique_name_in_owner = true
@@ -51,13 +52,11 @@ text = "Complete all 12 events to finish the season"
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="races_container" type="GridContainer" parent="margin_container/race_calendar_container/races_scroll_container" unique_id=1844677426]
+[node name="races_container" type="VBoxContainer" parent="margin_container/race_calendar_container/races_scroll_container" unique_id=1844677426]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(650, 300)
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
-columns = 2
+theme_override_constants/separation = 6
 
 [node name="back_button" type="Button" parent="margin_container/race_calendar_container" unique_id=474133777]
 unique_name_in_owner = true

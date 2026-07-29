@@ -1,47 +1,77 @@
-[gd_scene format=3 uid="uid://padsykvfkble"]
+[gd_scene load_steps=2 format=3 uid="uid://padsykvfkble"]
 
 [ext_resource type="Script" uid="uid://1t347ffckfo3" path="res://scenes/pages/race_calendar/race_event.gd" id="1_vb6kx"]
 
-[node name="RaceEvent" type="PanelContainer" unique_id=1647017693]
-custom_minimum_size = Vector2(300, 260)
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="RaceEvent" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 66)
 script = ExtResource("1_vb6kx")
 
-[node name="margin_container" type="MarginContainer" parent="." unique_id=1036826197]
+[node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 8
 
-[node name="event_container" type="VBoxContainer" parent="margin_container" unique_id=2079314532]
+[node name="Row" type="HBoxContainer" parent="Margin"]
 layout_mode = 2
+theme_override_constants/separation = 14
 
-[node name="race_name_label" type="Label" parent="margin_container/event_container" unique_id=117711492]
+[node name="date_label" type="Label" parent="Margin/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+
+[node name="NameAndTrack" type="VBoxContainer" parent="Margin/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="race_name_label" type="Label" parent="Margin/Row/NameAndTrack"]
 unique_name_in_owner = true
 layout_mode = 2
+text_overrun_behavior = 3
 
-[node name="track_label" type="Label" parent="margin_container/event_container" unique_id=822233140]
+[node name="track_label" type="Label" parent="Margin/Row/NameAndTrack"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text_overrun_behavior = 3
 
-[node name="date_label" type="Label" parent="margin_container/event_container" unique_id=1719382355]
+[node name="status_label" type="Label" parent="Margin/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="details_button" type="Button" parent="Margin/Row"]
 unique_name_in_owner = true
 layout_mode = 2
+text = "Details"
 
-[node name="race_details_label" type="Label" parent="margin_container/event_container" unique_id=272833234]
+[node name="enter_button" type="Button" parent="Margin/Row"]
 unique_name_in_owner = true
-layout_mode = 2
-
-[node name="prize_label" type="Label" parent="margin_container/event_container" unique_id=1620520351]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="status_label" type="Label" parent="margin_container/event_container" unique_id=11760888]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="enter_button" type="Button" parent="margin_container/event_container" unique_id=1121182135]
-unique_name_in_owner = true
+custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
 text = "Enter Race"
+
+[node name="details_dialog" type="AcceptDialog" parent="."]
+unique_name_in_owner = true
+title = "Race Details"
+min_size = Vector2i(430, 280)
+
+[node name="Details" type="VBoxContainer" parent="details_dialog"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="dialog_title" type="Label" parent="details_dialog/Details"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+
+[node name="dialog_details" type="Label" parent="details_dialog/Details"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2

@@ -6,16 +6,19 @@ var race: Race = null
 @onready var race_name_label: Label = %race_name_label
 @onready var track_label: Label = %track_label
 @onready var date_label: Label = %date_label
-@onready var race_details_label: Label = %race_details_label
-@onready var prize_label: Label = %prize_label
 @onready var status_label: Label = %status_label
 @onready var enter_button: Button = %enter_button
+@onready var details_button: Button = %details_button
+@onready var details_dialog: AcceptDialog = %details_dialog
+@onready var dialog_title: Label = %dialog_title
+@onready var dialog_details: Label = %dialog_details
 
 
 func _ready() -> void:
 	enter_button.pressed.connect(
 		_on_enter_button_pressed
 	)
+	details_button.pressed.connect(_on_details_button_pressed)
 
 	update_display()
 
@@ -33,35 +36,26 @@ func update_display() -> void:
 		return
 
 	race_name_label.text = race.race_name
-	track_label.text = "Track: %s" % race.track_name
-	date_label.text = "Date: %s" % race.race_date
-
-	race_details_label.text = (
-		"Laps: %d\nEntry Fee: $%s\nDifficulty: %d/100"
-		% [
-			race.lap_count,
-			format_number(race.entry_fee),
-			race.difficulty
-		]
-	)
-
-	prize_label.text = (
-		"Prize Money\n"
-		+ "1st: $%s\n"
-		+ "2nd: $%s\n"
-		+ "3rd: $%s"
-	) % [
+	track_label.text = race.track_name
+	date_label.text = race.race_date
+	dialog_title.text = race.race_name
+	dialog_details.text = (
+		"%s  •  %s\n\n%d laps  •  Difficulty %d/100\nEntry fee: $%s\n\nPrize money\n1st  $%s\n2nd  $%s\n3rd  $%s"
+	) % [race.track_name, race.race_date, race.lap_count, race.difficulty,
+		format_number(race.entry_fee),
 		format_number(race.first_place_prize),
 		format_number(race.second_place_prize),
 		format_number(race.third_place_prize)
 	]
+	if not race.description.is_empty():
+		dialog_details.text += "\n\n%s" % race.description
 
 	update_entry_status()
 
 
 func update_entry_status() -> void:
 	if GameManager.team == null:
-		status_label.text = "No team loaded"
+		status_label.text = "No team"
 		enter_button.text = "Unavailable"
 		enter_button.disabled = true
 		return
@@ -85,15 +79,13 @@ func update_entry_status() -> void:
 		return
 
 	if not team_has_a_car():
-		status_label.text = "You need a car to enter"
+		status_label.text = "No car"
 		enter_button.text = "Enter Race"
 		enter_button.disabled = true
 		return
 
 	if GameManager.team.money < race.entry_fee:
-		status_label.text = (
-			"Not enough money for the entry fee"
-		)
+		status_label.text = "Need funds"
 
 		enter_button.text = "Enter Race"
 		enter_button.disabled = true
@@ -116,11 +108,16 @@ func show_missing_race() -> void:
 	race_name_label.text = "Missing Race"
 	track_label.text = ""
 	date_label.text = ""
-	race_details_label.text = ""
-	prize_label.text = ""
 	status_label.text = "No race resource assigned"
+	details_button.disabled = true
 	enter_button.text = "Unavailable"
 	enter_button.disabled = true
+
+
+func _on_details_button_pressed() -> void:
+	if race == null:
+		return
+	details_dialog.popup_centered()
 
 
 func _on_enter_button_pressed() -> void:

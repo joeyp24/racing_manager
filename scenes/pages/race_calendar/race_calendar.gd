@@ -6,7 +6,7 @@ const RACE_EVENT_SCENE: PackedScene = preload(
 
 @export var race_calendar: Array[Race] = []
 
-@onready var races_container: GridContainer = %races_container
+@onready var races_container: VBoxContainer = %races_container
 @onready var back_button: Button = %back_button
 
 
