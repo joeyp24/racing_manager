@@ -60,6 +60,7 @@ theme_type_variation = &"EyebrowLabel"
 text = "PIT WALL // CAREER CONTROL"
 
 [node name="Title" type="Label" parent="Margin/Layout/Brand"]
+theme_type_variation = &"PageTitle"
 layout_mode = 2
 theme_override_font_sizes/font_size = 42
 text = "RACING\nMANAGER"

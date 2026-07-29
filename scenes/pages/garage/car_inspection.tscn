@@ -46,11 +46,13 @@ split_offset = 440
 layout_mode = 2
 
 [node name="title" type="Label" parent="margin/layout/columns/installed"]
+theme_type_variation = &"PageTitle"
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Installed Parts"
 
 [node name="hint" type="Label" parent="margin/layout/columns/installed"]
+theme_type_variation = &"MutedLabel"
 layout_mode = 2
 text = "Select a part to manage compatible spares."
 
@@ -63,6 +65,7 @@ theme_override_constants/separation = 5
 layout_mode = 2
 
 [node name="inventory_title_label" type="Label" parent="margin/layout/columns/inventory"]
+theme_type_variation = &"SectionTitle"
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
@@ -110,6 +113,7 @@ layout_mode = 2
 text = "Back to Garage"
 
 [node name="status_label" type="Label" parent="margin/layout"]
+theme_type_variation = &"StatusLabel"
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 2

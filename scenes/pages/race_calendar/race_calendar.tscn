@@ -39,6 +39,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="title_label" type="Label" parent="margin_container/race_calendar_container" unique_id=514835337]
+theme_type_variation = &"SectionTitle"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Race Calendar"

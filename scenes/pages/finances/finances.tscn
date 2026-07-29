@@ -26,6 +26,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="title" type="Label" parent="margin/layout"]
+theme_type_variation = &"PageTitle"
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "Team Finances"
@@ -53,6 +54,7 @@ layout_mode = 2
 text = "Payroll"
 
 [node name="history_title" type="Label" parent="margin/layout"]
+theme_type_variation = &"SectionTitle"
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Transaction History"

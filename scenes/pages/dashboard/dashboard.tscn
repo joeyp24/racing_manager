@@ -119,6 +119,7 @@ layout_mode = 2
 theme_type_variation = &"StatValue"
 text = "$0"
 [node name="Hint" type="Label" parent="Scroll/Margin/Content/Kpis/Cash/Stack"]
+theme_type_variation = &"MutedLabel"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 0.75, 0.46, 1)
 theme_override_font_sizes/font_size = 12

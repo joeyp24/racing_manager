@@ -153,6 +153,12 @@ func _perform_pit_stop(entry: RaceEntryState, compound: String) -> float:
 	entry.tyre_condition = 100.0
 	entry.pit_stops += 1
 	var pit_loss := random_number_generator.randf_range(6.5, 8.5)
+	if entry.is_player and GameManager.team != null:
+		pit_loss = maxf(4.2, pit_loss - GameManager.team.get_pit_stop_time_reduction())
+		var mistake_chance := maxf(0.01, 0.12 - GameManager.team.get_pit_mistake_reduction() / 100.0)
+		if random_number_generator.randf() < mistake_chance:
+			pit_loss += random_number_generator.randf_range(1.0, 2.5)
+			event_log.append("LAP %d  A pit-crew mistake costs valuable time." % current_lap)
 	event_log.append("LAP %d  %s pits for %s tyres (%.1fs)." % [current_lap, entry.driver_name, compound, pit_loss])
 	return pit_loss
 

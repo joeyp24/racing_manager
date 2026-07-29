@@ -3,6 +3,13 @@ class_name Team
 
 const GARAGE_SIZE: int = 6
 const MAX_ENGINEERS: int = 3
+const ROLE_LIMITS: Dictionary = {
+	"Crew Chief": 1,
+	"Engineer": 3,
+	"Mechanic": 3,
+	"Spotter": 1,
+	"Pit Crew": 5
+}
 const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 
@@ -244,29 +251,46 @@ func get_parts_by_type(part_type: String) -> Array[CarPart]:
 
 func ensure_staff_market() -> void:
 	var candidates: Array[Dictionary] = [
-		{"id": "chief_morgan", "name": "Alex Morgan", "role": "Crew Chief", "rating": 62, "fee": 4500, "salary": 1600, "specialty": "Race strategy"},
-		{"id": "chief_chen", "name": "Lena Chen", "role": "Crew Chief", "rating": 78, "fee": 9000, "salary": 2800, "specialty": "Car setup"},
-		{"id": "chief_bennett", "name": "Marcus Bennett", "role": "Crew Chief", "rating": 91, "fee": 16000, "salary": 4500, "specialty": "Championship leadership"},
-		{"id": "engineer_singh", "name": "Priya Singh", "role": "Engineer", "rating": 58, "fee": 3200, "salary": 1200, "specialty": "Engines"},
-		{"id": "engineer_romero", "name": "Diego Romero", "role": "Engineer", "rating": 71, "fee": 6000, "salary": 1900, "specialty": "Suspension"},
-		{"id": "engineer_nakamura", "name": "Emi Nakamura", "role": "Engineer", "rating": 84, "fee": 10500, "salary": 3100, "specialty": "Aerodynamics"},
-		{"id": "engineer_okafor", "name": "Tunde Okafor", "role": "Engineer", "rating": 94, "fee": 17500, "salary": 4800, "specialty": "Advanced manufacturing"}
+		{"id":"chief_morgan","name":"Alex Morgan","role":"Crew Chief","a":68,"b":56,"potential":76,"fee":4500,"salary":1600,"specialty":"Race strategy"},
+		{"id":"chief_chen","name":"Lena Chen","role":"Crew Chief","a":75,"b":81,"potential":88,"fee":9000,"salary":2800,"specialty":"Car setup"},
+		{"id":"chief_bennett","name":"Marcus Bennett","role":"Crew Chief","a":94,"b":88,"potential":94,"fee":16000,"salary":4500,"specialty":"Championship leadership"},
+		{"id":"engineer_singh","name":"Priya Singh","role":"Engineer","a":61,"b":69,"potential":84,"fee":3200,"salary":1200,"specialty":"Engines"},
+		{"id":"engineer_romero","name":"Diego Romero","role":"Engineer","a":74,"b":68,"potential":82,"fee":6000,"salary":1900,"specialty":"Suspension"},
+		{"id":"engineer_nakamura","name":"Emi Nakamura","role":"Engineer","a":89,"b":79,"potential":92,"fee":10500,"salary":3100,"specialty":"Aerodynamics"},
+		{"id":"engineer_okafor","name":"Tunde Okafor","role":"Engineer","a":96,"b":92,"potential":97,"fee":17500,"salary":4800,"specialty":"Advanced manufacturing"},
+		{"id":"mechanic_cole","name":"Jamie Cole","role":"Mechanic","a":64,"b":72,"potential":82,"fee":3600,"salary":1300,"specialty":"Rapid repairs"},
+		{"id":"mechanic_alvarez","name":"Rosa Alvarez","role":"Mechanic","a":83,"b":79,"potential":90,"fee":7600,"salary":2400,"specialty":"Pit precision"},
+		{"id":"mechanic_ward","name":"Cal Ward","role":"Mechanic","a":91,"b":88,"potential":94,"fee":13000,"salary":3700,"specialty":"Damage recovery"},
+		{"id":"spotter_brooks","name":"Taylor Brooks","role":"Spotter","a":70,"b":66,"potential":85,"fee":4100,"salary":1500,"specialty":"Traffic awareness"},
+		{"id":"spotter_kim","name":"Jules Kim","role":"Spotter","a":88,"b":92,"potential":95,"fee":12000,"salary":3600,"specialty":"Restarts"},
+		{"id":"pit_hughes","name":"Sam Hughes","role":"Pit Crew","a":61,"b":73,"potential":83,"fee":2600,"salary":900,"specialty":"Tire carrier"},
+		{"id":"pit_patel","name":"Ari Patel","role":"Pit Crew","a":78,"b":81,"potential":90,"fee":5200,"salary":1600,"specialty":"Jack operator"},
+		{"id":"pit_davis","name":"Morgan Davis","role":"Pit Crew","a":86,"b":77,"potential":91,"fee":7200,"salary":2100,"specialty":"Tire changer"},
+		{"id":"pit_owens","name":"Casey Owens","role":"Pit Crew","a":72,"b":91,"potential":93,"fee":6800,"salary":1900,"specialty":"Fueler"},
+		{"id":"pit_wright","name":"Devon Wright","role":"Pit Crew","a":94,"b":89,"potential":96,"fee":12500,"salary":3300,"specialty":"Crew captain"}
 	]
 	for data in candidates:
 		var existing_member := get_staff_by_id(str(data["id"]))
 		if existing_member != null:
-			if existing_member.hired and existing_member.contract_races_remaining <= 0:
-				existing_member.contract_races_remaining = existing_member.get_default_contract_length()
-		if get_staff_by_id(str(data["id"])) != null:
+			# Migrate staff created before individual attributes were introduced.
+			if existing_member.primary_rating == 50 and existing_member.secondary_rating == 50:
+				existing_member.primary_rating = int(data["a"])
+				existing_member.secondary_rating = int(data["b"])
+				existing_member.potential = int(data["potential"])
+				existing_member.recalculate_rating()
 			continue
 		var member := StaffMember.new()
 		member.staff_id = str(data["id"])
 		member.staff_name = str(data["name"])
 		member.role = str(data["role"])
-		member.rating = int(data["rating"])
+		member.primary_rating = int(data["a"])
+		member.secondary_rating = int(data["b"])
+		member.potential = int(data["potential"])
 		member.signing_fee = int(data["fee"])
 		member.salary = int(data["salary"])
 		member.specialty = str(data["specialty"])
+		member.recalculate_rating()
+		member.rival_interest = get_rival_interest(member.rating)
 		staff.append(member)
 
 
@@ -292,12 +316,36 @@ func get_engineers() -> Array[StaffMember]:
 	return engineers
 
 
+func get_staff_by_role(role: String, hired_only: bool = true) -> Array[StaffMember]:
+	var matches: Array[StaffMember] = []
+	for member in staff:
+		if member != null and member.role == role and (member.hired or not hired_only):
+			matches.append(member)
+	return matches
+
+
+func get_role_limit(role: String) -> int:
+	return int(ROLE_LIMITS.get(role, 0))
+
+
+func can_add_staff_role(role: String) -> bool:
+	return get_staff_by_role(role).size() < get_role_limit(role)
+
+
+func get_rival_interest(rating: int) -> String:
+	if rating >= 88:
+		return "Very high"
+	if rating >= 76:
+		return "High"
+	if rating >= 62:
+		return "Medium"
+	return "Low"
+
+
 func hire_staff(member: StaffMember) -> bool:
 	if member == null or not staff.has(member) or member.hired:
 		return false
-	if member.role == "Crew Chief" and get_crew_chief() != null:
-		return false
-	if member.role == "Engineer" and get_engineers().size() >= MAX_ENGINEERS:
+	if not can_add_staff_role(member.role):
 		return false
 	var cost := get_discounted_cost(member.signing_fee)
 	if money < cost:
@@ -354,6 +402,9 @@ func process_staff_race() -> Dictionary:
 			crew_chief_salary += member.salary
 		else:
 			engineering_payroll += member.salary
+		member.experience += 1
+		if member.experience % 6 == 0:
+			member.development_points += 1
 		member.contract_races_remaining = maxi(0, member.contract_races_remaining - 1)
 		member.morale = mini(100, member.morale + 1)
 		if member.contract_races_remaining == 0:
@@ -418,10 +469,66 @@ func get_crew_chief_performance_boost() -> float:
 
 func get_car_setup_variance_reduction() -> float:
 	var chief := get_crew_chief()
-	if chief != null and chief.specialty == "Car setup":
-		return 1.5
-	return 0.0
-	return float(chief.rating) * 0.05
+	if chief == null:
+		return 0.0
+	return float(chief.secondary_rating) * 0.012 + (0.5 if chief.specialty == "Car setup" else 0.0)
+
+
+func get_engineering_performance_boost() -> float:
+	return get_average_role_attribute("Engineer", true) * 0.035
+
+
+func get_reliability_boost() -> float:
+	return get_average_role_attribute("Engineer", false) * 0.08
+
+
+func get_repair_time_reduction() -> float:
+	return get_average_role_attribute("Mechanic", true) * 0.22
+
+
+func get_pit_stop_time_reduction() -> float:
+	var mechanic_bonus := get_average_role_attribute("Mechanic", false) * 0.008
+	var pit_bonus := get_average_role_attribute("Pit Crew", true) * 0.012
+	return mechanic_bonus + pit_bonus
+
+
+func get_pit_mistake_reduction() -> float:
+	return get_average_role_attribute("Pit Crew", false) * 0.1
+
+
+func get_accident_risk_reduction() -> float:
+	return get_average_role_attribute("Spotter", true) * 0.1
+
+
+func get_restart_performance_boost() -> float:
+	return get_average_role_attribute("Spotter", false) * 0.025
+
+
+func get_average_role_attribute(role: String, primary: bool) -> float:
+	var members := get_staff_by_role(role)
+	if members.is_empty():
+		return 0.0
+	var total := 0.0
+	for member in members:
+		var attribute := member.primary_rating if primary else member.secondary_rating
+		total += float(attribute) * lerpf(0.8, 1.05, float(member.morale) / 100.0)
+	return total / float(members.size())
+
+
+func process_staff_season() -> Array[String]:
+	var updates: Array[String] = []
+	for member in staff:
+		if member == null:
+			continue
+		member.rival_interest = get_rival_interest(member.rating)
+		if member.hired:
+			member.apply_season_development()
+			updates.append("%s: %s" % [member.staff_name, member.last_development])
+		elif member.rating >= 82 and (season_number + member.staff_id.length()) % 3 == 0:
+			# Rival offers make elite free agents more expensive rather than deleting save data.
+			member.salary = roundi(float(member.salary) * 1.08)
+			member.signing_fee = roundi(float(member.signing_fee) * 1.08)
+	return updates
 
 
 func manufacture_part(engineer: StaffMember, part_type: String) -> CarPart:

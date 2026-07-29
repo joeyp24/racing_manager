@@ -28,6 +28,7 @@ layout_mode = 2
 theme_override_constants/separation = 18
 
 [node name="title_label" type="Label" parent="page_margin/page_layout" unique_id=241617494]
+theme_type_variation = &"SectionTitle"
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "Championship Standings"
@@ -41,6 +42,7 @@ text = "Championship information"
 horizontal_alignment = 1
 
 [node name="season_status_label" type="Label" parent="page_margin/page_layout"]
+theme_type_variation = &"StatusLabel"
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
