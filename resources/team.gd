@@ -249,6 +249,7 @@ func ensure_staff_market() -> void:
 		if existing_member != null:
 			if existing_member.hired and existing_member.contract_races_remaining <= 0:
 				existing_member.contract_races_remaining = existing_member.get_default_contract_length()
+		if get_staff_by_id(str(data["id"])) != null:
 			continue
 		var member := StaffMember.new()
 		member.staff_id = str(data["id"])
@@ -412,6 +413,7 @@ func get_car_setup_variance_reduction() -> float:
 	if chief != null and chief.specialty == "Car setup":
 		return 1.5
 	return 0.0
+	return float(chief.rating) * 0.05
 
 
 func manufacture_part(engineer: StaffMember, part_type: String) -> CarPart:

@@ -15,6 +15,9 @@ var available_engineers: Array[StaffMember] = []
 var repairable_parts: Array[CarPart] = []
 var pending_fire_member: StaffMember = null
 
+var available_engineers: Array[StaffMember] = []
+var repairable_parts: Array[CarPart] = []
+
 
 func _ready() -> void:
 	manufacture_button.pressed.connect(_on_manufacture_pressed)
@@ -31,6 +34,7 @@ func refresh_page() -> void:
 		chief_text = "%s — %d rating (+%.1f%% race performance)" % [chief.staff_name, chief.rating, team.get_crew_chief_performance_boost()]
 	var races_remaining := maxi(0, RaceManager.SEASON_RACE_IDS.size() - team.completed_races.size())
 	roster_summary_label.text = "Crew Chief: %s\nEngineers: %d / %d\nStaff payroll: $%s/race · Total payroll with driver: $%s/race\nProjected remaining-season payroll: $%s · Available funds: $%s" % [chief_text, team.get_engineers().size(), Team.MAX_ENGINEERS, format_number(team.get_staff_payroll()), format_number(team.get_total_race_payroll()), format_number(team.get_total_race_payroll() * races_remaining), format_number(team.money)]
+	roster_summary_label.text = "Crew Chief: %s\nEngineers: %d / %d" % [chief_text, team.get_engineers().size(), Team.MAX_ENGINEERS]
 	refresh_candidates()
 	refresh_workshop()
 
@@ -57,6 +61,10 @@ func refresh_candidates() -> void:
 		details.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		var action := HBoxContainer.new()
 		configure_staff_actions(action, member)
+		details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		details.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var action := Button.new()
+		configure_hire_button(action, member)
 		content.add_child(title)
 		content.add_child(details)
 		content.add_child(action)
@@ -82,6 +90,11 @@ func configure_staff_actions(container: HBoxContainer, member: StaffMember) -> v
 		container.add_child(fire_button)
 		return
 	var button := Button.new()
+func configure_hire_button(button: Button, member: StaffMember) -> void:
+	if member.hired:
+		button.text = "Hired"
+		button.disabled = true
+		return
 	button.text = "Hire"
 	var team: Team = GameManager.team
 	var role_full := member.role == "Crew Chief" and team.get_crew_chief() != null
