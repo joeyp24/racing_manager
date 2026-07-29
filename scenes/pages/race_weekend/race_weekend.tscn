@@ -21,60 +21,55 @@ offset_top = 32.0
 offset_right = -48.0
 offset_bottom = -32.0
 
-[node name="scroll" type="ScrollContainer" parent="margin"]
+[node name="content" type="VBoxContainer" parent="margin"]
 layout_mode = 2
-horizontal_scroll_mode = 0
-
-[node name="content" type="VBoxContainer" parent="margin/scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
 theme_override_constants/separation = 14
 
-[node name="progress_label" type="Label" parent="margin/scroll/content"]
+[node name="progress_label" type="Label" parent="margin/content"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Race weekend"
 
-[node name="phase_label" type="Label" parent="margin/scroll/content"]
+[node name="phase_label" type="Label" parent="margin/content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "PRACTICE"
 
-[node name="separator" type="HSeparator" parent="margin/scroll/content"]
+[node name="separator" type="HSeparator" parent="margin/content"]
 layout_mode = 2
 
-[node name="briefing_label" type="Label" parent="margin/scroll/content"]
+[node name="briefing_label" type="Label" parent="margin/content"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="choice_label" type="Label" parent="margin/scroll/content"]
+[node name="choice_label" type="Label" parent="margin/content"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Choice"
 
-[node name="choice_selector" type="OptionButton" parent="margin/scroll/content"]
+[node name="choice_selector" type="OptionButton" parent="margin/content"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="secondary_label" type="Label" parent="margin/scroll/content"]
+[node name="secondary_label" type="Label" parent="margin/content"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="secondary_selector" type="OptionButton" parent="margin/scroll/content"]
+[node name="secondary_selector" type="OptionButton" parent="margin/content"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="outcome_label" type="Label" parent="margin/scroll/content"]
+[node name="outcome_label" type="Label" parent="margin/content"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_vertical = 3
 autowrap_mode = 3
 
-[node name="action_button" type="Button" parent="margin/scroll/content"]
+[node name="action_button" type="Button" parent="margin/content"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
