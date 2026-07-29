@@ -27,6 +27,7 @@ var maximum_used_mileage: int = 140000
 @onready var back_button: Button = %back_button
 @onready var title_label: Label = %title_label
 @onready var instructions_label: Label = %instructions_label
+@onready var series_selector: OptionButton = %series_selector
 
 var random_number_generator := RandomNumberGenerator.new()
 
@@ -35,6 +36,8 @@ func _ready() -> void:
 	random_number_generator.randomize()
 
 	back_button.pressed.connect(_on_back_button_pressed)
+	series_selector.item_selected.connect(_on_series_selected)
+	populate_series_selector()
 
 	if GameManager.selected_bay < 0:
 		GameManager.selected_bay = find_empty_garage_bay()
@@ -44,9 +47,29 @@ func _ready() -> void:
 	else:
 		instructions_label.text = "Purchases will be delivered to garage bay %d. New and used cars include a complete set of standard parts." % (GameManager.selected_bay + 1)
 
-	title_label.text = "Car Dealership"
-
 	create_dealership_offers()
+
+
+func populate_series_selector() -> void:
+	series_selector.clear()
+	for series in SeriesCatalog.SERIES:
+		if GameManager.team.entered_series_ids.has(series.id):
+			series_selector.add_item(str(series.name))
+			series_selector.set_item_metadata(series_selector.item_count - 1, series.id)
+			if series.id == GameManager.team.current_series_id:
+				series_selector.select(series_selector.item_count - 1)
+	_on_series_selected(series_selector.selected)
+
+
+func _on_series_selected(index: int) -> void:
+	if index < 0:
+		return
+	var series_id := str(series_selector.get_item_metadata(index))
+	var series := SeriesCatalog.get_series(series_id)
+	dealership_inventory = SeriesCatalog.create_car_templates(series_id)
+	title_label.text = "%s Dealership" % series.name
+	if is_node_ready():
+		create_dealership_offers()
 
 
 func find_empty_garage_bay() -> int:

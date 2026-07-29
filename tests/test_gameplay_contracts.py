@@ -55,3 +55,16 @@ def test_driver_profiles_have_deep_ratings_and_individual_potential_caps():
     assert "POTENTIAL OVR" in page and "FASTEST LAPS" in page
     development = (ROOT / "autoload/race_manager.gd").read_text()
     assert 'driver.get(attribute + "_potential")' in development
+
+
+def test_series_ladder_has_progression_cars_and_full_rosters():
+    catalog = (ROOT / "resources/series_catalog.gd").read_text()
+    team = (ROOT / "resources/team.gd").read_text()
+    dealership = (ROOT / "scenes/pages/dealership/dealership.gd").read_text()
+    assert catalog.count('"roster_size":') == 8
+    for series_id in ("local_short_track", "regional_short_track", "national_short_track", "continental_east_west", "continental_national", "national_truck", "national_grand", "premier_cup"):
+        assert series_id in catalog
+    assert "hq_level >= int(series.hq_level)" in team
+    assert "index != current_index + 1" in team
+    assert "func ensure_series_rosters()" in team
+    assert "SeriesCatalog.create_car_templates(series_id)" in dealership

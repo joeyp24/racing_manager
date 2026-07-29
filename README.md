@@ -171,6 +171,17 @@ Implemented:
 - 12-race seasons
 - Position-based season prize money
 - Repeatable seasons
+- Eight-tier career series ladder with entry fees and Team HQ promotion requirements
+- Series-specific dealership inventories and fictional driver fields sized to real-world grids
+
+## Series progression
+
+Teams begin in the Local Short Track Series. Promotion proceeds through Regional and
+National Short Track competition, the fictional Continental East/West and Continental
+National levels, then the National Truck, National Grand, and Premier Cup series.
+Upgrading Team HQ and paying the one-time series entry fee are both required before
+promotion. Cars are homologated to one series, and each entered series has its own
+dealership inventory.
 
 ---
 

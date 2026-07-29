@@ -37,6 +37,11 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="series_selector" type="OptionButton" parent="margin_container/dealership_container"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Each entered series has a separate inventory of eligible cars."
+
 [node name="offers_scroll_container" type="ScrollContainer" parent="margin_container/dealership_container" unique_id=1302055619]
 layout_mode = 2
 size_flags_vertical = 3

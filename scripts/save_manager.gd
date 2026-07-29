@@ -100,6 +100,7 @@ static func _repair_and_migrate(team: Team) -> void:
 	team.ensure_departments()
 	team.ensure_default_player_driver()
 	team.ensure_driver_market()
+	team.ensure_series_rosters()
 	team.ensure_car_parts()
 	team.ensure_staff_market()
 	team.ensure_race_teams()
