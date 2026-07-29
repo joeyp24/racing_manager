@@ -1,245 +1,156 @@
 extends Control
 
-@onready var roster_summary_label: Label = %roster_summary_label
-@onready var roster_container: VBoxContainer = %roster_container
-@onready var market_container: VBoxContainer = %market_container
-@onready var engineer_option: OptionButton = %engineer_option
-@onready var part_type_option: OptionButton = %part_type_option
-@onready var manufacture_button: Button = %manufacture_button
-@onready var repair_engineer_option: OptionButton = %repair_engineer_option
-@onready var repair_part_option: OptionButton = %repair_part_option
-@onready var repair_button: Button = %repair_button
-@onready var status_label: Label = %status_label
-@onready var fire_confirmation_dialog: ConfirmationDialog = %fire_confirmation_dialog
+@onready var positions: Label = %positions_value
+@onready var payroll: Label = %payroll_value
+@onready var projection: Label = %projection_value
+@onready var risk: Label = %risk_value
+@onready var role_chips: Label = %RoleChips
+@onready var roster_rows: VBoxContainer = %roster_rows
+@onready var detail: VBoxContainer = %Content
+@onready var roster_search: LineEdit = %roster_search
+@onready var market_search: LineEdit = %market_search
+@onready var role_filter: OptionButton = %Role
+@onready var minimum_filter: SpinBox = %Minimum
+@onready var sort_filter: OptionButton = %Sort
+@onready var market_rows: VBoxContainer = %market_rows
+@onready var status_panel: PanelContainer = %Status
+@onready var status_message: Label = %Message
+@onready var contract_dialog: ConfirmationDialog = %ContractDialog
+@onready var contract_summary: Label = %Summary
+@onready var approach: OptionButton = %Approach
+@onready var fire_dialog: ConfirmationDialog = %FireDialog
 
-var available_engineers: Array[StaffMember] = []
-var repairable_parts: Array[CarPart] = []
-var pending_fire_member: StaffMember = null
-
+var selected: StaffMember
+var pending: StaffMember
 
 func _ready() -> void:
-	manufacture_button.pressed.connect(_on_manufacture_pressed)
-	repair_button.pressed.connect(_on_repair_pressed)
-	fire_confirmation_dialog.confirmed.connect(_on_fire_confirmed)
-	refresh_page()
+	role_filter.add_item("All roles")
+	for role in StaffMember.ROLES: role_filter.add_item(role)
+	for item in ["Rating: high to low", "Salary: low to high", "Potential: high to low", "Rival interest"]: sort_filter.add_item(item)
+	for item in ["Accept terms — high morale", "Balanced offer — neutral", "Hard bargain — cheaper, lower morale"]: approach.add_item(item)
+	roster_search.text_changed.connect(func(_text): refresh_lists())
+	market_search.text_changed.connect(func(_text): refresh_lists())
+	role_filter.item_selected.connect(func(_index): refresh_lists())
+	minimum_filter.value_changed.connect(func(_value): refresh_lists())
+	sort_filter.item_selected.connect(func(_index): refresh_lists())
+	contract_dialog.confirmed.connect(_confirm_contract)
+	fire_dialog.confirmed.connect(_confirm_fire)
+	refresh()
 
-
-func refresh_page() -> void:
+func refresh() -> void:
 	var team: Team = GameManager.team
-	var races_remaining := maxi(0, RaceManager.SEASON_RACE_IDS.size() - team.completed_races.size())
-	var filled_roles: Array[String] = []
+	var members: Array[StaffMember] = []
+	var capacity := 0
+	var expiring := 0
+	var chips: Array[String] = []
 	for role in StaffMember.ROLES:
-		filled_roles.append("%s %d/%d" % [role, team.get_staff_by_role(role).size(), team.get_role_limit(role)])
-	roster_summary_label.text = "ACTIVE ROSTER\n%s\n\n$%s per race  ·  $%s projected through season end  ·  $%s available" % [
-		"   •   ".join(filled_roles), format_number(team.get_staff_payroll()),
-		format_number(team.get_total_race_payroll() * races_remaining), format_number(team.money)
-	]
-	refresh_staff_lists()
-	refresh_workshop()
+		var hired := team.get_staff_by_role(role)
+		members.append_array(hired)
+		capacity += team.get_role_limit(role)
+		chips.append("%s %d/%d" % [role, hired.size(), team.get_role_limit(role)])
+		for member in hired:
+			if member.contract_races_remaining <= 2: expiring += 1
+	var remaining := maxi(0, RaceManager.SEASON_RACE_IDS.size() - team.completed_races.size())
+	positions.text = "POSITIONS\n%d / %d" % [members.size(), capacity]
+	payroll.text = "PAYROLL\n$%s / race" % number(team.get_staff_payroll())
+	projection.text = "SEASON PROJECTION\n$%s" % number(team.get_total_race_payroll() * remaining)
+	risk.text = "CONTRACT RISK\n%d expiring" % expiring
+	role_chips.text = "   ·   ".join(chips)
+	if selected == null and not members.is_empty(): selected = members[0]
+	refresh_lists()
 
-
-func refresh_staff_lists() -> void:
-	clear_container(roster_container)
-	clear_container(market_container)
-	var hired_count := 0
+func refresh_lists() -> void:
+	clear(roster_rows); clear(market_rows)
+	var candidates: Array[StaffMember] = []
 	for role in StaffMember.ROLES:
-		var hired_members := GameManager.team.get_staff_by_role(role)
-		if not hired_members.is_empty():
-			add_role_heading(roster_container, role, hired_members.size(), GameManager.team.get_role_limit(role))
-			for member in hired_members:
-				roster_container.add_child(create_staff_card(member))
-				hired_count += 1
-	if hired_count == 0:
-		add_empty_state(roster_container, "No staff hired", "Use the Hiring Market to assemble your first race crew.")
-	for role in StaffMember.ROLES:
-		var candidates := GameManager.team.get_staff_by_role(role, false).filter(func(member: StaffMember) -> bool: return not member.hired)
-		if candidates.is_empty():
-			continue
-		add_role_heading(market_container, role, GameManager.team.get_staff_by_role(role).size(), GameManager.team.get_role_limit(role))
-		for member in candidates:
-			market_container.add_child(create_staff_card(member))
+		for member in GameManager.team.get_staff_by_role(role, false):
+			if member.hired:
+				if roster_search.text.is_empty() or roster_search.text.to_lower() in member.staff_name.to_lower(): roster_rows.add_child(make_row(member, false))
+			elif matches_market(member): candidates.append(member)
+	candidates.sort_custom(sort_candidates)
+	for member in candidates: market_rows.add_child(make_row(member, true))
+	show_detail(selected)
 
+func matches_market(member: StaffMember) -> bool:
+	return (market_search.text.is_empty() or market_search.text.to_lower() in member.staff_name.to_lower()) and (role_filter.selected == 0 or member.role == role_filter.get_item_text(role_filter.selected)) and member.rating >= minimum_filter.value
 
-func add_role_heading(container: VBoxContainer, role: String, current: int, limit: int) -> void:
-	var heading := Label.new()
-	heading.text = "%s  ·  %d / %d positions filled" % [role, current, limit]
-	heading.theme_type_variation = &"SectionTitle"
-	container.add_child(heading)
+func sort_candidates(a: StaffMember, b: StaffMember) -> bool:
+	match sort_filter.selected:
+		1: return a.salary < b.salary
+		2: return a.potential > b.potential
+		3: return a.rival_interest < b.rival_interest
+	return a.rating > b.rating
 
+func make_row(member: StaffMember, hiring: bool) -> PanelContainer:
+	var card := PanelContainer.new(); card.theme_type_variation = &"CardPanel"
+	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8)
+	var label := Label.new(); label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.text = "%s\n%s  ·  %d %s  ·  $%s/race%s" % [member.staff_name, member.role, member.rating, member.get_rating_grade(), number(member.salary), "  ·  %d races" % member.contract_races_remaining if member.hired else ""]
+	label.theme_type_variation = &"BodyStrong"
+	var action := Button.new(); action.text = "Review" if hiring else "View"; action.pressed.connect(func(): selected = member; show_detail(member))
+	row.add_child(label); row.add_child(action); card.add_child(row)
+	return card
 
-func add_empty_state(container: VBoxContainer, title_text: String, body_text: String) -> void:
-	var title := Label.new()
-	title.text = title_text
-	title.theme_type_variation = &"SectionTitle"
-	var body := Label.new()
-	body.text = body_text
-	body.theme_type_variation = &"MutedLabel"
-	container.add_child(title)
-	container.add_child(body)
-
-
-func create_staff_card(member: StaffMember) -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.theme_type_variation = &"CardPanel"
-	panel.custom_minimum_size = Vector2(0, 126)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 18)
-	var identity := VBoxContainer.new()
-	identity.custom_minimum_size = Vector2(220, 0)
-	var role := Label.new()
-	role.text = "%s  /  %s" % [member.role.to_upper(), member.specialty.to_upper()]
-	role.theme_type_variation = &"EyebrowLabel"
-	var title := Label.new()
-	title.text = member.staff_name
-	title.theme_type_variation = &"CardTitle"
-	var grade := Label.new()
-	grade.text = "%s · %d OVR · %d potential" % [member.get_rating_grade(), member.rating, member.potential]
-	grade.theme_type_variation = &"MutedLabel"
-	identity.add_child(role)
-	identity.add_child(title)
-	identity.add_child(grade)
-	var details := VBoxContainer.new()
-	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var attributes := Label.new()
-	attributes.text = member.get_attributes_summary()
-	attributes.theme_type_variation = &"BodyStrong"
-	var career := Label.new()
+func show_detail(member: StaffMember) -> void:
+	clear(detail)
+	if member == null:
+		add_label(detail, "Select a staff member", &"SectionTitle"); return
+	add_label(detail, member.staff_name, &"PageTitle")
+	add_label(detail, "%s  /  %s" % [member.role.to_upper(), member.specialty.to_upper()], &"EyebrowLabel")
+	add_label(detail, "%d OVR · %s · %d potential" % [member.rating, member.get_rating_grade(), member.potential], &"BodyStrong")
+	var names := member.get_attribute_names()
+	add_rating(detail, names[0], member.primary_rating)
+	add_rating(detail, names[1], member.secondary_rating)
+	add_label(detail, "RACE EFFECT", &"EyebrowLabel")
+	add_label(detail, "Team performance: +%.1f%%\nCondition-loss reduction: %.1f%%" % [member.primary_rating * 0.035, member.secondary_rating * 0.08], &"BodyStrong")
+	add_label(detail, "Morale: %s (%d%%)  ·  %d XP\nContract: %d races remaining  ·  $%s/race\nDevelopment: %s" % [member.get_morale_label(), member.morale, member.experience, member.contract_races_remaining, number(member.salary), member.last_development], &"MutedLabel")
+	var actions := HBoxContainer.new()
 	if member.hired:
-		career.text = "%d races left  ·  %s morale (%d%%)  ·  %d XP  ·  %d seasons\nDevelopment: %s" % [member.contract_races_remaining, member.get_morale_label(), member.morale, member.experience, member.seasons_with_team, member.last_development]
+		var negotiate := Button.new(); negotiate.text = "Negotiate contract"; negotiate.theme_type_variation = &"PrimaryButton"; negotiate.pressed.connect(open_contract.bind(member))
+		var terminate := Button.new(); terminate.text = "Terminate…"; terminate.theme_type_variation = &"DangerButton"; terminate.pressed.connect(open_fire.bind(member))
+		actions.add_child(negotiate); actions.add_child(terminate)
 	else:
-		career.text = "$%s signing fee  ·  $%s/race\nRival interest: %s — top candidates may demand more next season" % [format_number(GameManager.team.get_discounted_cost(member.signing_fee)), format_number(member.salary), member.rival_interest]
-	career.theme_type_variation = &"MutedLabel"
-	career.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	details.add_child(attributes)
-	details.add_child(career)
-	var action := VBoxContainer.new()
-	action.custom_minimum_size = Vector2(190, 0)
-	configure_staff_actions(action, member)
-	row.add_child(identity)
-	row.add_child(details)
-	row.add_child(action)
-	panel.add_child(row)
-	return panel
+		var hire := Button.new(); hire.text = "Hire · $%s" % number(GameManager.team.get_discounted_cost(member.signing_fee)); hire.theme_type_variation = &"PrimaryButton"; hire.pressed.connect(hire_member.bind(member)); actions.add_child(hire)
+	detail.add_child(actions)
 
+func add_rating(parent: VBoxContainer, label_text: String, value: int) -> void:
+	var label := Label.new(); label.text = "%s   %d · %s" % [label_text.to_upper(), value, selected.get_rating_grade()]; label.theme_type_variation = &"BodyStrong"; parent.add_child(label)
+	var bar := ProgressBar.new(); bar.value = value; bar.show_percentage = false; bar.custom_minimum_size.y = 8; parent.add_child(bar)
 
-func configure_staff_actions(container: VBoxContainer, member: StaffMember) -> void:
-	if member.hired:
-		var renew_button := Button.new()
-		renew_button.text = "Renew contract"
-		renew_button.tooltip_text = "Pay a renewal fee and improve morale."
-		renew_button.pressed.connect(_on_renew_pressed.bind(member, false))
-		var negotiate_button := Button.new()
-		negotiate_button.text = "Negotiate salary −5%"
-		negotiate_button.tooltip_text = "A hard negotiation lowers salary and morale."
-		negotiate_button.pressed.connect(_on_renew_pressed.bind(member, true))
-		var fire_button := Button.new()
-		fire_button.text = "Terminate"
-		fire_button.pressed.connect(_on_fire_pressed.bind(member))
-		container.add_child(renew_button)
-		container.add_child(negotiate_button)
-		container.add_child(fire_button)
-		return
-	var button := Button.new()
-	button.text = "Hire for $%s" % format_number(GameManager.team.get_discounted_cost(member.signing_fee))
-	button.theme_type_variation = &"PrimaryButton"
-	button.disabled = not GameManager.team.can_add_staff_role(member.role) or GameManager.team.money < GameManager.team.get_discounted_cost(member.signing_fee)
-	button.pressed.connect(_on_hire_pressed.bind(member))
-	container.add_child(button)
+func open_contract(member: StaffMember) -> void:
+	pending = member
+	contract_summary.text = "Current salary: $%s / race\nRequested salary: $%s / race\nDuration: %d races\nRival interest: %s\nProjected season cost: $%s" % [number(member.salary), number(member.salary), member.get_default_contract_length(), member.rival_interest, number(member.salary * member.get_default_contract_length())]
+	contract_dialog.popup_centered(Vector2i(520, 330))
 
+func _confirm_contract() -> void:
+	var hard := approach.selected == 2
+	if pending and GameManager.team.renew_staff_contract(pending, hard): show_status("Contract renewed with %s." % pending.staff_name, true); finish()
+	else: show_status("Offer rejected or funds unavailable.", false)
 
-func refresh_workshop() -> void:
-	available_engineers = GameManager.team.get_engineers()
-	populate_engineers(engineer_option)
-	populate_engineers(repair_engineer_option)
-	part_type_option.clear()
-	for part_type in CarPart.PART_TYPES:
-		part_type_option.add_item(part_type)
-	repairable_parts.clear()
-	repair_part_option.clear()
-	for part in GameManager.team.parts_inventory:
-		if part != null and part.condition < 100:
-			repairable_parts.append(part)
-			repair_part_option.add_item("%s — %d%%" % [part.part_name, part.condition])
-	manufacture_button.text = "Manufacture ($%s)" % format_number(GameManager.team.get_discounted_cost(Team.MANUFACTURING_BASE_COST))
-	manufacture_button.disabled = available_engineers.is_empty() or GameManager.team.money < GameManager.team.get_discounted_cost(Team.MANUFACTURING_BASE_COST)
-	repair_button.disabled = available_engineers.is_empty() or repairable_parts.is_empty()
+func open_fire(member: StaffMember) -> void:
+	pending = member; fire_dialog.dialog_text = "Terminate %s for $%s? This cannot be undone." % [member.staff_name, number(member.get_termination_fee())]; fire_dialog.popup_centered()
 
+func _confirm_fire() -> void:
+	if pending and GameManager.team.fire_staff(pending): selected = null; show_status("Contract terminated.", true); finish()
+	else: show_status("Termination failed. Check available funds.", false)
 
-func populate_engineers(option: OptionButton) -> void:
-	option.clear()
-	for engineer in available_engineers:
-		option.add_item("%s — performance %d / reliability %d" % [engineer.staff_name, engineer.primary_rating, engineer.secondary_rating])
+func hire_member(member: StaffMember) -> void:
+	if GameManager.team.hire_staff(member): selected = member; show_status("%s joined the team." % member.staff_name, true); finish()
+	else: show_status("Unable to hire: check funds and role capacity.", false)
 
+func show_status(text: String, success: bool) -> void:
+	status_panel.show(); status_message.text = ("SUCCESS  ·  " if success else "WARNING  ·  ") + text; status_message.theme_type_variation = &"SuccessLabel" if success else &"WarningLabel"
 
-func _on_hire_pressed(member: StaffMember) -> void:
-	if not GameManager.team.hire_staff(member):
-		status_label.text = "Unable to hire: check your funds and the role's roster limit."
-		return
-	status_label.text = "%s joined the team as %s." % [member.staff_name, member.role]
-	finish_transaction()
+func finish() -> void:
+	GameManager.refresh_team_money(); GameManager.save_game(); refresh()
 
+func add_label(parent: VBoxContainer, text: String, variation: StringName) -> void:
+	var label := Label.new(); label.text = text; label.theme_type_variation = variation; label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; parent.add_child(label)
 
-func _on_fire_pressed(member: StaffMember) -> void:
-	pending_fire_member = member
-	var fee := GameManager.team.get_discounted_cost(member.get_termination_fee())
-	fire_confirmation_dialog.dialog_text = "Terminate %s's contract for $%s?" % [member.staff_name, format_number(fee)]
-	fire_confirmation_dialog.popup_centered()
+func clear(node: Node) -> void:
+	for child in node.get_children(): child.queue_free()
 
-
-func _on_fire_confirmed() -> void:
-	if pending_fire_member == null or not GameManager.team.fire_staff(pending_fire_member):
-		status_label.text = "The contract could not be terminated. Check your funds."
-		return
-	status_label.text = "%s was released from the team." % pending_fire_member.staff_name
-	pending_fire_member = null
-	finish_transaction()
-
-
-func _on_renew_pressed(member: StaffMember, negotiate: bool) -> void:
-	if not GameManager.team.renew_staff_contract(member, negotiate):
-		status_label.text = "The contract could not be renewed. Check your funds."
-		return
-	status_label.text = "%s renewed for %d races%s." % [member.staff_name, member.contract_races_remaining, " at a lower salary" if negotiate else ""]
-	finish_transaction()
-
-
-func _on_manufacture_pressed() -> void:
-	if available_engineers.is_empty(): return
-	var engineer := available_engineers[engineer_option.selected]
-	var part := GameManager.team.manufacture_part(engineer, part_type_option.get_item_text(part_type_option.selected))
-	if part == null:
-		status_label.text = "The part could not be manufactured."
-		return
-	status_label.text = "%s manufactured %s: +%d performance at %d%% condition." % [engineer.staff_name, part.part_name, part.performance_bonus, part.condition]
-	finish_transaction()
-
-
-func _on_repair_pressed() -> void:
-	if available_engineers.is_empty() or repairable_parts.is_empty(): return
-	var engineer := available_engineers[repair_engineer_option.selected]
-	var part := repairable_parts[repair_part_option.selected]
-	var restored := GameManager.team.repair_part(engineer, part)
-	if restored <= 0:
-		status_label.text = "The repair could not be completed. Check your funds."
-		return
-	status_label.text = "%s restored %d condition to %s." % [engineer.staff_name, restored, part.part_name]
-	finish_transaction()
-
-
-func finish_transaction() -> void:
-	GameManager.refresh_team_money()
-	GameManager.save_game()
-	refresh_page()
-
-
-func clear_container(container: Node) -> void:
-	for child in container.get_children(): child.queue_free()
-
-
-func format_number(number: int) -> String:
-	var number_string := str(number)
-	var formatted := ""
-	while number_string.length() > 3:
-		formatted = "," + number_string.right(3) + formatted
-		number_string = number_string.left(number_string.length() - 3)
-	return number_string + formatted
+func number(value: int) -> String:
+	var raw := str(value); var result := ""
+	while raw.length() > 3: result = "," + raw.right(3) + result; raw = raw.left(raw.length() - 3)
+	return raw + result

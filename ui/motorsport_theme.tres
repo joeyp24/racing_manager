@@ -1,15 +1,15 @@
-[gd_resource type="Theme" load_steps=21 format=3]
+[gd_resource type="Theme" load_steps=22 format=3]
 
 [sub_resource type="SystemFont" id="FontRegular"]
-font_names = PackedStringArray("IBM Plex Sans", "Inter", "Aptos", "Segoe UI", "Noto Sans", "Arial")
+font_names = PackedStringArray("IBM Plex Sans", "Inter", "Noto Sans", "Segoe UI", "Arial")
 font_weight = 400
 
 [sub_resource type="SystemFont" id="FontMedium"]
-font_names = PackedStringArray("IBM Plex Sans", "Inter", "Aptos", "Segoe UI", "Noto Sans", "Arial")
+font_names = PackedStringArray("IBM Plex Sans", "Inter", "Noto Sans", "Segoe UI", "Arial")
 font_weight = 600
 
-[sub_resource type="SystemFont" id="FontBold"]
-font_names = PackedStringArray("Barlow Condensed", "IBM Plex Sans", "Inter", "Aptos Display", "Segoe UI", "Noto Sans", "Arial")
+[sub_resource type="SystemFont" id="FontDisplay"]
+font_names = PackedStringArray("Barlow Condensed", "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", "Inter")
 font_weight = 700
 
 [sub_resource type="StyleBoxFlat" id="ButtonNormal"]
@@ -228,7 +228,7 @@ Button/colors/font_disabled_color = Color(0.42, 0.46, 0.52, 1)
 Button/styles/normal = SubResource("ButtonNormal")
 Button/styles/hover = SubResource("ButtonHover")
 Button/styles/pressed = SubResource("ButtonPressed")
-Button/styles/focus = SubResource("ButtonHover")
+Button/styles/focus = SubResource("ButtonPressed")
 Button/styles/disabled = SubResource("ButtonNormal")
 Button/font_sizes/font_size = 14
 Button/fonts/font = SubResource("FontMedium")
@@ -251,7 +251,7 @@ PrimaryButton/styles/pressed = SubResource("ButtonPressed")
 PrimaryButton/styles/focus = SubResource("PrimaryHover")
 PrimaryButton/colors/font_color = Color(1, 1, 1, 1)
 PrimaryButton/font_sizes/font_size = 15
-PrimaryButton/fonts/font = SubResource("FontBold")
+PrimaryButton/fonts/font = SubResource("FontDisplay")
 NavigationButton/base_type = &"Button"
 NavigationButton/styles/normal = SubResource("NavNormal")
 NavigationButton/styles/hover = SubResource("NavHover")
@@ -272,29 +272,29 @@ SidebarPanel/styles/panel = SubResource("Sidebar")
 TopbarPanel/base_type = &"PanelContainer"
 TopbarPanel/styles/panel = SubResource("Topbar")
 PageTitle/base_type = &"Label"
-PageTitle/font_sizes/font_size = 30
+PageTitle/font_sizes/font_size = 28
 PageTitle/colors/font_color = Color(0.98, 0.99, 1, 1)
-PageTitle/fonts/font = SubResource("FontBold")
+PageTitle/fonts/font = SubResource("FontDisplay")
 SectionTitle/base_type = &"Label"
-SectionTitle/font_sizes/font_size = 19
+SectionTitle/font_sizes/font_size = 17
 SectionTitle/colors/font_color = Color(0.96, 0.97, 0.99, 1)
 SectionTitle/fonts/font = SubResource("FontMedium")
 StatValue/base_type = &"Label"
-StatValue/font_sizes/font_size = 25
+StatValue/font_sizes/font_size = 34
 StatValue/colors/font_color = Color(1, 1, 1, 1)
-StatValue/fonts/font = SubResource("FontBold")
+StatValue/fonts/font = SubResource("FontDisplay")
 MutedLabel/base_type = &"Label"
-MutedLabel/font_sizes/font_size = 12
-MutedLabel/colors/font_color = Color(0.52, 0.58, 0.66, 1)
+MutedLabel/font_sizes/font_size = 13
+MutedLabel/colors/font_color = Color(0.64, 0.69, 0.76, 1)
 EyebrowLabel/base_type = &"Label"
 EyebrowLabel/font_sizes/font_size = 11
 EyebrowLabel/colors/font_color = Color(0.95, 0.35, 0.18, 1)
-EyebrowLabel/fonts/font = SubResource("FontBold")
+EyebrowLabel/fonts/font = SubResource("FontDisplay")
 
 CardTitle/base_type = &"Label"
 CardTitle/font_sizes/font_size = 20
 CardTitle/colors/font_color = Color(0.98, 0.99, 1, 1)
-CardTitle/fonts/font = SubResource("FontBold")
+CardTitle/fonts/font = SubResource("FontDisplay")
 BodyStrong/base_type = &"Label"
 BodyStrong/font_sizes/font_size = 15
 BodyStrong/colors/font_color = Color(0.93, 0.95, 0.98, 1)
@@ -306,3 +306,20 @@ StatusLabel/fonts/font = SubResource("FontMedium")
 TabContainer/font_sizes/font_size = 14
 TabContainer/fonts/font = SubResource("FontMedium")
 PopupMenu/font_sizes/font_size = 14
+
+SuccessLabel/base_type = &"Label"
+SuccessLabel/font_sizes/font_size = 13
+SuccessLabel/colors/font_color = Color(0.35, 0.88, 0.58, 1)
+InfoLabel/base_type = &"Label"
+InfoLabel/font_sizes/font_size = 13
+InfoLabel/colors/font_color = Color(0.48, 0.72, 1, 1)
+WarningLabel/base_type = &"Label"
+WarningLabel/font_sizes/font_size = 13
+WarningLabel/colors/font_color = Color(1, 0.72, 0.3, 1)
+DangerLabel/base_type = &"Label"
+DangerLabel/font_sizes/font_size = 13
+DangerLabel/colors/font_color = Color(1, 0.38, 0.35, 1)
+DangerButton/base_type = &"Button"
+DangerButton/colors/font_color = Color(1, 0.48, 0.45, 1)
+DangerButton/styles/normal = SubResource("ButtonNormal")
+DangerButton/styles/hover = SubResource("ButtonHover")

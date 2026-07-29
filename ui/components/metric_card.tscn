@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[node name="MetricCard" type="PanelContainer"]
+custom_minimum_size = Vector2(150, 72)
+theme_type_variation = &"CardPanel"
+
+[node name="Content" type="VBoxContainer" parent="."]
+theme_override_constants/separation = 2
+
+[node name="Label" type="Label" parent="Content"]
+theme_type_variation = &"EyebrowLabel"
+text = "METRIC"
+
+[node name="Value" type="Label" parent="Content"]
+theme_type_variation = &"CardTitle"
+text = "0"
+
+[node name="Context" type="Label" parent="Content"]
+theme_type_variation = &"MutedLabel"
+text = "Context"

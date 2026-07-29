@@ -1,0 +1,26 @@
+[gd_scene format=3]
+
+[node name="PageHeader" type="VBoxContainer"]
+theme_override_constants/separation = 4
+
+[node name="Eyebrow" type="Label" parent="."]
+theme_type_variation = &"EyebrowLabel"
+text = "TEAM / AREA"
+
+[node name="TitleRow" type="HBoxContainer" parent="."]
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="TitleRow"]
+size_flags_horizontal = 3
+theme_type_variation = &"PageTitle"
+text = "Page title"
+
+[node name="PrimaryAction" type="Button" parent="TitleRow"]
+visible = false
+theme_type_variation = &"PrimaryButton"
+text = "Primary action"
+
+[node name="Description" type="Label" parent="."]
+theme_type_variation = &"MutedLabel"
+text = "A concise explanation of the decisions available on this page."
+autowrap_mode = 2
