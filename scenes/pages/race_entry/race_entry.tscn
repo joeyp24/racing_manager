@@ -1,89 +1,230 @@
-[gd_scene format=3 uid="uid://b8f4q7cyf6sku"]
+[gd_scene load_steps=2 format=3 uid="uid://b8f4q7cyf6sku"]
 
-[ext_resource type="Script" uid="uid://dq3kuwvyekasy" path="res://scenes/pages/race_entry/race_entry.gd" id="1_6jwqh"]
+[ext_resource type="Script" uid="uid://dq3kuwvyekasy" path="res://scenes/pages/race_entry/race_entry.gd" id="1"]
 
-[node name="race_entry" type="Control" unique_id=391791362]
+[node name="race_entry" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_6jwqh")
+script = ExtResource("1")
 
-[node name="margin_container" type="MarginContainer" parent="." unique_id=637104137]
+[node name="Scroll" type="ScrollContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+horizontal_scroll_mode = 0
 
-[node name="race_entry_container" type="VBoxContainer" parent="margin_container" unique_id=107656130]
+[node name="Margin" type="MarginContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="Content" type="VBoxContainer" parent="Scroll/Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="Header" type="HBoxContainer" parent="Scroll/Margin/Content"]
 layout_mode = 2
 
-[node name="title_label" type="Label" parent="margin_container/race_entry_container" unique_id=1584361617]
+[node name="Titles" type="VBoxContainer" parent="Scroll/Margin/Content/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Eyebrow" type="Label" parent="Scroll/Margin/Content/Header/Titles"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "RACE OPERATIONS CENTER // PRE-RACE"
+
+[node name="race_name_label" type="Label" parent="Scroll/Margin/Content/Header/Titles"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PageTitle"
+text = "Event"
+
+[node name="back_button" type="Button" parent="Scroll/Margin/Content/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 42)
+layout_mode = 2
+text = "←  CALENDAR"
+
+[node name="Event" type="PanelContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"HeroPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Event"]
+layout_mode = 2
+
+[node name="event_details_label" type="Label" parent="Scroll/Margin/Content/Event/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Track and race details"
+
+[node name="prize_label" type="Label" parent="Scroll/Margin/Content/Event/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Prize structure"
+
+[node name="Main" type="HBoxContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Left" type="VBoxContainer" parent="Scroll/Margin/Content/Main"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="Entry" type="PanelContainer" parent="Scroll/Margin/Content/Main/Left"]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Main/Left/Entry"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Main/Left/Entry/Stack"]
+layout_mode = 2
 theme_type_variation = &"SectionTitle"
+text = "Entry // Car Selection"
+
+[node name="selected_car_label" type="Label" parent="Scroll/Margin/Content/Main/Left/Entry/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Race Entry"
+text = "No car selected"
 
-[node name="race_name_label" type="Label" parent="margin_container/race_entry_container" unique_id=1856814189]
+[node name="parts_label" type="Label" parent="Scroll/Margin/Content/Main/Left/Entry/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+autowrap_mode = 2
+text = "Installed package"
+
+[node name="cars_container" type="GridContainer" parent="Scroll/Margin/Content/Main/Left/Entry/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="Crew" type="PanelContainer" parent="Scroll/Margin/Content/Main/Left"]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Main/Left/Crew"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Main/Left/Crew/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Crew Allocation"
+
+[node name="crew_label" type="Label" parent="Scroll/Margin/Content/Main/Left/Crew/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+text = "Crew assignments"
+
+[node name="crew_effects_label" type="Label" parent="Scroll/Margin/Content/Main/Left/Crew/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+autowrap_mode = 2
+text = "Operational effects"
+
+[node name="Strategy" type="PanelContainer" parent="Scroll/Margin/Content/Main/Left"]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Main/Left/Strategy"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Main/Left/Strategy/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Race Strategy"
+
+[node name="strategy_selector" type="OptionButton" parent="Scroll/Margin/Content/Main/Left/Strategy/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="race_details_label" type="Label" parent="margin_container/race_entry_container" unique_id=688120151]
+[node name="strategy_preview_label" type="Label" parent="Scroll/Margin/Content/Main/Left/Strategy/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
+autowrap_mode = 2
+text = "Strategy effects"
 
-[node name="instructions_label" type="Label" parent="margin_container/race_entry_container" unique_id=179023723]
+[node name="Right" type="VBoxContainer" parent="Scroll/Margin/Content/Main"]
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="Forecast" type="PanelContainer" parent="Scroll/Margin/Content/Main/Right"]
+layout_mode = 2
+theme_type_variation = &"HeroPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Main/Right/Forecast"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Main/Right/Forecast/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Race Forecast"
+
+[node name="forecast_label" type="Label" parent="Scroll/Margin/Content/Main/Right/Forecast/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Select a car to enter this event"
+autowrap_mode = 2
+text = "Expected finishing range"
 
-[node name="cars_scroll_container" type="ScrollContainer" parent="margin_container/race_entry_container" unique_id=972782784]
+[node name="risks_label" type="Label" parent="Scroll/Margin/Content/Main/Right/Forecast/Stack"]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
+theme_type_variation = &"MutedLabel"
+autowrap_mode = 2
+text = "Primary risks"
 
-[node name="cars_container" type="GridContainer" parent="margin_container/race_entry_container/cars_scroll_container" unique_id=748438134]
+[node name="Readiness" type="VBoxContainer" parent="Scroll/Margin/Content/Main/Right"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Main/Right/Readiness"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Entry Readiness"
+
+[node name="readiness_summary_label" type="Label" parent="Scroll/Margin/Content/Main/Right/Readiness"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "REVIEWING SYSTEMS"
+
+[node name="readiness_container" type="VBoxContainer" parent="Scroll/Margin/Content/Main/Right/Readiness"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Actions" type="HBoxContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+
+[node name="status_label" type="Label" parent="Scroll/Margin/Content/Actions"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-columns = 2
+theme_type_variation = &"MutedLabel"
+text = "Reviewing entry package..."
 
-[node name="selected_car_label" type="Label" parent="margin_container/race_entry_container" unique_id=1276730893]
+[node name="confirm_button" type="Button" parent="Scroll/Margin/Content/Actions"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(250, 48)
 layout_mode = 2
-text = "Selected Car: None"
-
-[node name="strategy_title_label" type="Label" parent="margin_container/race_entry_container"]
-theme_type_variation = &"SectionTitle"
-layout_mode = 2
-text = "Race Strategy"
-
-[node name="strategy_selector" type="OptionButton" parent="margin_container/race_entry_container"]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="strategy_preview_label" type="Label" parent="margin_container/race_entry_container"]
-unique_name_in_owner = true
-layout_mode = 2
-autowrap_mode = 3
-
-[node name="status_label" type="Label" parent="margin_container/race_entry_container" unique_id=1593441103]
-theme_type_variation = &"StatusLabel"
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="buttons_container" type="HBoxContainer" parent="margin_container/race_entry_container" unique_id=580248580]
-layout_mode = 2
-
-[node name="back_button" type="Button" parent="margin_container/race_entry_container/buttons_container" unique_id=1432441203]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Back"
-
-[node name="confirm_button" type="Button" parent="margin_container/race_entry_container/buttons_container" unique_id=2095647978]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Confirm Entry"
+theme_type_variation = &"PrimaryButton"
+text = "COMMIT ENTRY  →"

@@ -8,9 +8,10 @@ extends Control
 @onready var garage_value_label: Label = %garage_value_label
 @onready var reputation_label: Label = %reputation_label
 @onready var sponsor_label: Label = %sponsor_label
-@onready var driver_ready_label: Label = %driver_ready_label
-@onready var car_ready_label: Label = %car_ready_label
-@onready var funds_ready_label: Label = %funds_ready_label
+@onready var readiness_container: VBoxContainer = %readiness_container
+@onready var readiness_summary_label: Label = %readiness_summary_label
+
+const READINESS_ROW_SCENE: PackedScene = preload("res://ui/components/readiness_row.tscn")
 
 
 func _ready() -> void:
@@ -120,19 +121,8 @@ func update_next_race() -> void:
 		)
 		return
 
-	var race_id: String = str(
-		GameManager.team.unlocked_races.back()
-	)
-
-	next_race_label.text = (
-		"Next Race: %s"
-		% race_id.capitalize()
-	)
-
-	next_race_label.text = (
-		"Next Race: %s"
-		% race_id.capitalize().replace("_", " ")
-	)
+	var race := RaceManager.get_next_race(GameManager.team)
+	next_race_label.text = "Next Race: %s" % (race.race_name if race != null else "No event available")
 
 
 func update_championship_summary() -> void:
@@ -227,20 +217,51 @@ func get_garage_value(team: Team) -> int:
 
 
 func update_readiness(team: Team) -> void:
-	set_readiness(driver_ready_label, team.driver_hired_for_season, "Driver contracted", "Driver required")
-	set_readiness(car_ready_label, get_cars_owned(team) > 0, "Eligible car available", "No car available")
-	set_readiness(funds_ready_label, team.money > 0, "Entry funds available", "Funding required")
-
-
-func set_readiness(label: Label, ready: bool, ready_text: String, blocked_text: String) -> void:
-	label.text = ("✓  " + ready_text) if ready else ("!  " + blocked_text)
-	label.modulate = Color("43d68a") if ready else Color("ffb547")
+	for child in readiness_container.get_children():
+		child.queue_free()
+	var race := RaceManager.get_next_race(team)
+	if race == null:
+		readiness_summary_label.text = "No active event"
+		return
+	var checks := RaceReadiness.evaluate(team, race)
+	var overall := RaceReadiness.get_overall_status(checks)
+	readiness_summary_label.text = {
+		RaceReadiness.READY: "ALL SYSTEMS READY",
+		RaceReadiness.SUBOPTIMAL: "ENTRY POSSIBLE • REVIEW WARNINGS",
+		RaceReadiness.BLOCKED: "ACTION REQUIRED BEFORE ENTRY"
+	}.get(overall, "REVIEW REQUIRED")
+	readiness_summary_label.modulate = {
+		RaceReadiness.READY: Color("43d68a"),
+		RaceReadiness.SUBOPTIMAL: Color("ffb547"),
+		RaceReadiness.BLOCKED: Color("ff667a")
+	}.get(overall, Color.WHITE)
+	for check in checks:
+		var row := READINESS_ROW_SCENE.instantiate() as ReadinessRow
+		readiness_container.add_child(row)
+		row.setup(check)
+		row.action_requested.connect(_on_readiness_action_requested)
 
 
 func _on_prepare_race_pressed() -> void:
-	GameManager.selected_race = null
+	GameManager.selected_race = RaceManager.get_next_race(GameManager.team)
 	GameManager.selected_car = null
-	GameManager.load_page("res://scenes/pages/race_calendar/race_calendar.tscn")
+	if GameManager.selected_race == null:
+		GameManager.load_page("res://scenes/pages/race_calendar/race_calendar.tscn")
+		return
+	GameManager.load_page("res://scenes/pages/race_entry/race_entry.tscn")
+
+
+func _on_readiness_action_requested(action: String) -> void:
+	var pages := {
+		"drivers": "res://scenes/pages/drivers/drivers.tscn",
+		"garage": "res://scenes/pages/garage/garage.tscn",
+		"staff": "res://scenes/pages/staff/staff.tscn",
+		"finances": "res://scenes/pages/finances/finances.tscn",
+		"sponsors": "res://scenes/pages/sponsors/sponsors.tscn"
+	}
+	var path := str(pages.get(action, ""))
+	if not path.is_empty():
+		GameManager.load_page(path)
 
 func get_ordinal(number: int) -> String:
 	var final_two_digits: int = number % 100
