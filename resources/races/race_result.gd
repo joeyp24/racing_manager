@@ -36,4 +36,13 @@ var strategy_performance_modifier: float = 1.0
 var strategy_variance_modifier: float = 1.0
 var strategy_wear_modifier: float = 1.0
 
+var starting_position: int = 0
+var positions_gained: int = 0
+var practice_focus_name: String = ""
+var qualifying_approach_name: String = ""
+var qualifying_score: float = 0.0
+var setup_bonus: float = 0.0
+var strategy_effectiveness: float = 0.0
+var weekend_summary: Array[String] = []
+
 var standings: Array[Dictionary] = []

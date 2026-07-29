@@ -9,6 +9,7 @@ var selected_car = null
 var selected_bay: int = -1
 var selected_race: Race = null
 var page_container: Control = null
+var active_race_weekend: Dictionary = {}
 
 
 func _ready() -> void:
@@ -74,6 +75,7 @@ func clear_selected_data() -> void:
 	selected_car = null
 	selected_bay = -1
 	selected_race = null
+	active_race_weekend.clear()
 
 
 func reload_current_page() -> void:
