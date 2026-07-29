@@ -23,7 +23,7 @@ offset_bottom = -12.0
 
 [node name="Layout" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 
 [node name="Eyebrow" type="Label" parent="Margin/Layout"]
 theme_type_variation = &"EyebrowLabel"
@@ -33,12 +33,8 @@ text = "TEAM  /  PERSONNEL"
 theme_type_variation = &"PageTitle"
 text = "Staff & Race Crew"
 
-[node name="Subtitle" type="Label" parent="Margin/Layout"]
-theme_type_variation = &"MutedLabel"
-text = "Build a balanced crew, understand their race impact, and manage contract risk."
-
 [node name="Metrics" type="GridContainer" parent="Margin/Layout"]
-columns = 2
+columns = 4
 theme_override_constants/separation = 8
 
 [node name="Positions" type="PanelContainer" parent="Margin/Layout/Metrics"]
@@ -77,6 +73,7 @@ autowrap_mode = 2
 [node name="Tabs" type="TabContainer" parent="Margin/Layout"]
 layout_mode = 2
 size_flags_vertical = 3
+current_tab = 1
 
 [node name="Roster" type="HSplitContainer" parent="Margin/Layout/Tabs"]
 layout_mode = 2
@@ -103,6 +100,7 @@ theme_override_constants/separation = 8
 
 [node name="Hiring Market" type="VBoxContainer" parent="Margin/Layout/Tabs"]
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 8
 [node name="Filters" type="GridContainer" parent="Margin/Layout/Tabs/Hiring Market"]
 columns = 2
@@ -124,9 +122,11 @@ prefix = "Min rating  "
 unique_name_in_owner = true
 [node name="Scroll" type="ScrollContainer" parent="Margin/Layout/Tabs/Hiring Market"]
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 [node name="market_rows" type="VBoxContainer" parent="Margin/Layout/Tabs/Hiring Market/Scroll"]
 unique_name_in_owner = true
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 8
 
 [node name="Status" type="PanelContainer" parent="Margin/Layout"]
