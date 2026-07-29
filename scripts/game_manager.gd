@@ -40,6 +40,7 @@ func load_game() -> void:
 
 	if loaded_team != null:
 		team = loaded_team
+		team.ensure_departments()
 		team.ensure_default_player_driver()
 		team.ensure_driver_market()
 		team.ensure_car_parts()

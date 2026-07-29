@@ -9,6 +9,8 @@ extends Control
 @onready var shop_button: Button = %shop_button
 @onready var dealership_button: Button = %dealership_button
 @onready var sponsors_button: Button = %sponsors_button
+@onready var hq_button: Button = %hq_button
+@onready var scouting_button: Button = %scouting_button
 @onready var money_label: Label = %money_label
 
 
@@ -38,6 +40,8 @@ func _ready() -> void:
 	shop_button.pressed.connect(_on_shop_button_pressed)
 	dealership_button.pressed.connect(_on_dealership_button_pressed)
 	sponsors_button.pressed.connect(_on_sponsors_button_pressed)
+	hq_button.pressed.connect(_on_hq_button_pressed)
+	scouting_button.pressed.connect(_on_scouting_button_pressed)
 
 	if not GameManager.team_money_changed.is_connected(
 		_on_team_money_changed
@@ -47,6 +51,7 @@ func _ready() -> void:
 		)
 
 	update_team_display()
+	update_unlocked_navigation()
 
 	GameManager.load_page(
 		"res://scenes/pages/dashboard/dashboard.tscn"
@@ -121,6 +126,21 @@ func _on_dealership_button_pressed() -> void:
 
 func _on_sponsors_button_pressed() -> void:
 	GameManager.load_page("res://scenes/pages/sponsors/sponsors.tscn")
+
+
+func _on_hq_button_pressed() -> void:
+	GameManager.load_page("res://scenes/pages/departments/departments.tscn")
+
+
+func _on_scouting_button_pressed() -> void:
+	GameManager.load_page("res://scenes/pages/scouting/scouting.tscn")
+
+
+func update_unlocked_navigation() -> void:
+	scouting_button.visible = (
+		GameManager.team != null
+		and GameManager.team.get_department_level("scouting") > 0
+	)
 
 
 func _on_reset_game_button_pressed() -> void:

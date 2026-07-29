@@ -16,6 +16,7 @@ func refresh_shop() -> void:
 	for child in offers_container.get_children():
 		child.queue_free()
 	for part in store_inventory:
+		var purchase_cost := GameManager.team.get_discounted_cost(part.purchase_price)
 		var panel := PanelContainer.new()
 		panel.custom_minimum_size = Vector2(225, 145)
 		var margin := MarginContainer.new()
@@ -30,8 +31,8 @@ func refresh_shop() -> void:
 		var details := Label.new()
 		details.text = "%s tier\n%s\nPerformance +%d" % [part.tier, part.get_effect_text(), part.performance_bonus]
 		var buy_button := Button.new()
-		buy_button.text = "Buy — $%s" % format_number(part.purchase_price)
-		buy_button.disabled = GameManager.team.money < part.purchase_price
+		buy_button.text = "Buy — $%s" % format_number(purchase_cost)
+		buy_button.disabled = GameManager.team.money < purchase_cost
 		buy_button.pressed.connect(_on_buy_pressed.bind(part))
 		content.add_child(title)
 		content.add_child(details)

@@ -117,7 +117,10 @@ func update_repair_display(car: Car) -> void:
 func calculate_repair_cost(car: Car) -> int:
 	var missing_condition: int = maxi(0, MAX_CAR_CONDITION - car.condition)
 	var value_based_cost: int = roundi(float(car.value) * REPAIR_VALUE_PERCENTAGE_PER_POINT)
-	return missing_condition * maxi(MINIMUM_REPAIR_COST_PER_POINT, value_based_cost)
+	var base_cost := missing_condition * maxi(MINIMUM_REPAIR_COST_PER_POINT, value_based_cost)
+	var engineering_discount := GameManager.team.get_department_bonus("engineering")
+	var improved_cost := ceili(float(base_cost) * (1.0 - engineering_discount / 100.0))
+	return GameManager.team.get_discounted_cost(improved_cost)
 
 
 func _on_repair_button_pressed() -> void:

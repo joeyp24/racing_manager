@@ -81,6 +81,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "HQ"
 
+[node name="scouting_button" type="Button" parent="page_margin/main_layout/sidebar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Scouting"
+
 [node name="sponsors_button" type="Button" parent="page_margin/main_layout/sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
