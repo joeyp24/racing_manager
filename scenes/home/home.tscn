@@ -19,7 +19,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.027, 0.038, 0.053, 1)
+color = Color(0.018, 0.02, 0.04, 1)
 
 [node name="Layout" type="HBoxContainer" parent="."]
 layout_mode = 1
@@ -31,16 +31,16 @@ grow_vertical = 2
 theme_override_constants/separation = 0
 
 [node name="Sidebar" type="PanelContainer" parent="Layout"]
-custom_minimum_size = Vector2(216, 0)
+custom_minimum_size = Vector2(198, 0)
 layout_mode = 2
 theme_type_variation = &"SidebarPanel"
 
 [node name="Margin" type="MarginContainer" parent="Layout/Sidebar"]
 layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="Scroll" type="ScrollContainer" parent="Layout/Sidebar/Margin"]
 layout_mode = 2
@@ -58,9 +58,9 @@ theme_override_constants/separation = 10
 [node name="Badge" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content/TeamHeader"]
 custom_minimum_size = Vector2(42, 42)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.3, 0.12, 1)
+theme_override_colors/font_color = Color(0.82, 0.32, 1, 1)
 theme_override_font_sizes/font_size = 24
-text = "◆"
+text = "RM"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -94,7 +94,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Dashboard"
+text = "▦   Dashboard"
 alignment = 0
 
 [node name="race_calendar_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -102,7 +102,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Calendar"
+text = "▤   Calendar"
 alignment = 0
 
 [node name="championship_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -110,7 +110,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Championship"
+text = "★   Championship"
 alignment = 0
 
 [node name="TeamLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -123,7 +123,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Garage"
+text = "◇   Garage"
 alignment = 0
 
 [node name="race_teams_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -131,7 +131,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Race Teams"
+text = "▥   Race Teams"
 alignment = 0
 
 [node name="drivers_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -139,7 +139,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Drivers"
+text = "●   Drivers"
 alignment = 0
 
 [node name="staff_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -147,7 +147,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Staff"
+text = "◆   Staff"
 alignment = 0
 
 [node name="OperationsLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -160,7 +160,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Marketplace"
+text = "▧   Marketplace"
 alignment = 0
 
 [node name="dealership_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -177,7 +177,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Sponsors"
+text = "◈   Sponsors"
 alignment = 0
 
 [node name="finances_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -185,7 +185,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Finances"
+text = "$   Finances"
 alignment = 0
 
 [node name="FacilitiesLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -198,7 +198,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Headquarters"
+text = "▣   Headquarters"
 alignment = 0
 
 [node name="scouting_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -206,7 +206,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Scouting  ·  LOCKED"
+text = "⌕   Scouting  ·  LOCKED"
 alignment = 0
 
 [node name="Spacer" type="Control" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -218,7 +218,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "Team Identity"
+text = "◉   Team Identity"
 alignment = 0
 
 [node name="glossary_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -242,28 +242,28 @@ text = "Settings"
 [node name="RightSide" type="VBoxContainer" parent="Layout"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 0
 
 [node name="OuterMargin" type="MarginContainer" parent="Layout/RightSide"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 14
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
 
 [node name="Stack" type="VBoxContainer" parent="Layout/RightSide/OuterMargin"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
 [node name="TopBar" type="PanelContainer" parent="Layout/RightSide/OuterMargin/Stack"]
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_type_variation = &"TopbarPanel"
 
 [node name="Status" type="HBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 14
 
 [node name="MoneyBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
 layout_mode = 2
