@@ -30,6 +30,15 @@ var third_place_prize: int = 1000
 
 @export_range(1, 100, 1)
 var difficulty: int = 25
+@export_range(0.0, 1.0) var power_demand: float = 0.50
+@export_range(0.0, 1.0) var handling_demand: float = 0.50
+@export_range(0.5, 2.0) var tyre_wear_factor: float = 1.0
+@export_range(0.5, 2.0) var fuel_consumption_factor: float = 1.0
+@export_range(0.0, 1.0) var overtaking_difficulty: float = 0.50
+@export_range(4.0, 30.0) var pit_lane_time_loss: float = 8.0
+@export_range(0.0, 2.0) var accident_factor: float = 1.0
+@export_range(0.0, 2.0) var mechanical_stress: float = 1.0
+@export_enum("Top Speed", "Balanced", "High Grip") var preferred_setup: String = "Balanced"
 
 @export_multiline var description: String = ""
 

@@ -4,4 +4,11 @@
 
 [resource]
 script = ExtResource("1_b1kgu")
+horsepower = 50
+aerodynamic_efficiency = 50
+mechanical_grip = 50
+braking = 50
+tyre_preservation = 52
+fuel_efficiency = 50
+reliability = 78
 metadata/_custom_type_script = "uid://xfetmj3klkbk"

@@ -258,7 +258,7 @@ text = "Box This Lap"
 [node name="SetupLabel" type="Label" parent="Root/Main/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
-text = "LIVE SETUP"
+text = "DRIVER ADJUSTMENT"
 
 [node name="SetupRow" type="HBoxContainer" parent="Root/Main/PitWall/ControlsCard/Controls"]
 layout_mode = 2
@@ -273,7 +273,7 @@ size_flags_horizontal = 3
 unique_name_in_owner = true
 custom_minimum_size = Vector2(86, 0)
 layout_mode = 2
-text = "Apply"
+text = "Adjust Bias"
 
 [node name="Rule" type="HSeparator" parent="Root/Main/PitWall/ControlsCard/Controls"]
 layout_mode = 2

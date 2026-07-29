@@ -21,6 +21,9 @@ var part_type: String = "Engine"
 @export var sale_price: int = 0
 @export_range(0, 100) var condition: int = 100
 @export var manufactured_by: String = ""
+@export_range(-30, 30) var reliability_modifier: int = 0
+@export_range(-20, 20) var tyre_wear_modifier: int = 0
+@export_range(-20, 20) var fuel_efficiency_modifier: int = 0
 
 
 func get_effect_text() -> String:
@@ -34,3 +37,21 @@ func get_summary() -> String:
 
 func get_effective_performance_bonus() -> int:
 	return roundi(float(performance_bonus) * float(condition) / 100.0)
+
+
+func get_attribute_key() -> String:
+	var normalized := effect_name.to_lower()
+	if "power" in normalized or part_type == "Engine": return "power"
+	if "aero" in normalized or part_type == "Body": return "aero"
+	if "brak" in normalized or part_type == "Brakes": return "braking"
+	if "fuel" in normalized: return "fuel"
+	if "tyre" in normalized: return "tyres"
+	return "grip"
+
+
+func get_effective_attribute_modifier() -> float:
+	return float(effect_value) * float(condition) / 100.0
+
+
+func get_effective_reliability_modifier() -> float:
+	return float(reliability_modifier) * float(condition) / 100.0

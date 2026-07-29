@@ -180,7 +180,10 @@ func create_live_simulation(
 		AI_DRIVERS,
 		ai_scores,
 		compound,
-		_build_additional_team_entries(selected_race, selected_strategy, weekend_data)
+		_build_additional_team_entries(selected_race, selected_strategy, weekend_data),
+		int(weekend_data.get("simulation_seed", -1)),
+		player_car.get_race_attributes(),
+		str(weekend_data.get("setup_emphasis", "Balanced"))
 	)
 	return simulation
 

@@ -14,14 +14,22 @@ var last_lap_time: float = 0.0
 var best_lap_time: float = 0.0
 var base_pace: float = 0.0
 var consistency: int = 50
+var aggression: int = 50
+var reliability: float = 75.0
+var fuel_efficiency: float = 50.0
+var tyre_preservation: float = 50.0
 
 var tyre_compound: String = "Medium"
 var tyre_condition: float = 100.0
 var fuel_remaining: float = 100.0
+var fuel_laps: float = 0.0
 var car_condition: float = 100.0
 var pit_stops: int = 0
 var pending_pit_compound: String = ""
 var setup_mode: String = "Balanced"
+var brake_bias: String = "Neutral"
+var retired_lap: int = 0
+var incident_time_loss: float = 0.0
 
 var pace_mode: String = "Balanced"
 var pending_pace_mode: String = "Balanced"

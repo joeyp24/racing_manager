@@ -4,6 +4,8 @@ class_name SaveManager
 const SAVE_DIRECTORY: String = "user://saves"
 const LEGACY_SAVE_PATH: String = "user://team_save.tres"
 const SAVE_EXTENSION: String = ".tres"
+const BACKUP_EXTENSION: String = ".backup.tres"
+const TEMP_EXTENSION: String = ".temporary.tres"
 
 
 static func ensure_save_directory() -> bool:
@@ -53,22 +55,55 @@ static func save_game(team: Team, slot_id: String) -> bool:
 		push_error("Cannot save without a team and save slot.")
 		return false
 	team.last_saved_unix_time = int(Time.get_unix_time_from_system())
-	var error := ResourceSaver.save(team, get_save_path(slot_id))
+	team.save_format_version = Team.CURRENT_SAVE_FORMAT_VERSION
+	var save_path := get_save_path(slot_id)
+	var temporary_path := save_path.trim_suffix(SAVE_EXTENSION) + TEMP_EXTENSION
+	var backup_path := save_path.trim_suffix(SAVE_EXTENSION) + BACKUP_EXTENSION
+	var error := ResourceSaver.save(team, temporary_path)
 	if error != OK:
 		push_error("Failed to save slot '%s'. Error code: %d" % [slot_id, error])
+		return false
+	var temporary_resource := ResourceLoader.load(temporary_path, "", ResourceLoader.CACHE_MODE_IGNORE)
+	if not temporary_resource is Team:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
+		push_error("Save verification failed for slot '%s'." % slot_id)
+		return false
+	if FileAccess.file_exists(save_path):
+		if FileAccess.file_exists(backup_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(save_path), ProjectSettings.globalize_path(backup_path))
+	error = DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary_path), ProjectSettings.globalize_path(save_path))
+	if error != OK:
+		push_error("Could not atomically replace slot '%s'. Error code: %d" % [slot_id, error])
 		return false
 	return true
 
 
 static func load_game(slot_id: String) -> Team:
 	var save_path := get_save_path(slot_id)
-	if not ResourceLoader.exists(save_path):
+	var backup_path := save_path.trim_suffix(SAVE_EXTENSION) + BACKUP_EXTENSION
+	if not ResourceLoader.exists(save_path) and not ResourceLoader.exists(backup_path):
 		return null
-	var loaded := ResourceLoader.load(save_path, "", ResourceLoader.CACHE_MODE_IGNORE)
+	var loaded := ResourceLoader.load(save_path, "", ResourceLoader.CACHE_MODE_IGNORE) if ResourceLoader.exists(save_path) else null
 	if not loaded is Team:
-		push_error("Save slot '%s' does not contain a Team resource." % slot_id)
-		return null
-	return loaded as Team
+		loaded = ResourceLoader.load(backup_path, "", ResourceLoader.CACHE_MODE_IGNORE) if ResourceLoader.exists(backup_path) else null
+		if not loaded is Team:
+			push_error("Save slot '%s' is corrupt and no valid backup was found." % slot_id)
+			return null
+	var team := loaded as Team
+	_repair_and_migrate(team)
+	return team
+
+
+static func _repair_and_migrate(team: Team) -> void:
+	# Resource defaults cover newly introduced scalar fields; these calls repair collections.
+	team.ensure_departments()
+	team.ensure_default_player_driver()
+	team.ensure_driver_market()
+	team.ensure_car_parts()
+	team.ensure_staff_market()
+	team.ensure_race_teams()
+	team.save_format_version = Team.CURRENT_SAVE_FORMAT_VERSION
 
 
 static func get_save_slots() -> Array[Dictionary]:
@@ -79,6 +114,8 @@ static func get_save_slots() -> Array[Dictionary]:
 	if directory == null:
 		return slots
 	for file_name in directory.get_files():
+		if file_name.ends_with(BACKUP_EXTENSION) or file_name.ends_with(TEMP_EXTENSION):
+			continue
 		if not file_name.ends_with(SAVE_EXTENSION):
 			continue
 		var slot_id := file_name.trim_suffix(SAVE_EXTENSION)
@@ -102,6 +139,9 @@ static func delete_save(slot_id: String) -> bool:
 	if not FileAccess.file_exists(path):
 		return true
 	var error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	var backup_path := path.trim_suffix(SAVE_EXTENSION) + BACKUP_EXTENSION
+	if FileAccess.file_exists(backup_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
 	if error != OK:
 		push_error("Failed to delete save slot '%s'. Error code: %d" % [slot_id, error])
 		return false

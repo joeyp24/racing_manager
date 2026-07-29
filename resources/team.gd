@@ -14,6 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
+const CURRENT_SAVE_FORMAT_VERSION: int = 2
 
 @export var team_name: String = "My Team"
 @export var hometown: String = "Charlotte, NC"
@@ -24,6 +25,7 @@ const RACE_TEAM_EXPANSION_COST: int = 25000
 @export_enum("Diamond", "Shield", "Bolt", "Flag") var team_badge: String = "Diamond"
 @export var tutorial_completed: bool = false
 @export var last_saved_unix_time: int = 0
+@export var save_format_version: int = CURRENT_SAVE_FORMAT_VERSION
 @export var money: int = 50000
 @export_enum("Rookie", "Club", "Pro") var career_difficulty: String = "Club"
 @export var recovery_funding_used: bool = false

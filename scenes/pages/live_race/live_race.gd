@@ -55,7 +55,7 @@ func _ready() -> void:
 	pace_selector.select(1)
 	for compound in ["Soft", "Medium", "Hard"]:
 		tyre_selector.add_item(compound)
-	for setup in ["Top Speed", "Balanced", "High Grip"]:
+	for setup in ["Forward", "Neutral", "Rearward"]:
 		setup_selector.add_item(setup)
 	tyre_selector.select(1)
 	setup_selector.select(1)
@@ -129,8 +129,8 @@ func _apply_setup() -> void:
 	if simulation == null or simulation.is_complete:
 		return
 	var setup := setup_selector.get_item_text(setup_selector.selected)
-	simulation.set_player_setup(setup)
-	message_label.text = "%s setup applied" % setup
+	simulation.set_player_brake_bias(setup)
+	message_label.text = "%s brake bias applied" % setup
 	_refresh_display()
 
 
@@ -189,7 +189,7 @@ func _refresh_telemetry() -> void:
 		"[cell][color=#778493]GAP BEHIND[/color]\n[b]%s[/b][/cell]" % behind + \
 		"[cell][color=#778493]FUEL / CAR[/color]\n[b]%d%%  /  %d%%[/b][/cell]" % [roundi(player.fuel_remaining), roundi(player.car_condition)] + \
 		"[cell][color=#778493]PACE[/color]\n[b]%s[/b][/cell]" % pace + \
-		"[cell][color=#778493]SETUP[/color]\n[b]%s[/b][/cell]" % player.setup_mode + \
+		"[cell][color=#778493]BRAKE BIAS[/color]\n[b]%s[/b][/cell]" % player.brake_bias + \
 		"[cell][color=#778493]PIT STOPS[/color]\n[b]%d[/b][/cell][/table]" % player.pit_stops
 
 
