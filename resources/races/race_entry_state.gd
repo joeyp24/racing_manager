@@ -20,6 +20,8 @@ var tyre_condition: float = 100.0
 var fuel_remaining: float = 100.0
 var car_condition: float = 100.0
 var pit_stops: int = 0
+var pending_pit_compound: String = ""
+var setup_mode: String = "Balanced"
 
 var pace_mode: String = "Balanced"
 var pending_pace_mode: String = "Balanced"

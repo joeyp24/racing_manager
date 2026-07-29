@@ -14,6 +14,10 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 @onready var pace_selector: OptionButton = %pace_selector
 @onready var apply_pace_button: Button = %apply_pace_button
 @onready var next_lap_button: Button = %next_lap_button
+@onready var tyre_selector: OptionButton = %tyre_selector
+@onready var pit_button: Button = %pit_button
+@onready var setup_selector: OptionButton = %setup_selector
+@onready var apply_setup_button: Button = %apply_setup_button
 
 var simulation: RaceSimulation
 var lap_timer := Timer.new()
@@ -41,12 +45,20 @@ func _ready() -> void:
 	speed_selector.item_selected.connect(_on_speed_selected)
 	apply_pace_button.pressed.connect(_apply_pace)
 	next_lap_button.pressed.connect(_advance_one_lap)
+	pit_button.pressed.connect(_request_pit_stop)
+	apply_setup_button.pressed.connect(_apply_setup)
 	for speed in SPEEDS:
 		speed_selector.add_item("%dx" % speed)
 	pace_selector.add_item("Conserve")
 	pace_selector.add_item("Balanced")
 	pace_selector.add_item("Attack")
 	pace_selector.select(1)
+	for compound in ["Soft", "Medium", "Hard"]:
+		tyre_selector.add_item(compound)
+	for setup in ["Top Speed", "Balanced", "High Grip"]:
+		setup_selector.add_item(setup)
+	tyre_selector.select(1)
+	setup_selector.select(1)
 	speed_selector.select(1)
 	_update_timer_speed()
 	_refresh_display()
@@ -104,6 +116,24 @@ func _advance_one_lap() -> void:
 		_finish_race()
 
 
+func _request_pit_stop() -> void:
+	if simulation == null or simulation.is_complete:
+		return
+	var compound := tyre_selector.get_item_text(tyre_selector.selected)
+	if simulation.request_player_pit_stop(compound):
+		message_label.text = "PIT CONFIRMED • Box next lap for %s tyres" % compound
+		_refresh_display()
+
+
+func _apply_setup() -> void:
+	if simulation == null or simulation.is_complete:
+		return
+	var setup := setup_selector.get_item_text(setup_selector.selected)
+	simulation.set_player_setup(setup)
+	message_label.text = "%s setup applied" % setup
+	_refresh_display()
+
+
 func _refresh_display() -> void:
 	_refresh_header()
 	_refresh_tower()
@@ -152,7 +182,7 @@ func _refresh_telemetry() -> void:
 	var change := player.starting_position - player.position
 	var trend := "—" if change == 0 else ("↑%d" % change if change > 0 else "↓%d" % abs(change))
 	var pace := "STRONG" if player.last_lap_time <= player.best_lap_time + 0.18 else "MANAGING"
-	telemetry.text = "POSITION\nP%d  %s\n\nGAP AHEAD\n%s\n\nGAP BEHIND\n%s\n\nTYRES\n%d%% %s\n\nFUEL ESTIMATE\n%d%%\n\nCAR CONDITION\n%d%%\n\nPACE\n%s" % [player.position, trend, ahead, behind, roundi(player.tyre_condition), player.tyre_compound, roundi(player.fuel_remaining), roundi(player.car_condition), pace]
+	telemetry.text = "POSITION\nP%d  %s\n\nGAP AHEAD\n%s\n\nGAP BEHIND\n%s\n\nTYRES\n%d%% %s\n\nPIT STOPS\n%d\n\nSETUP\n%s\n\nFUEL ESTIMATE\n%d%%\n\nCAR CONDITION\n%d%%\n\nPACE\n%s" % [player.position, trend, ahead, behind, roundi(player.tyre_condition), player.tyre_compound, player.pit_stops, player.setup_mode, roundi(player.fuel_remaining), roundi(player.car_condition), pace]
 
 
 func _refresh_feed() -> void:
@@ -172,6 +202,8 @@ func _finish_race() -> void:
 	lap_timer.stop()
 	pause_button.disabled = true
 	apply_pace_button.disabled = true
+	pit_button.disabled = true
+	apply_setup_button.disabled = true
 	next_lap_button.disabled = true
 	message_label.text = "Race complete — preparing official results"
 	var result := RaceManager.finalize_live_race(simulation, GameManager.selected_car, str(weekend_data.get("strategy_id", "balanced")), weekend_data)

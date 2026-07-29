@@ -145,6 +145,36 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Apply Pace"
 
+[node name="PitLabel" type="Label" parent="Root/Main/Side/ControlsCard/Controls"]
+layout_mode = 2
+text = "PIT STOP"
+
+[node name="PitRow" type="HBoxContainer" parent="Root/Main/Side/ControlsCard/Controls"]
+layout_mode = 2
+
+[node name="tyre_selector" type="OptionButton" parent="Root/Main/Side/ControlsCard/Controls/PitRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="pit_button" type="Button" parent="Root/Main/Side/ControlsCard/Controls/PitRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Box This Lap"
+
+[node name="SetupLabel" type="Label" parent="Root/Main/Side/ControlsCard/Controls"]
+layout_mode = 2
+text = "LIVE SETUP"
+
+[node name="setup_selector" type="OptionButton" parent="Root/Main/Side/ControlsCard/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="apply_setup_button" type="Button" parent="Root/Main/Side/ControlsCard/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Apply Setup"
+
 [node name="SpeedRow" type="HBoxContainer" parent="Root/Main/Side/ControlsCard/Controls"]
 layout_mode = 2
 

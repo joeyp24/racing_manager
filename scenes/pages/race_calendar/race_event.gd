@@ -35,6 +35,10 @@ func update_display() -> void:
 		show_missing_race()
 		return
 
+	# _ready() runs before setup() when calendar cards are instantiated. Undo the
+	# missing-resource state once the race is assigned so Details stays clickable.
+	details_button.disabled = false
+
 	race_name_label.text = race.race_name
 	track_label.text = race.track_name
 	date_label.text = race.race_date
