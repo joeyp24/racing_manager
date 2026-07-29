@@ -15,6 +15,7 @@ extends Control
 @onready var hq_button: Button = %hq_button
 @onready var scouting_button: Button = %scouting_button
 @onready var identity_button: Button = %identity_button
+@onready var glossary_button: Button = %glossary_button
 @onready var money_label: Label = %money_label
 @onready var rep_label: Label = %rep_label
 @onready var position_label: Label = %position_label
@@ -63,6 +64,7 @@ func _ready() -> void:
 	sponsors_button.pressed.connect(_on_sponsors_button_pressed)
 	hq_button.pressed.connect(_on_hq_button_pressed)
 	identity_button.pressed.connect(_on_identity_button_pressed)
+	glossary_button.pressed.connect(_on_glossary_button_pressed)
 	scouting_button.pressed.connect(_on_scouting_button_pressed)
 	fullscreen_button.pressed.connect(_on_fullscreen_button_pressed)
 	_make_top_bar_actionable()
@@ -230,6 +232,11 @@ func _on_hq_button_pressed() -> void:
 func _on_identity_button_pressed() -> void:
 	set_active_navigation(identity_button)
 	GameManager.load_page("res://scenes/pages/team_identity/team_identity.tscn")
+
+
+func _on_glossary_button_pressed() -> void:
+	set_active_navigation(null)
+	GameManager.load_page("res://scenes/pages/glossary/glossary.tscn")
 
 
 func _on_scouting_button_pressed() -> void:

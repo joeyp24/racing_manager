@@ -99,6 +99,8 @@ func create_candidate_row(driver: Driver) -> void:
 		driver.career_podiums,
 		driver.career_points
 	]
+	var active := GameManager.team.get_active_driver()
+	details.tooltip_text = _driver_comparison_tooltip(driver, active)
 	var is_contracted := GameManager.team.contracted_driver_ids.has(driver.driver_id)
 	hire_button.text = "Contracted" if is_contracted else "Hire"
 	hire_button.custom_minimum_size = Vector2(100, 0)
@@ -107,6 +109,13 @@ func create_candidate_row(driver: Driver) -> void:
 		or not GameManager.team.can_hire_driver(driver)
 		or GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee)
 	)
+	if hire_button.disabled:
+		if is_contracted:
+			hire_button.tooltip_text = "Disabled: this driver is already under contract."
+		elif GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee):
+			hire_button.tooltip_text = "Disabled: you need $%s more for the signing fee." % format_number(GameManager.team.get_discounted_cost(driver.signing_fee) - GameManager.team.money)
+		else:
+			hire_button.tooltip_text = "Disabled: hiring is closed or the driver roster is full."
 	hire_button.pressed.connect(_on_hire_pressed.bind(driver))
 
 	row.add_child(details)
@@ -114,6 +123,12 @@ func create_candidate_row(driver: Driver) -> void:
 	margin.add_child(row)
 	panel.add_child(margin)
 	candidates_container.add_child(panel)
+
+
+func _driver_comparison_tooltip(driver: Driver, active: Driver) -> String:
+	if active == null or active == driver:
+		return "Skill drives pace; consistency reduces variance; aggression adds overtaking pace and risk."
+	return "Compared with %s: Skill %+d  •  Consistency %+d  •  Aggression %+d  •  Salary %s$%s/race" % [active.driver_name, driver.skill - active.skill, driver.consistency - active.consistency, driver.aggression - active.aggression, "+" if driver.salary >= active.salary else "−", format_number(absi(driver.salary - active.salary))]
 
 
 func create_driver_details(driver: Driver) -> String:

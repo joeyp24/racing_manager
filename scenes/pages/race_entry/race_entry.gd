@@ -177,10 +177,25 @@ func update_forecast() -> void:
 	var expected_prize := _prize_for_position(race, expected_position)
 	var sponsor := SponsorCatalog.find_by_id(GameManager.team.active_sponsor_id)
 	var sponsor_income := sponsor.payment_per_race if sponsor != null else 0
-	var payroll: int = GameManager.team.get_total_race_payroll()
+	var driver_payroll := 0
+	for race_team in selected_race_teams:
+		var entry_driver := GameManager.team.get_driver_by_id(race_team.driver_id)
+		if entry_driver != null:
+			driver_payroll += entry_driver.salary
+	var staff_payroll: int = GameManager.team.get_staff_payroll()
 	var objective_chance := clampi(roundi(72.0 + (strength - 60.0) - float(race.difficulty) * 0.25), 10, 95)
 	var total_fee: int = race.get_weekend_cost() * selected_race_teams.size()
-	forecast_label.text = "EXPECTED FINISH  P%d–P%d\nExpected revenue $%s  •  Entry + payroll $%s  •  Net forecast %s$%s\nSponsor objective chance %d%%  •  Expected condition loss %d%%" % [best, worst, format_number(expected_prize + sponsor_income), format_number(total_fee + payroll), "+" if expected_prize + sponsor_income >= total_fee + payroll else "−", format_number(absi(expected_prize + sponsor_income - total_fee - payroll)), objective_chance, wear]
+	var repair_per_point := maxi(50, roundi(float(selected_car.value) * 0.006))
+	var expected_wear_cost := wear * repair_per_point
+	var fixed_costs := total_fee + driver_payroll + staff_payroll + expected_wear_cost
+	var best_cash := GameManager.team.money - fixed_costs + _prize_for_position(race, best) + sponsor_income
+	var average_cash := GameManager.team.money - fixed_costs + expected_prize + sponsor_income
+	var worst_cash := GameManager.team.money - fixed_costs + _prize_for_position(race, worst) + sponsor_income
+	forecast_label.text = (
+		"EXPECTED FINISH  P%d–P%d\n\n"
+		+ "COST PROJECTION\nEntry & operations  −$%s\nDriver salary  −$%s\nStaff payroll  −$%s\nExpected wear  %d%%  ≈ −$%s\nSponsor income  +$%s\n\n"
+		+ "CASH AFTER RACE\nBest (P%d)  $%s\nAverage (P%d)  $%s\nWorst (P%d)  $%s\n\nSponsor objective chance  %d%%"
+	) % [best, worst, format_number(total_fee), format_number(driver_payroll), format_number(staff_payroll), wear, format_number(expected_wear_cost), format_number(sponsor_income), best, format_number(best_cash), expected_position, format_number(average_cash), worst, format_number(worst_cash), objective_chance]
 	var risks: Array[String] = []
 	if selected_car.condition < 70:
 		risks.append("low car condition")
@@ -213,7 +228,18 @@ func update_readiness() -> void:
 		row.action_requested.connect(_on_readiness_action_requested)
 	confirm_button.disabled = overall == RaceReadiness.BLOCKED or selected_car == null
 	confirm_button.text = "COMMIT %d ENTR%s  •  $%s  →" % [selected_race_teams.size(), "Y" if selected_race_teams.size() == 1 else "IES", format_number(total_fee)]
-	status_label.text = "Select at least one ready race team and resolve blocked items." if confirm_button.disabled else "All selected teams will compete in this race."
+	status_label.text = "RECOMMENDED NEXT ACTION  " + ("Resolve the first blocked readiness item below." if confirm_button.disabled else "Commit the entry when the cash scenarios fit your plan.")
+	confirm_button.tooltip_text = _get_commit_block_reason(total_fee) if confirm_button.disabled else "Pay the displayed entry cost and open the race weekend."
+
+
+func _get_commit_block_reason(total_fee: int) -> String:
+	if selected_race_teams.is_empty():
+		return "Disabled: select at least one race team with an assigned driver and eligible car."
+	if GameManager.team.money < total_fee:
+		return "Disabled: you need $%s more to pay the weekend cost." % format_number(total_fee - GameManager.team.money)
+	if selected_car == null:
+		return "Disabled: the primary entry does not have an eligible car."
+	return "Disabled: resolve the blocked readiness checks shown above."
 
 
 func _on_readiness_action_requested(action: String) -> void:

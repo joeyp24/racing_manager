@@ -5,6 +5,7 @@ extends Control
 @onready var standings_label: Label = %standings_label
 @onready var summary_label: Label = %summary_label
 @onready var car_effects_label: Label = %car_effects_label
+@onready var decisive_factors_label: Label = %decisive_factors_label
 @onready var continue_button: Button = %continue_button
 
 
@@ -37,6 +38,42 @@ func show_race_result() -> void:
 	standings_label.text = create_standings_text(result)
 	summary_label.text = create_financial_summary(result)
 	car_effects_label.text = create_car_effects_text(result)
+	decisive_factors_label.text = create_decisive_factors_text(result)
+
+
+func create_decisive_factors_text(result: RaceResult) -> String:
+	var factors := [
+		["Driver", result.driver_factor, "skill, consistency and aggression versus a 50-rated baseline"],
+		["Car", result.car_factor, "effective performance and condition versus a club-racing baseline"],
+		["Setup", result.setup_factor, result.practice_focus_name + " practice programme"],
+		["Strategy", result.strategy_factor, result.strategy_name + " plan and live decisions"],
+		["Pit stops", result.pit_stop_factor, result.pit_stop_summary],
+		["Random incidents", result.incident_factor, result.incident_summary],
+	]
+	var strongest_name := "race execution"
+	var strongest_value := 0.0
+	var lines: Array[String] = ["WHY THE RACE ENDED THIS WAY", "Positive pace points helped; negative points cost performance."]
+	for factor in factors:
+		var value := float(factor[1])
+		lines.append("%s  %+.1f  —  %s" % [factor[0], value, factor[2]])
+		if absf(value) > absf(strongest_value):
+			strongest_name = str(factor[0]).to_lower()
+			strongest_value = value
+	lines.append("\nDECISIVE FACTOR  %s was the largest %s." % [strongest_name.capitalize(), "advantage" if strongest_value >= 0.0 else "disadvantage"])
+	lines.append("RECOMMENDED NEXT ACTION  %s" % _get_result_recommendation(result))
+	return "\n".join(lines)
+
+
+func _get_result_recommendation(result: RaceResult) -> String:
+	if result.player_car.condition < 70:
+		return "Inspect and repair the car before entering another event."
+	if result.car_factor < 0.0:
+		return "Compare upgrades in the Marketplace to recover the car deficit."
+	if result.driver_factor < 0.0:
+		return "Review driver attributes before the next season's contract window."
+	if result.strategy_factor < 0.0:
+		return "Use a balanced plan next race to reduce strategic risk."
+	return "Review the next event and preserve this competitive package."
 
 
 func create_standings_text(
@@ -210,6 +247,7 @@ func show_missing_result() -> void:
 		"No race result is currently available."
 	)
 	car_effects_label.text = ""
+	decisive_factors_label.text = ""
 
 
 func _on_continue_button_pressed() -> void:

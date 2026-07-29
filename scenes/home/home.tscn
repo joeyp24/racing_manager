@@ -220,6 +220,13 @@ toggle_mode = true
 text = "Team Identity"
 alignment = 0
 
+[node name="glossary_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "?  Racing Glossary"
+alignment = 0
+tooltip_text = "Open explanations for driver attributes, setup, strategy, tyres and team bonuses."
+
 [node name="fullscreen_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2

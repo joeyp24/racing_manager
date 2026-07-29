@@ -94,6 +94,11 @@ func make_row(member: StaffMember, hiring: bool) -> PanelContainer:
 		action.theme_type_variation = &"PrimaryButton"
 		action.disabled = (not GameManager.team.can_add_staff_role(member.role)
 			or GameManager.team.money < GameManager.team.get_discounted_cost(member.signing_fee))
+		var peers := GameManager.team.get_staff_by_role(member.role)
+		if not peers.is_empty():
+			label.tooltip_text = "Compared with %s: Overall %+d  ·  Primary %+d  ·  Secondary %+d  ·  Salary %+d/race" % [peers[0].staff_name, member.rating - peers[0].rating, member.primary_rating - peers[0].primary_rating, member.secondary_rating - peers[0].secondary_rating, member.salary - peers[0].salary]
+		if action.disabled:
+			action.tooltip_text = "Disabled: this role is at capacity." if not GameManager.team.can_add_staff_role(member.role) else "Disabled: insufficient cash for the signing fee."
 		action.pressed.connect(hire_member.bind(member))
 	else:
 		action.text = "View"
