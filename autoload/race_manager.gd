@@ -26,6 +26,28 @@ const SEASON_PRIZES: Array[int] = [
 	5000
 ]
 
+const DEFAULT_STRATEGY := "balanced"
+const RACE_STRATEGIES: Dictionary = {
+	"conservative": {
+		"name": "Conservative",
+		"performance_modifier": 0.97,
+		"variance_modifier": 0.70,
+		"wear_modifier": 0.75
+	},
+	"balanced": {
+		"name": "Balanced",
+		"performance_modifier": 1.0,
+		"variance_modifier": 1.0,
+		"wear_modifier": 1.0
+	},
+	"aggressive": {
+		"name": "Aggressive",
+		"performance_modifier": 1.04,
+		"variance_modifier": 1.40,
+		"wear_modifier": 1.35
+	}
+}
+
 const AI_DRIVERS: Array[Dictionary] = [
 	{
 		"driver_id": "logan_brooks",
@@ -98,7 +120,8 @@ func _ready() -> void:
 
 func run_race(
 	selected_race: Race,
-	player_car: Car
+	player_car: Car,
+	selected_strategy: String = DEFAULT_STRATEGY
 ) -> RaceResult:
 	if selected_race == null:
 		push_error(
@@ -147,12 +170,18 @@ func run_race(
 	)
 
 	var result := RaceResult.new()
+	var strategy := get_strategy(selected_strategy)
 
 	result.race = selected_race
 	result.player_car = player_car
 	result.player_driver = player_driver
 	result.entry_fee = selected_race.entry_fee
 	result.driver_salary = player_driver.salary
+	result.strategy_id = normalize_strategy_id(selected_strategy)
+	result.strategy_name = str(strategy.get("name", "Balanced"))
+	result.strategy_performance_modifier = float(strategy.get("performance_modifier", 1.0))
+	result.strategy_variance_modifier = float(strategy.get("variance_modifier", 1.0))
+	result.strategy_wear_modifier = float(strategy.get("wear_modifier", 1.0))
 
 	var race_standings: Array[Dictionary] = []
 
@@ -186,7 +215,9 @@ func run_race(
 		"team_name": GameManager.team.team_name,
 		"score": calculate_player_score(
 			player_car,
-			player_driver
+			player_driver,
+			result.strategy_id,
+			selected_race
 		),
 		"is_player": true
 	})
@@ -229,7 +260,8 @@ func run_race(
 	)
 
 	result.condition_lost = calculate_condition_loss(
-		selected_race
+		selected_race,
+		result.strategy_id
 	)
 
 	result.net_earnings = (
@@ -256,8 +288,11 @@ func run_race(
 
 func calculate_player_score(
 	player_car: Car,
-	player_driver: Driver
+	player_driver: Driver,
+	selected_strategy: String = DEFAULT_STRATEGY,
+	selected_race: Race = null
 ) -> float:
+	var strategy := get_strategy(selected_strategy)
 	var car_performance := float(player_car.get_total_performance())
 	var team := GameManager.team
 	if team != null:
@@ -291,6 +326,10 @@ func calculate_player_score(
 	)
 	if team != null:
 		variance_limit = maxf(1.0, variance_limit - team.get_car_setup_variance_reduction())
+	var variance_modifier := float(strategy.get("variance_modifier", 1.0))
+	if normalize_strategy_id(selected_strategy) == "aggressive" and selected_race != null:
+		variance_modifier += float(selected_race.difficulty) / 500.0
+	variance_limit *= variance_modifier
 
 	var random_variance: float = (
 		random_number_generator.randf_range(
@@ -303,7 +342,7 @@ func calculate_player_score(
 		float(player_driver.aggression) * 0.03
 	)
 
-	return (
+	var total_score := (
 		performance_score
 		+ condition_score
 		+ skill_score
@@ -311,6 +350,7 @@ func calculate_player_score(
 		+ aggression_bonus
 		+ random_variance
 	)
+	return total_score * float(strategy.get("performance_modifier", 1.0))
 
 
 func calculate_ai_score(
@@ -402,7 +442,8 @@ func calculate_mileage_added(
 
 
 func calculate_condition_loss(
-	selected_race: Race
+	selected_race: Race,
+	selected_strategy: String = DEFAULT_STRATEGY
 ) -> int:
 	var base_wear: int = (
 		random_number_generator.randi_range(
@@ -419,12 +460,26 @@ func calculate_condition_loss(
 		float(selected_race.lap_count) / 100.0
 	)
 
-	return maxi(
+	var balanced_wear := maxi(
 		1,
 		base_wear
 		+ difficulty_wear
 		+ distance_wear
 	)
+	var wear_modifier := float(
+		get_strategy(selected_strategy).get("wear_modifier", 1.0)
+	)
+	return maxi(1, roundi(float(balanced_wear) * wear_modifier))
+
+
+func normalize_strategy_id(selected_strategy: String) -> String:
+	if RACE_STRATEGIES.has(selected_strategy):
+		return selected_strategy
+	return DEFAULT_STRATEGY
+
+
+func get_strategy(selected_strategy: String) -> Dictionary:
+	return RACE_STRATEGIES[normalize_strategy_id(selected_strategy)]
 
 
 func apply_race_effects(

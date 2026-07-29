@@ -30,4 +30,10 @@ var cheating_penalty: int = 0
 var mileage_added: int = 0
 var condition_lost: int = 0
 
+var strategy_id: String = "balanced"
+var strategy_name: String = "Balanced"
+var strategy_performance_modifier: float = 1.0
+var strategy_variance_modifier: float = 1.0
+var strategy_wear_modifier: float = 1.0
+
 var standings: Array[Dictionary] = []

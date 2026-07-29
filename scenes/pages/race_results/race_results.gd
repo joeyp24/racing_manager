@@ -127,16 +127,29 @@ func create_car_effects_text(result: RaceResult) -> String:
 
 	return (
 		"Car Effects\n\n"
+		+ "Strategy: %s\n"
+		+ "Performance: %s | Variance: %s | Wear: %s\n"
 		+ "Mileage Added: +%s\n"
 		+ "Condition Lost: -%d%%\n"
 		+ "Current Mileage: %s\n"
 		+ "Current Condition: %d%%"
 	) % [
+		result.strategy_name,
+		format_modifier(result.strategy_performance_modifier),
+		format_modifier(result.strategy_variance_modifier),
+		format_modifier(result.strategy_wear_modifier),
 		format_number(result.mileage_added),
 		result.condition_lost,
 		format_number(current_mileage),
 		current_condition
 	]
+
+
+func format_modifier(modifier: float) -> String:
+	var percent := roundi((modifier - 1.0) * 100.0)
+	if percent > 0:
+		return "+%d%%" % percent
+	return "%d%%" % percent
 
 
 func format_position(position: int) -> String:
