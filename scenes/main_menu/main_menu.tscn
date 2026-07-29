@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://boc3m4emse3bc"]
 
-[ext_resource type="Script" uid="uid://b1n3l15pqv0fd" path="res://scenes/main_menu/main_menu.gd" id="1"]
+[ext_resource type="Script" path="res://scenes/main_menu/main_menu.gd" id="1"]
 [ext_resource type="Texture2D" path="res://ui/menu_track.svg" id="2"]
 
 [node name="main_menu" type="Control"]
@@ -30,7 +30,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.01, 0.015, 0.025, 0.32)
+color = Color(0.01, 0.015, 0.025, 0.7)
 mouse_filter = 2
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -40,108 +40,101 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 78
-theme_override_constants/margin_top = 58
-theme_override_constants/margin_right = 78
-theme_override_constants/margin_bottom = 40
+theme_override_constants/margin_left = 76
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 76
+theme_override_constants/margin_bottom = 42
 
-[node name="Layout" type="VBoxContainer" parent="Margin"]
+[node name="Layout" type="HBoxContainer" parent="Margin"]
 layout_mode = 2
+theme_override_constants/separation = 48
 
-[node name="Brand" type="HBoxContainer" parent="Margin/Layout"]
-layout_mode = 2
-theme_override_constants/separation = 13
-
-[node name="Mark" type="Label" parent="Margin/Layout/Brand"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.96, 0.25, 0.08, 1)
-theme_override_font_sizes/font_size = 38
-text = "◆"
-
-[node name="Wordmark" type="VBoxContainer" parent="Margin/Layout/Brand"]
-layout_mode = 2
-theme_override_constants/separation = -4
-
-[node name="Title" type="Label" parent="Margin/Layout/Brand/Wordmark"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 34
-text = "RACING MANAGER"
-
-[node name="Subtitle" type="Label" parent="Margin/Layout/Brand/Wordmark"]
-layout_mode = 2
-theme_type_variation = &"EyebrowLabel"
-text = "BUILD THE TEAM. MASTER THE SEASON."
-
-[node name="Spacer" type="Control" parent="Margin/Layout"]
+[node name="Brand" type="VBoxContainer" parent="Margin/Layout"]
+custom_minimum_size = Vector2(390, 0)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="MenuPanel" type="PanelContainer" parent="Margin/Layout"]
-custom_minimum_size = Vector2(400, 0)
-layout_mode = 2
-size_flags_horizontal = 0
-theme_type_variation = &"CardPanel"
-
-[node name="Menu" type="VBoxContainer" parent="Margin/Layout/MenuPanel"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Eyebrow" type="Label" parent="Margin/Layout/MenuPanel/Menu"]
+[node name="Eyebrow" type="Label" parent="Margin/Layout/Brand"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "PIT WALL // CAREER CONTROL"
 
-[node name="Heading" type="Label" parent="Margin/Layout/MenuPanel/Menu"]
+[node name="Title" type="Label" parent="Margin/Layout/Brand"]
 layout_mode = 2
-theme_type_variation = &"PageTitle"
-text = "Welcome back"
+theme_override_font_sizes/font_size = 42
+text = "RACING\nMANAGER"
 
-[node name="SaveSummary" type="Label" parent="Margin/Layout/MenuPanel/Menu"]
-unique_name_in_owner = true
+[node name="Description" type="Label" parent="Margin/Layout/Brand"]
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
-text = "Your team • Season 1 • $15,000 available"
+text = "Build your team. Master the season.\nEvery career now has its own independent save."
 
-[node name="Rule" type="HSeparator" parent="Margin/Layout/MenuPanel/Menu"]
+[node name="Spacer" type="Control" parent="Margin/Layout/Brand"]
 layout_mode = 2
+size_flags_vertical = 3
 
-[node name="Continue" type="Button" parent="Margin/Layout/MenuPanel/Menu"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
+[node name="NewGame" type="Button" parent="Margin/Layout/Brand"]
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 theme_type_variation = &"PrimaryButton"
-text = "CONTINUE CAREER  →"
+text = "START A NEW CAREER  →"
 
-[node name="NewGame" type="Button" parent="Margin/Layout/MenuPanel/Menu"]
-layout_mode = 2
-text = "Start new career"
-
-[node name="Settings" type="Button" parent="Margin/Layout/MenuPanel/Menu"]
-layout_mode = 2
-disabled = true
-text = "Settings  • COMING SOON"
-
-[node name="QuitButton" type="Button" parent="Margin/Layout/MenuPanel/Menu"]
+[node name="Quit" type="Button" parent="Margin/Layout/Brand"]
 layout_mode = 2
 text = "Quit to desktop"
 
-[node name="Footer" type="HBoxContainer" parent="Margin/Layout"]
-layout_mode = 2
-
-[node name="Status" type="Label" parent="Margin/Layout/Footer"]
-layout_mode = 2
-theme_type_variation = &"MutedLabel"
-text = "●  OPERATIONS ONLINE"
-
-[node name="FooterSpacer" type="Control" parent="Margin/Layout/Footer"]
+[node name="SavePanel" type="PanelContainer" parent="Margin/Layout"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
 
-[node name="Version" type="Label" parent="Margin/Layout/Footer"]
+[node name="Content" type="VBoxContainer" parent="Margin/Layout/SavePanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Margin/Layout/SavePanel/Content"]
+layout_mode = 2
+theme_type_variation = &"PageTitle"
+text = "Saved careers"
+
+[node name="Hint" type="Label" parent="Margin/Layout/SavePanel/Content"]
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
-text = "BUILD 0.1 • PRE-SEASON"
+text = "Select a team to return to the pit wall."
 
-[connection signal="pressed" from="Margin/Layout/MenuPanel/Menu/Continue" to="." method="_on_continue_pressed"]
-[connection signal="pressed" from="Margin/Layout/MenuPanel/Menu/NewGame" to="." method="_on_new_game_pressed"]
-[connection signal="pressed" from="Margin/Layout/MenuPanel/Menu/QuitButton" to="." method="_on_quit_button_pressed"]
+[node name="Scroll" type="ScrollContainer" parent="Margin/Layout/SavePanel/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="saves_list" type="VBoxContainer" parent="Margin/Layout/SavePanel/Content/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="empty_state" type="Label" parent="Margin/Layout/SavePanel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "No careers yet. Start a new career to create your first team."
+autowrap_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="Margin/Layout/SavePanel/Content"]
+layout_mode = 2
+
+[node name="load_button" type="Button" parent="Margin/Layout/SavePanel/Content/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PrimaryButton"
+text = "LOAD SELECTED"
+
+[node name="delete_button" type="Button" parent="Margin/Layout/SavePanel/Content/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Delete"
+
+[connection signal="pressed" from="Margin/Layout/Brand/NewGame" to="." method="_on_new_game_pressed"]
+[connection signal="pressed" from="Margin/Layout/Brand/Quit" to="." method="_on_quit_button_pressed"]
+[connection signal="pressed" from="Margin/Layout/SavePanel/Content/Actions/load_button" to="." method="_on_load_pressed"]
+[connection signal="pressed" from="Margin/Layout/SavePanel/Content/Actions/delete_button" to="." method="_on_delete_pressed"]

@@ -7,6 +7,14 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 
 @export var team_name: String = "My Team"
+@export var hometown: String = "Charlotte, NC"
+@export var team_motto: String = "Built to compete"
+@export var primary_color: Color = Color("e9421e")
+@export var secondary_color: Color = Color("172033")
+@export var accent_color: Color = Color("f4f6fa")
+@export_enum("Diamond", "Shield", "Bolt", "Flag") var team_badge: String = "Diamond"
+@export var tutorial_completed: bool = false
+@export var last_saved_unix_time: int = 0
 @export var money: int = 15000
 @export var reputation: int = 0
 @export var championship_points: int = 0

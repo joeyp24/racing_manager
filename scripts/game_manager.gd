@@ -1,94 +1,72 @@
 extends Node
 
 signal team_money_changed(new_amount: int)
+signal team_loaded(team: Team)
 
 var team: Team = null
-
+var active_save_id: String = ""
 var selected_car = null
 var selected_bay: int = -1
 var selected_race: Race = null
-
 var page_container: Control = null
 
 
 func _ready() -> void:
-	load_game()
+	SaveManager.migrate_legacy_save()
 
 
-func new_game() -> void:
+func new_game(slot_id: String = "") -> void:
 	team = Team.new()
-
+	active_save_id = slot_id if not slot_id.is_empty() else SaveManager.make_slot_id(team.team_name)
 	clear_selected_data()
 	refresh_team_money()
+	team_loaded.emit(team)
 
 
-func save_game() -> void:
+func save_game() -> bool:
 	if team == null:
-		push_error(
-			"Cannot save because no team is loaded."
-		)
-		return
-
-	var success: bool = SaveManager.save_game(team)
-
-	if success:
-		print("Save completed successfully.")
+		push_error("Cannot save because no team is loaded.")
+		return false
+	if active_save_id.is_empty():
+		active_save_id = SaveManager.make_slot_id(team.team_name)
+	return SaveManager.save_game(team, active_save_id)
 
 
-func load_game() -> void:
-	var loaded_team: Team = SaveManager.load_game()
-
-	if loaded_team != null:
-		team = loaded_team
-		team.ensure_departments()
-		team.ensure_default_player_driver()
-		team.ensure_driver_market()
-		team.ensure_car_parts()
-		team.ensure_staff_market()
-	else:
-		new_game()
-		save_game()
-
+func load_game(slot_id: String) -> bool:
+	var loaded_team := SaveManager.load_game(slot_id)
+	if loaded_team == null:
+		return false
+	team = loaded_team
+	active_save_id = slot_id
+	team.ensure_departments()
+	team.ensure_default_player_driver()
+	team.ensure_driver_market()
+	team.ensure_car_parts()
+	team.ensure_staff_market()
+	clear_selected_data()
 	refresh_team_money()
+	team_loaded.emit(team)
+	return true
+
+
+func delete_game(slot_id: String) -> bool:
+	var success := SaveManager.delete_save(slot_id)
+	if success and slot_id == active_save_id:
+		team = null
+		active_save_id = ""
+		clear_selected_data()
+	return success
 
 
 func reset_game() -> void:
-	var save_deleted: bool = SaveManager.delete_save()
-
-	if not save_deleted:
-		push_error(
-			"The game could not be reset because the save "
-			+ "file could not be deleted."
-		)
+	if active_save_id.is_empty():
 		return
-
 	team = Team.new()
-
 	clear_selected_data()
-
 	if RaceManager != null:
 		RaceManager.clear_last_result()
-
-	var save_created: bool = SaveManager.save_game(team)
-
-	if not save_created:
-		push_error(
-			"The game was reset, but the new save file "
-			+ "could not be created."
-		)
-
+	save_game()
 	refresh_team_money()
-
-	print("All save data has been reset.")
-	print("Starting money: ", team.money)
-	print("Owned cars: ", team.cars.size())
-	print("Completed races: ", team.completed_races)
-	print("Unlocked races: ", team.unlocked_races)
-	print(
-		"Championship points: ",
-		team.championship_points
-	)
-
 	reload_current_page()
 
 
@@ -99,96 +77,42 @@ func clear_selected_data() -> void:
 
 
 func reload_current_page() -> void:
-	if page_container == null:
-		return
-
-	load_page(
-		"res://scenes/pages/dashboard/dashboard.tscn"
-	)
+	if page_container != null:
+		load_page("res://scenes/pages/dashboard/dashboard.tscn")
 
 
 func load_page(scene_path: String) -> void:
 	if page_container == null:
-		push_error(
-			"GameManager.page_container has not been assigned."
-		)
+		push_error("GameManager.page_container has not been assigned.")
 		return
-
 	var page_scene: PackedScene = load(scene_path)
-
 	if page_scene == null:
-		push_error(
-			"Could not load page: %s"
-			% scene_path
-		)
+		push_error("Could not load page: %s" % scene_path)
 		return
-
-	var page_instance: Node = page_scene.instantiate()
-
-	if page_instance == null:
-		push_error(
-			"Could not instantiate page: %s"
-			% scene_path
-		)
-		return
-
-	# Remove the previous page from the container immediately. queue_free()
-	# alone leaves it active until the end of the frame, so a full-size page
-	# (notably Championship Standings) can continue drawing and receiving input
-	# over a newly selected page.
+	var page_instance := page_scene.instantiate()
 	for child in page_container.get_children():
 		page_container.remove_child(child)
 		child.queue_free()
-
 	page_container.add_child(page_instance)
-
 	if page_instance is Control:
-		var page_control := page_instance as Control
-		page_control.set_anchors_and_offsets_preset(
-			Control.PRESET_FULL_RECT
-		)
+		(page_instance as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
 func add_team_money(amount: int) -> void:
-	if team == null:
-		push_error(
-			"Cannot add money because no team is loaded."
-		)
+	if team == null or amount < 0:
+		push_error("Cannot add an invalid amount of money.")
 		return
-
-	if amount < 0:
-		push_error(
-			"Money addition amount cannot be negative."
-		)
-		return
-
 	team.money += amount
 	team.emit_changed()
-
 	refresh_team_money()
 
 
 func remove_team_money(amount: int) -> bool:
-	if team == null:
-		push_error(
-			"Cannot remove money because no team is loaded."
-		)
+	if team == null or amount < 0 or team.money < amount:
 		return false
-
-	if amount < 0:
-		push_error(
-			"Money removal amount cannot be negative."
-		)
-		return false
-
-	if team.money < amount:
-		return false
-
 	team.money -= amount
 	team.emit_changed()
-
 	refresh_team_money()
-
 	return true
 
 
@@ -196,14 +120,11 @@ func charge_team_money(amount: int) -> void:
 	if team == null or amount < 0:
 		push_error("Cannot charge an invalid team expense.")
 		return
-
 	team.money -= amount
 	team.emit_changed()
 	refresh_team_money()
 
 
 func refresh_team_money() -> void:
-	if team == null:
-		return
-
-	team_money_changed.emit(team.money)
+	if team != null:
+		team_money_changed.emit(team.money)

@@ -13,6 +13,7 @@ extends Control
 @onready var sponsors_button: Button = %sponsors_button
 @onready var hq_button: Button = %hq_button
 @onready var scouting_button: Button = %scouting_button
+@onready var identity_button: Button = %identity_button
 @onready var money_label: Label = %money_label
 @onready var rep_label: Label = %rep_label
 @onready var position_label: Label = %position_label
@@ -27,7 +28,7 @@ func _ready() -> void:
 	GameManager.page_container = page_container
 	navigation_buttons = [home_button, race_calendar_button, championship_button,
 		garage_button, drivers_button, staff_button, shop_button,
-		dealership_button, sponsors_button, finances_button, hq_button,
+		dealership_button, sponsors_button, finances_button, hq_button, identity_button,
 		scouting_button]
 
 	home_button.pressed.connect(
@@ -56,6 +57,7 @@ func _ready() -> void:
 	dealership_button.pressed.connect(_on_dealership_button_pressed)
 	sponsors_button.pressed.connect(_on_sponsors_button_pressed)
 	hq_button.pressed.connect(_on_hq_button_pressed)
+	identity_button.pressed.connect(_on_identity_button_pressed)
 	scouting_button.pressed.connect(_on_scouting_button_pressed)
 
 	if not GameManager.team_money_changed.is_connected(
@@ -64,6 +66,8 @@ func _ready() -> void:
 		GameManager.team_money_changed.connect(
 			_on_team_money_changed
 		)
+	if GameManager.team != null and not GameManager.team.changed.is_connected(update_team_display):
+		GameManager.team.changed.connect(update_team_display)
 
 	update_team_display()
 	update_unlocked_navigation()
@@ -90,6 +94,8 @@ func _exit_tree() -> void:
 		GameManager.team_money_changed.disconnect(
 			_on_team_money_changed
 		)
+	if GameManager.team != null and GameManager.team.changed.is_connected(update_team_display):
+		GameManager.team.changed.disconnect(update_team_display)
 
 
 func _notification(what: int) -> void:
@@ -166,6 +172,11 @@ func _on_sponsors_button_pressed() -> void:
 func _on_hq_button_pressed() -> void:
 	set_active_navigation(hq_button)
 	GameManager.load_page("res://scenes/pages/departments/departments.tscn")
+
+
+func _on_identity_button_pressed() -> void:
+	set_active_navigation(identity_button)
+	GameManager.load_page("res://scenes/pages/team_identity/team_identity.tscn")
 
 
 func _on_scouting_button_pressed() -> void:
