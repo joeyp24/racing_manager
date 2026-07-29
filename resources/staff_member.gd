@@ -9,6 +9,8 @@ class_name StaffMember
 @export var salary: int = 0
 @export var specialty: String = "General"
 @export var hired: bool = false
+@export var contract_races_remaining: int = 0
+@export var morale: int = 70
 
 
 func get_rating_grade() -> String:
@@ -23,3 +25,17 @@ func get_rating_grade() -> String:
 
 func get_summary() -> String:
 	return "%s · %s (%d) · %s" % [role, get_rating_grade(), rating, specialty]
+
+
+func get_default_contract_length() -> int:
+	if rating >= 90:
+		return 12
+	if rating >= 75:
+		return 10
+	if rating >= 60:
+		return 7
+	return 5
+
+
+func get_termination_fee() -> int:
+	return salary * 2

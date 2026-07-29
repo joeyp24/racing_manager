@@ -9,6 +9,11 @@ extends Control
 @onready var repair_part_option: OptionButton = %repair_part_option
 @onready var repair_button: Button = %repair_button
 @onready var status_label: Label = %status_label
+@onready var fire_confirmation_dialog: ConfirmationDialog = %fire_confirmation_dialog
+
+var available_engineers: Array[StaffMember] = []
+var repairable_parts: Array[CarPart] = []
+var pending_fire_member: StaffMember = null
 
 var available_engineers: Array[StaffMember] = []
 var repairable_parts: Array[CarPart] = []
@@ -17,6 +22,7 @@ var repairable_parts: Array[CarPart] = []
 func _ready() -> void:
 	manufacture_button.pressed.connect(_on_manufacture_pressed)
 	repair_button.pressed.connect(_on_repair_pressed)
+	fire_confirmation_dialog.confirmed.connect(_on_fire_confirmed)
 	refresh_page()
 
 
@@ -26,6 +32,8 @@ func refresh_page() -> void:
 	var chief_text := "None"
 	if chief != null:
 		chief_text = "%s — %d rating (+%.1f%% race performance)" % [chief.staff_name, chief.rating, team.get_crew_chief_performance_boost()]
+	var races_remaining := maxi(0, RaceManager.SEASON_RACE_IDS.size() - team.completed_races.size())
+	roster_summary_label.text = "Crew Chief: %s\nEngineers: %d / %d\nStaff payroll: $%s/race · Total payroll with driver: $%s/race\nProjected remaining-season payroll: $%s · Available funds: $%s" % [chief_text, team.get_engineers().size(), Team.MAX_ENGINEERS, format_number(team.get_staff_payroll()), format_number(team.get_total_race_payroll()), format_number(team.get_total_race_payroll() * races_remaining), format_number(team.money)]
 	roster_summary_label.text = "Crew Chief: %s\nEngineers: %d / %d" % [chief_text, team.get_engineers().size(), Team.MAX_ENGINEERS]
 	refresh_candidates()
 	refresh_workshop()
@@ -47,6 +55,12 @@ func refresh_candidates() -> void:
 		title.add_theme_font_size_override("font_size", 18)
 		var details := Label.new()
 		details.text = "%s\nSigning fee: $%s · Salary: $%s/race" % [member.get_summary(), format_number(GameManager.team.get_discounted_cost(member.signing_fee)), format_number(member.salary)]
+		if member.hired:
+			details.text += "\nContract: %d races · Morale: %d%% · Termination: $%s" % [member.contract_races_remaining, member.morale, format_number(GameManager.team.get_discounted_cost(member.get_termination_fee()))]
+		details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		details.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var action := HBoxContainer.new()
+		configure_staff_actions(action, member)
 		details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		details.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		var action := Button.new()
@@ -59,6 +73,23 @@ func refresh_candidates() -> void:
 		candidates_container.add_child(panel)
 
 
+func configure_staff_actions(container: HBoxContainer, member: StaffMember) -> void:
+	if member.hired:
+		var renew_button := Button.new()
+		renew_button.text = "Renew (%d races)" % member.contract_races_remaining
+		renew_button.pressed.connect(_on_renew_pressed.bind(member, false))
+		var negotiate_button := Button.new()
+		negotiate_button.text = "Negotiate"
+		negotiate_button.tooltip_text = "Reduce salary 5%, but lower morale."
+		negotiate_button.pressed.connect(_on_renew_pressed.bind(member, true))
+		var fire_button := Button.new()
+		fire_button.text = "Fire"
+		fire_button.pressed.connect(_on_fire_pressed.bind(member))
+		container.add_child(renew_button)
+		container.add_child(negotiate_button)
+		container.add_child(fire_button)
+		return
+	var button := Button.new()
 func configure_hire_button(button: Button, member: StaffMember) -> void:
 	if member.hired:
 		button.text = "Hired"
@@ -70,6 +101,7 @@ func configure_hire_button(button: Button, member: StaffMember) -> void:
 	var engineer_full := member.role == "Engineer" and team.get_engineers().size() >= Team.MAX_ENGINEERS
 	button.disabled = role_full or engineer_full or team.money < team.get_discounted_cost(member.signing_fee)
 	button.pressed.connect(_on_hire_pressed.bind(member))
+	container.add_child(button)
 
 
 func refresh_workshop() -> void:
@@ -101,6 +133,30 @@ func _on_hire_pressed(member: StaffMember) -> void:
 		status_label.text = "That staff member cannot be hired. Check your funds and roster limits."
 		return
 	status_label.text = "%s joined the team as %s." % [member.staff_name, member.role]
+	finish_transaction()
+
+
+func _on_fire_pressed(member: StaffMember) -> void:
+	pending_fire_member = member
+	var fee := GameManager.team.get_discounted_cost(member.get_termination_fee())
+	fire_confirmation_dialog.dialog_text = "Fire %s for a $%s termination fee? The signing fee will not be refunded." % [member.staff_name, format_number(fee)]
+	fire_confirmation_dialog.popup_centered()
+
+
+func _on_fire_confirmed() -> void:
+	if pending_fire_member == null or not GameManager.team.fire_staff(pending_fire_member):
+		status_label.text = "The contract could not be terminated. Check your funds."
+		return
+	status_label.text = "%s was released from the team." % pending_fire_member.staff_name
+	pending_fire_member = null
+	finish_transaction()
+
+
+func _on_renew_pressed(member: StaffMember, negotiate: bool) -> void:
+	if not GameManager.team.renew_staff_contract(member, negotiate):
+		status_label.text = "The contract could not be renewed. Check your funds."
+		return
+	status_label.text = "%s signed a new %d-race contract%s." % [member.staff_name, member.contract_races_remaining, " after salary negotiations" if negotiate else ""]
 	finish_transaction()
 
 

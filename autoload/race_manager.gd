@@ -237,6 +237,12 @@ func run_race(
 		- result.entry_fee
 		- result.driver_salary
 	)
+	var staff_payroll := GameManager.team.process_staff_race()
+	result.crew_chief_salary = int(staff_payroll.get("crew_chief_salary", 0))
+	result.engineering_payroll = int(staff_payroll.get("engineering_payroll", 0))
+	for expired_name in staff_payroll.get("expired_names", []):
+		result.expired_staff_names.append(str(expired_name))
+	result.net_earnings -= result.crew_chief_salary + result.engineering_payroll
 
 	apply_race_effects(result)
 	complete_race(selected_race)
@@ -283,6 +289,8 @@ func calculate_player_score(
 		4.0,
 		float(player_driver.consistency) / 100.0
 	)
+	if team != null:
+		variance_limit = maxf(1.0, variance_limit - team.get_car_setup_variance_reduction())
 
 	var random_variance: float = (
 		random_number_generator.randf_range(
@@ -450,9 +458,11 @@ func apply_race_effects(
 	GameManager.add_team_money(
 		result.prize_money
 	)
+	GameManager.team.record_finance("Race", result.prize_money, "Prize money")
 	GameManager.charge_team_money(
 		result.driver_salary
 	)
+	GameManager.team.record_finance("Payroll", -result.driver_salary, "Driver salary")
 	apply_department_race_effects(result)
 
 	apply_reputation_reward(result)
@@ -492,6 +502,7 @@ func apply_department_race_effects(result: RaceResult) -> void:
 		if random_number_generator.randf() < penalty_chance:
 			result.cheating_penalty = 1000 * cheating_level * cheating_level
 			GameManager.charge_team_money(result.cheating_penalty)
+			team.record_finance("Penalty", -result.cheating_penalty, "Rules penalty")
 			result.net_earnings -= result.cheating_penalty
 
 
@@ -526,6 +537,7 @@ func apply_sponsor_reward(result: RaceResult) -> void:
 	result.sponsor_name = sponsor.sponsor_name
 	result.sponsor_race_payment = sponsor.payment_per_race
 	GameManager.add_team_money(result.sponsor_race_payment)
+	team.record_finance("Sponsor", result.sponsor_race_payment, "%s race payment" % sponsor.sponsor_name)
 	result.net_earnings += result.sponsor_race_payment
 
 	if (
@@ -538,6 +550,7 @@ func apply_sponsor_reward(result: RaceResult) -> void:
 			result.sponsor_objective_completed = true
 			result.sponsor_objective_bonus = sponsor.objective_bonus
 			GameManager.add_team_money(result.sponsor_objective_bonus)
+			team.record_finance("Sponsor", result.sponsor_objective_bonus, "%s objective bonus" % sponsor.sponsor_name)
 			result.net_earnings += result.sponsor_objective_bonus
 
 	team.sponsor_races_remaining = maxi(0, team.sponsor_races_remaining - 1)
@@ -845,6 +858,7 @@ func finish_season_if_complete() -> void:
 	if player_position == 1:
 		GameManager.team.reputation += 100
 	GameManager.add_team_money(prize_money)
+	GameManager.team.record_finance("Championship", prize_money, "Season prize")
 	GameManager.team.emit_changed()
 
 

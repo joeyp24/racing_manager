@@ -132,6 +132,7 @@ func _on_repair_button_pressed() -> void:
 		status_label.text = "Your team cannot afford these repairs."
 		return
 	car.condition = MAX_CAR_CONDITION
+	GameManager.team.record_finance("Repairs", -repair_cost, "Repaired %s" % car.name)
 	car.emit_changed()
 	status_label.text = "%s was fully repaired." % car.name
 	GameManager.save_game()

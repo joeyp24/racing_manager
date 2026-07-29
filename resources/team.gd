@@ -46,6 +46,7 @@ const PART_REPAIR_COST_PER_POINT: int = 12
 
 @export var parts_inventory: Array[CarPart] = []
 @export var staff: Array[StaffMember] = []
+@export var finance_history: Array[Dictionary] = []
 
 
 func _init() -> void:
@@ -103,6 +104,7 @@ func purchase_department(department_id: String) -> bool:
 	var cost := get_department_cost(department_id)
 	money -= cost
 	department_levels[department_id] = get_department_level(department_id) + 1
+	record_finance("HQ", -cost, "Upgraded %s" % str(DepartmentCatalog.get_data(department_id).get("name", department_id)))
 	emit_changed()
 	return true
 
@@ -159,6 +161,7 @@ func buy_car(
 
 	money -= purchase_cost
 	cars[bay_index] = purchased_car
+	record_finance("Garage", -purchase_cost, "Purchased %s" % purchased_car.name)
 
 	emit_changed()
 
@@ -182,6 +185,7 @@ func sell_car(bay_index: int) -> int:
 
 	money += sale_price
 	cars[bay_index] = null
+	record_finance("Garage", sale_price, "Sold %s" % car.name)
 
 	emit_changed()
 
@@ -196,6 +200,7 @@ func buy_part(part_template: CarPart) -> bool:
 		return false
 	money -= purchase_cost
 	parts_inventory.append(part_template.duplicate(true) as CarPart)
+	record_finance("Parts", -purchase_cost, "Purchased %s" % part_template.part_name)
 	emit_changed()
 	return true
 
@@ -205,6 +210,7 @@ func sell_part(part: CarPart) -> int:
 		return 0
 	parts_inventory.erase(part)
 	money += part.sale_price
+	record_finance("Parts", part.sale_price, "Sold %s" % part.part_name)
 	emit_changed()
 	return part.sale_price
 
@@ -239,6 +245,10 @@ func ensure_staff_market() -> void:
 		{"id": "engineer_okafor", "name": "Tunde Okafor", "role": "Engineer", "rating": 94, "fee": 17500, "salary": 4800, "specialty": "Advanced manufacturing"}
 	]
 	for data in candidates:
+		var existing_member := get_staff_by_id(str(data["id"]))
+		if existing_member != null:
+			if existing_member.hired and existing_member.contract_races_remaining <= 0:
+				existing_member.contract_races_remaining = existing_member.get_default_contract_length()
 		if get_staff_by_id(str(data["id"])) != null:
 			continue
 		var member := StaffMember.new()
@@ -286,14 +296,123 @@ func hire_staff(member: StaffMember) -> bool:
 		return false
 	money -= cost
 	member.hired = true
+	member.contract_races_remaining = member.get_default_contract_length()
+	member.morale = 70
+	record_finance("Staff", -cost, "Signed %s" % member.staff_name)
 	emit_changed()
 	return true
+
+
+func fire_staff(member: StaffMember) -> bool:
+	if member == null or not member.hired:
+		return false
+	var fee := get_discounted_cost(member.get_termination_fee())
+	if money < fee:
+		return false
+	money -= fee
+	record_finance("Staff", -fee, "Terminated %s's contract" % member.staff_name)
+	member.hired = false
+	member.contract_races_remaining = 0
+	emit_changed()
+	return true
+
+
+func renew_staff_contract(member: StaffMember, negotiate: bool = false) -> bool:
+	if member == null or not member.hired:
+		return false
+	var renewal_fee := get_discounted_cost(maxi(member.salary, member.signing_fee / 3))
+	if money < renewal_fee:
+		return false
+	money -= renewal_fee
+	if negotiate:
+		member.salary = maxi(100, roundi(float(member.salary) * 0.95))
+		member.morale = maxi(0, member.morale - 8)
+	else:
+		member.morale = mini(100, member.morale + 5)
+	member.contract_races_remaining = member.get_default_contract_length()
+	record_finance("Staff", -renewal_fee, "Renewed %s" % member.staff_name)
+	emit_changed()
+	return true
+
+
+func process_staff_race() -> Dictionary:
+	var crew_chief_salary := 0
+	var engineering_payroll := 0
+	var expired_names: Array[String] = []
+	for member in staff:
+		if member == null or not member.hired:
+			continue
+		if member.role == "Crew Chief":
+			crew_chief_salary += member.salary
+		else:
+			engineering_payroll += member.salary
+		member.contract_races_remaining = maxi(0, member.contract_races_remaining - 1)
+		member.morale = mini(100, member.morale + 1)
+		if member.contract_races_remaining == 0:
+			expired_names.append(member.staff_name)
+			member.hired = false
+	var total := crew_chief_salary + engineering_payroll
+	money -= total
+	if crew_chief_salary > 0:
+		record_finance("Payroll", -crew_chief_salary, "Crew chief salary")
+	if engineering_payroll > 0:
+		record_finance("Payroll", -engineering_payroll, "Engineering payroll")
+	emit_changed()
+	return {
+		"crew_chief_salary": crew_chief_salary,
+		"engineering_payroll": engineering_payroll,
+		"expired_names": expired_names
+	}
+
+
+func get_staff_payroll() -> int:
+	var total := 0
+	for member in staff:
+		if member != null and member.hired:
+			total += member.salary
+	return total
+
+
+func get_total_race_payroll() -> int:
+	var driver := get_active_driver()
+	var driver_payroll := driver.salary if driver != null and driver_hired_for_season else 0
+	return get_staff_payroll() + driver_payroll
+
+
+func record_finance(category: String, amount: int, description: String) -> void:
+	finance_history.push_front({
+		"season": season_number,
+		"race": completed_races.size() + 1,
+		"category": category,
+		"amount": amount,
+		"description": description
+	})
+	if finance_history.size() > 100:
+		finance_history.resize(100)
+
+
+func get_finance_total(positive: bool) -> int:
+	var total := 0
+	for entry in finance_history:
+		var amount := int(entry.get("amount", 0))
+		if (positive and amount > 0) or (not positive and amount < 0):
+			total += abs(amount)
+	return total
 
 
 func get_crew_chief_performance_boost() -> float:
 	var chief := get_crew_chief()
 	if chief == null:
 		return 0.0
+	var specialty_bonus := 0.75 if chief.specialty == "Race strategy" else 0.0
+	return float(chief.rating) * 0.05 + specialty_bonus
+
+
+func get_car_setup_variance_reduction() -> float:
+	var chief := get_crew_chief()
+	if chief != null and chief.specialty == "Car setup":
+		return 1.5
+	return 0.0
 	return float(chief.rating) * 0.05
 
 
@@ -308,6 +427,7 @@ func manufacture_part(engineer: StaffMember, part_type: String) -> CarPart:
 	money -= cost
 	var part := PartCatalog.create_manufactured_part(part_type, engineer)
 	parts_inventory.append(part)
+	record_finance("Workshop", -cost, "Manufactured %s" % part.part_name)
 	emit_changed()
 	return part
 
@@ -318,12 +438,21 @@ func repair_part(engineer: StaffMember, part: CarPart) -> int:
 	if part == null or not parts_inventory.has(part) or part.condition >= 100:
 		return 0
 	var maximum_restore := 10 + roundi(float(engineer.rating) * 0.35)
+	if engineer.specialty == "Advanced manufacturing":
+		maximum_restore += 5
+	elif (
+		(engineer.specialty == "Engines" and part.part_type == "Engine")
+		or (engineer.specialty == "Suspension" and part.part_type == "Suspension")
+		or (engineer.specialty == "Aerodynamics" and part.part_type == "Body")
+	):
+		maximum_restore += 4
 	var restored := mini(100 - part.condition, maximum_restore)
 	var cost := get_discounted_cost(restored * PART_REPAIR_COST_PER_POINT)
 	if money < cost:
 		return 0
 	money -= cost
 	part.condition += restored
+	record_finance("Workshop", -cost, "Repaired %s" % part.part_name)
 	part.emit_changed()
 	emit_changed()
 	return restored
@@ -499,6 +628,7 @@ func hire_driver(driver: Driver) -> bool:
 	driver.is_player_driver = true
 	driver.team_name = team_name
 	driver_hired_for_season = true
+	record_finance("Driver", -signing_cost, "Signed %s" % driver.driver_name)
 	emit_changed()
 	return true
 
