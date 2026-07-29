@@ -13,6 +13,7 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 @onready var speed_selector: OptionButton = %speed_selector
 @onready var pace_selector: OptionButton = %pace_selector
 @onready var apply_pace_button: Button = %apply_pace_button
+@onready var next_lap_button: Button = %next_lap_button
 
 var simulation: RaceSimulation
 var lap_timer := Timer.new()
@@ -39,6 +40,7 @@ func _ready() -> void:
 	pause_button.pressed.connect(_toggle_pause)
 	speed_selector.item_selected.connect(_on_speed_selected)
 	apply_pace_button.pressed.connect(_apply_pace)
+	next_lap_button.pressed.connect(_advance_one_lap)
 	for speed in SPEEDS:
 		speed_selector.add_item("%dx" % speed)
 	pace_selector.add_item("Conserve")
@@ -91,6 +93,15 @@ func _apply_pace() -> void:
 	simulation.set_player_pace(mode)
 	message_label.text = "%s mode will begin next lap" % mode
 	_refresh_display()
+
+
+func _advance_one_lap() -> void:
+	if simulation == null or simulation.is_complete:
+		return
+	simulation.simulate_lap()
+	_refresh_display()
+	if simulation.is_complete:
+		_finish_race()
 
 
 func _refresh_display() -> void:
@@ -161,6 +172,7 @@ func _finish_race() -> void:
 	lap_timer.stop()
 	pause_button.disabled = true
 	apply_pace_button.disabled = true
+	next_lap_button.disabled = true
 	message_label.text = "Race complete — preparing official results"
 	var result := RaceManager.finalize_live_race(simulation, GameManager.selected_car, str(weekend_data.get("strategy_id", "balanced")), weekend_data)
 	GameManager.active_race_weekend.clear()
@@ -176,3 +188,4 @@ func show_error() -> void:
 	message_label.text = "The active race entry could not be loaded."
 	pause_button.disabled = true
 	apply_pace_button.disabled = true
+	next_lap_button.disabled = true
