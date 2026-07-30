@@ -43,6 +43,8 @@ func create_driver_profile(driver: Driver) -> Control:
 	profile.add_child(columns)
 	profile.add_child(HSeparator.new())
 	profile.add_child(_create_career_row(driver))
+	profile.add_child(HSeparator.new())
+	profile.add_child(_create_career_history(driver))
 	margin.add_child(profile)
 	card.add_child(margin)
 	return card
@@ -146,6 +148,41 @@ func _create_career_row(driver: Driver) -> Control:
 		block.add_child(label)
 		row.add_child(block)
 	return row
+
+
+func _create_career_history(driver: Driver) -> Control:
+	var column := VBoxContainer.new()
+	var title := Label.new()
+	title.text = "CAREER PATH"
+	title.theme_type_variation = &"BodyStrong"
+	column.add_child(title)
+	var state := GameManager.team.get_ai_driver_state(driver.driver_id)
+	var lines: Array[String] = []
+	for result_value in (state.get("season_results", []) as Array).slice(0, 4):
+		var result := result_value as Dictionary
+		var series := SeriesCatalog.get_series(str(result.get("series_id", "")))
+		lines.append("%d  •  %s  •  Championship P%d  •  %d points" % [
+			int(result.get("season", 0)),
+			str(series.get("name", "Unknown series")),
+			int(result.get("position", 0)),
+			int(result.get("points", 0))
+		])
+	for history_value in (state.get("team_history", []) as Array).slice(0, 4):
+		var history := history_value as Dictionary
+		var team_id := str(history.get("team_id", ""))
+		var team_name := GameManager.team.team_name if team_id == "player_team" else GameManager.team.get_ai_team_name(team_id)
+		var series := SeriesCatalog.get_series(str(history.get("series_id", "")))
+		lines.append("%d  •  Joined %s  •  %s" % [
+			int(history.get("season", 0)),
+			team_name,
+			str(series.get("name", "Unknown series"))
+		])
+	var history_label := Label.new()
+	history_label.theme_type_variation = &"MutedLabel"
+	history_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	history_label.text = "\n".join(lines) if not lines.is_empty() else "Career history will build after the first completed season."
+	column.add_child(history_label)
+	return column
 
 
 func _add_detail(parent: VBoxContainer, label_text: String, value_text: String) -> void:

@@ -3,6 +3,7 @@ extends RefCounted
 
 var driver_id: String = ""
 var driver_name: String = ""
+var team_id: String = ""
 var team_name: String = ""
 var is_player: bool = false
 

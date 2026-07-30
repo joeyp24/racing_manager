@@ -45,7 +45,8 @@ def test_pp_calculator_is_typed_and_shop_previews_whole_car_delta():
     assert "class_name PerformancePointContext" in context
     assert "enum Scope" in modifier and "enum Operation" in modifier
     assert "target_part_types" in modifier and "Duplicate Performance Point modifier" in calculator
-    assert "displayed_points" not in part_result
+    assert "var displayed_points: int" in part_result
+    assert "result.displayed_points = roundi(result.effective_points)" in calculator
     assert "preview_result.displayed_points - current_result.displayed_points" in shop
     assert "find_installed_part" not in shop
 
@@ -188,7 +189,23 @@ def test_points_calendars_and_promotion_are_series_driven():
     assert "travel_region" in calendar and "track_type_distribution" in calendar
     assert "season_round" in calendar and "LOCAL_IDS" in calendar
     assert "Three-race reserve" in championship and "ConfirmationDialog" in championship
-    assert "Repeat current series" in championship
+    assert "Open Offseason Hub" in championship
+    assert "RaceManager.prepare_offseason(series_id)" in championship
+
+
+def test_offseason_driver_market_is_persistent_and_worldwide():
+    team = (ROOT / "resources/team.gd").read_text()
+    manager = (ROOT / "resources/offseason_manager.gd").read_text()
+    race_manager = (ROOT / "autoload/race_manager.gd").read_text()
+    page = (ROOT / "scenes/pages/offseason/offseason.gd").read_text()
+    for field in ("ai_driver_career", "offseason_data", "transfer_history", "season_history"):
+        assert f"@export var {field}" in team
+    for feature in ("renew_player_driver", "release_player_driver", "sign_free_agent", "_create_rookie"):
+        assert f"func {feature}" in manager
+    assert "prepare_offseason" in race_manager and "complete_offseason" in race_manager
+    assert "_record_ai_race_histories" in race_manager
+    assert "RUMOR" in (ROOT / "scenes/pages/offseason/offseason.tscn").read_text()
+    assert "OffseasonManager.can_complete" in page
 
 
 def test_other_series_are_simulated_saved_and_browsable():

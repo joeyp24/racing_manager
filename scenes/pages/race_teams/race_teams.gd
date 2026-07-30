@@ -66,6 +66,17 @@ func show_team_detail() -> void:
 	detail_container.add_child(ratings)
 	add_section("HISTORY")
 	add_body(str(organization.history))
+	var team_state := GameManager.team.get_ai_team_state(selected_team_id)
+	for season_value in (team_state.get("season_results", []) as Array).slice(0, 5):
+		var season_result := season_value as Dictionary
+		var record_series := SeriesCatalog.get_series(str(season_result.get("series_id", "")))
+		add_muted("%d  ·  %s  ·  P%d  ·  %d points  ·  Equipment %d" % [
+			int(season_result.get("season", 0)),
+			str(record_series.get("name", "Unknown series")),
+			int(season_result.get("position", 0)),
+			int(season_result.get("points", 0)),
+			int(season_result.get("equipment_rating", 0))
+		])
 	add_section("DRIVERS")
 	var roster := RaceManager.get_ai_roster_for_series(selected_series_id)
 	for driver in roster:

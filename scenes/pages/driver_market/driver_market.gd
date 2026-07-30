@@ -70,6 +70,12 @@ func display_market() -> void:
 			continue
 		if team.contracted_driver_ids.has(driver.driver_id):
 			continue
+		var career_state := team.get_ai_driver_state(driver.driver_id)
+		if bool(career_state.get("retired", false)):
+			continue
+		var current_team_id := str(career_state.get("current_team_id", ""))
+		if not current_team_id.is_empty() and current_team_id != "player_team":
+			continue
 		create_candidate_row(driver)
 
 

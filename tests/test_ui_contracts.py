@@ -34,6 +34,7 @@ def test_primary_management_pages_use_page_titles():
         "engineering/engineering.tscn",
         "finances/finances.tscn",
         "garage/garage.tscn",
+        "offseason/offseason.tscn",
         "race_calendar/race_calendar.tscn",
         "race_entry/race_entry.tscn",
         "race_results/race_results.tscn",
