@@ -844,7 +844,7 @@ func apply_reputation_reward(result: RaceResult) -> void:
 	elif position > 0:
 		result.reputation_earned = 2
 
-	GameManager.team.reputation += result.reputation_earned
+	GameManager.team.add_reputation_xp(result.reputation_earned)
 
 
 func apply_sponsor_reward(result: RaceResult) -> void:
@@ -1258,7 +1258,7 @@ func finish_season_if_complete() -> void:
 	GameManager.team.last_season_position = player_position
 	GameManager.team.last_season_prize = prize_money
 	if player_position == 1:
-		GameManager.team.reputation += 100
+		GameManager.team.add_reputation_xp(100)
 	GameManager.add_team_money(prize_money)
 	GameManager.team.record_finance("Championship", prize_money, "Season prize")
 	GameManager.team.emit_changed()

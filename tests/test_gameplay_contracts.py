@@ -156,3 +156,29 @@ def test_team_sizes_vary_and_scouting_covers_every_series():
     assert "driver.get_rating_rows()" in scouting
     assert "_recent_results" in scouting
     assert 'row.get("driver_id"' in scouting
+
+
+def test_reputation_is_xp_and_gates_series_and_driver_access():
+    team = (ROOT / "resources/team.gd").read_text()
+    series = (ROOT / "resources/series_catalog.gd").read_text()
+    race_manager = (ROOT / "autoload/race_manager.gd").read_text()
+    assert "const XP_PER_LEVEL" in team
+    assert "func get_reputation_level()" in team
+    assert "get_reputation_level() >= get_required_level_for_series(series_id)" in team
+    assert "func get_driver_required_level(driver: Driver)" in team
+    assert "func can_negotiate_with_driver(driver: Driver)" in team
+    assert series.count('"required_level":') == 8
+    assert "add_reputation_xp(result.reputation_earned)" in race_manager
+
+
+def test_weekly_scouting_hours_power_reports_and_recruiting():
+    team = (ROOT / "resources/team.gd").read_text()
+    scouting = (ROOT / "scenes/pages/scouting/scouting.gd").read_text()
+    market = (ROOT / "scenes/pages/driver_market/driver_market.gd").read_text()
+    assert "SCOUTING_HOURS_PER_LEVEL" in team
+    assert "func get_weekly_scouting_hours()" in team
+    assert "func spend_scouting_hours(driver: Driver, action: String)" in team
+    assert 'recruiting_progress[driver.driver_id]' in team
+    assert "func negotiate_driver_contract" in team
+    assert "scouting_hours_remaining" in scouting and '"???"' in scouting
+    assert "can_negotiate_with_driver" in market and "Potential OVR %s" in market

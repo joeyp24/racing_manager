@@ -105,6 +105,7 @@ static func _repair_and_migrate(team: Team) -> void:
 	team.ensure_series_progress(team.current_series_id)
 	team.load_series_progress(team.current_series_id)
 	team.ensure_departments()
+	team.ensure_scouting_hours()
 	team.ensure_default_player_driver()
 	team.ensure_driver_market()
 	team.ensure_series_rosters()

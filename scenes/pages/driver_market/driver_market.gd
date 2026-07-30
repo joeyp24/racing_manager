@@ -70,8 +70,6 @@ func display_market() -> void:
 			continue
 		if team.contracted_driver_ids.has(driver.driver_id):
 			continue
-		if driver.series_id != team.current_series_id:
-			continue
 		create_candidate_row(driver)
 
 
@@ -104,11 +102,13 @@ func create_candidate_row(driver: Driver) -> void:
 	var active := GameManager.team.get_active_driver()
 	details.tooltip_text = _driver_comparison_tooltip(driver, active)
 	var is_contracted := GameManager.team.contracted_driver_ids.has(driver.driver_id)
-	hire_button.text = "Contracted" if is_contracted else "Hire"
+	var has_accepted_offer := bool((GameManager.team.contract_offers.get(driver.driver_id, {}) as Dictionary).get("accepted", false))
+	hire_button.text = "Contracted" if is_contracted else ("Sign" if has_accepted_offer else "Negotiate")
 	hire_button.custom_minimum_size = Vector2(100, 0)
 	hire_button.disabled = (
 		is_contracted
-		or not GameManager.team.can_hire_driver(driver)
+		or (has_accepted_offer and not GameManager.team.can_hire_driver(driver))
+		or (not has_accepted_offer and not GameManager.team.can_negotiate_with_driver(driver))
 		or GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee)
 	)
 	if hire_button.disabled:
@@ -116,6 +116,10 @@ func create_candidate_row(driver: Driver) -> void:
 			hire_button.tooltip_text = "Disabled: this driver is already under contract."
 		elif GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee):
 			hire_button.tooltip_text = "Disabled: you need $%s more for the signing fee." % format_number(GameManager.team.get_discounted_cost(driver.signing_fee) - GameManager.team.money)
+		elif GameManager.team.get_reputation_level() < GameManager.team.get_driver_required_level(driver):
+			hire_button.tooltip_text = "Reach team level %d to negotiate with this driver." % GameManager.team.get_driver_required_level(driver)
+		elif int(GameManager.team.recruiting_progress.get(driver.driver_id, 0)) < 50:
+			hire_button.tooltip_text = "Recruit this driver to at least 50%% interest in Scouting."
 		else:
 			hire_button.tooltip_text = "Disabled: hiring is closed or the driver roster is full."
 	hire_button.pressed.connect(_on_hire_pressed.bind(driver))
@@ -135,10 +139,13 @@ func _driver_comparison_tooltip(driver: Driver, active: Driver) -> String:
 
 func create_driver_details(driver: Driver) -> String:
 	var signing_cost := GameManager.team.get_discounted_cost(driver.signing_fee)
-	return "Age %d | OVR %d | Potential OVR %d | Team seasons %d | Race pace %d | Qualifying %d | Tyre management %d | Salary $%s/race | Signing fee $%s" % [
+	var report := GameManager.team.scouting_reports.get(driver.driver_id, {}) as Dictionary
+	var potential_display := str(driver.get_potential_overall()) if report.get("revealed_potential", false) or GameManager.team.contracted_driver_ids.has(driver.driver_id) else "???"
+	return "Age %d | OVR %d | Potential OVR %s | Required level %d | Team seasons %d | Race pace %d | Qualifying %d | Tyre management %d | Salary $%s/race | Signing fee $%s" % [
 		driver.age,
 		driver.get_overall_rating(),
-		driver.get_potential_overall(),
+		potential_display,
+		GameManager.team.get_driver_required_level(driver),
 		driver.seasons_with_team,
 		driver.race_pace,
 		driver.qualifying_pace,
@@ -150,6 +157,15 @@ func create_driver_details(driver: Driver) -> String:
 
 func _on_hire_pressed(driver: Driver) -> void:
 	pending_driver = driver
+	var accepted := bool((GameManager.team.contract_offers.get(driver.driver_id, {}) as Dictionary).get("accepted", false))
+	if not accepted:
+		var response := GameManager.team.negotiate_driver_contract(driver, driver.salary, driver.signing_fee, driver.contract_length)
+		GameManager.save_game()
+		confirmation_dialog.title = "Contract negotiation"
+		confirmation_dialog.dialog_text = "%s\n\nProposed: $%s/race, $%s signing bonus, %d races." % [response.reason, format_number(driver.salary), format_number(driver.signing_fee), driver.contract_length]
+		confirmation_dialog.get_ok_button().text = "Continue"
+		confirmation_dialog.popup_centered()
+		return
 	confirmation_dialog.title = "Confirm driver contract"
 	confirmation_dialog.dialog_text = (
 		"Do you want to sign %s to your multi-team roster?\n\nSigning fee: $%s (charged now)\nSalary: $%s after every race"
