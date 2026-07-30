@@ -33,13 +33,17 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="race_calendar_container" type="VBoxContainer" parent="margin_container" unique_id=497961398]
 layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="title_label" type="Label" parent="margin_container/race_calendar_container" unique_id=514835337]
-theme_type_variation = &"SectionTitle"
+theme_type_variation = &"PageTitle"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Race Calendar"
@@ -47,6 +51,7 @@ text = "Race Calendar"
 [node name="instructions_label" type="Label" parent="margin_container/race_calendar_container" unique_id=442213487]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"MutedLabel"
 text = "Complete all 12 events to finish the season"
 
 [node name="races_scroll_container" type="ScrollContainer" parent="margin_container/race_calendar_container" unique_id=573845764]

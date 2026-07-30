@@ -10,16 +10,15 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PROJECT_PARSE_ARGUMENTS = (
-    ("--headless", "--path", ".", "--quit")
-    if sys.platform == "win32"
-    else ("--headless", "--editor", "--path", ".", "--quit")
-)
 CHECKS = (
-    ("project parse", PROJECT_PARSE_ARGUMENTS),
+    ("project import and parse", ("--headless", "--path", ".", "--import")),
     (
         "Performance Points behavioral tests",
         ("--headless", "--path", ".", "--script", "tests/test_performance_points.gd"),
+    ),
+    (
+        "UI scene smoke tests",
+        ("--headless", "--path", ".", "--script", "tests/test_ui_scenes.gd"),
     ),
 )
 
@@ -37,9 +36,14 @@ def run_check(godot: str, name: str, arguments: tuple[str, ...]) -> bool:
         errors="replace",
     )
     print(completed.stdout, end="")
+    has_parse_error = "Parse Error:" in completed.stdout
     has_script_error = "SCRIPT ERROR:" in completed.stdout
-    if completed.returncode != 0 or has_script_error:
-        reason = f"exit code {completed.returncode}" if completed.returncode != 0 else "script error output"
+    if completed.returncode != 0 or has_parse_error or has_script_error:
+        reason = (
+            f"exit code {completed.returncode}"
+            if completed.returncode != 0
+            else "parse or script error output"
+        )
         print(f"Godot {name} failed ({reason}).", file=sys.stderr)
         return False
     print(f"Godot {name} passed.")

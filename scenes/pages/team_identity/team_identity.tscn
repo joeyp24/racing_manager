@@ -25,10 +25,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 [node name="Content" type="VBoxContainer" parent="PageScroll/Margin"]
 layout_mode = 2
 theme_override_constants/separation = 12
@@ -47,7 +47,7 @@ text = "Update your team's name, home, motto, badge and signature colors at any 
 [node name="Columns" type="HBoxContainer" parent="PageScroll/Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 18
+theme_override_constants/separation = 10
 [node name="Form" type="VBoxContainer" parent="PageScroll/Margin/Content/Columns"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -104,7 +104,7 @@ layout_mode = 2
 [node name="preview_name" type="Label" parent="PageScroll/Margin/Content/Columns/Preview/preview_panel"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"PageTitle"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
@@ -113,7 +113,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 [node name="Save" type="Button" parent="PageScroll/Margin/Content"]
-custom_minimum_size = Vector2(220, 46)
+custom_minimum_size = Vector2(200, 36)
 layout_mode = 2
 size_flags_horizontal = 0
 theme_type_variation = &"PrimaryButton"

@@ -25,10 +25,10 @@ horizontal_scroll_mode = 0
 [node name="Margin" type="MarginContainer" parent="Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 [node name="Content" type="VBoxContainer" parent="Scroll/Margin"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -61,7 +61,7 @@ layout_mode = 2
 theme_type_variation = &"HeroPanel"
 [node name="HeroLayout" type="HBoxContainer" parent="Scroll/Margin/Content/Hero"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 12
 [node name="Race" type="VBoxContainer" parent="Scroll/Margin/Content/Hero/HeroLayout"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -73,7 +73,7 @@ text = "NEXT EVENT // RACE WEEK"
 [node name="next_race_label" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Race"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 25
+theme_type_variation = &"PageTitle"
 text = "Spring Speedway 100"
 [node name="RaceMeta" type="Label" parent="Scroll/Margin/Content/Hero/HeroLayout/Race"]
 layout_mode = 2
@@ -130,7 +130,6 @@ text = "$0"
 theme_type_variation = &"MutedLabel"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 0.75, 0.46, 1)
-theme_override_font_sizes/font_size = 12
 text = "OPERATING FUNDS"
 [node name="Championship" type="PanelContainer" parent="Scroll/Margin/Content/Kpis"]
 layout_mode = 2
@@ -145,7 +144,7 @@ text = "CHAMPIONSHIP"
 [node name="standings_label" type="Label" parent="Scroll/Margin/Content/Kpis/Championship/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
+theme_type_variation = &"CardTitle"
 text = "Not ranked"
 autowrap_mode = 2
 [node name="Hint" type="Label" parent="Scroll/Margin/Content/Kpis/Championship/Stack"]

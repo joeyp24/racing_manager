@@ -18,18 +18,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 30
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 30
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="Layout" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="Title" type="Label" parent="Margin/Layout"]
 layout_mode = 2
-theme_type_variation = &"SectionTitle"
+theme_type_variation = &"PageTitle"
 text = "World Racing"
 
 [node name="Subtitle" type="Label" parent="Margin/Layout"]
@@ -39,7 +39,7 @@ text = "Follow every championship, race result, and driver across the racing wor
 
 [node name="series_selector" type="OptionButton" parent="Margin/Layout"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 
 [node name="status_label" type="Label" parent="Margin/Layout"]
