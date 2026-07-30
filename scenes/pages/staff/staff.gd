@@ -86,7 +86,7 @@ func make_row(member: StaffMember, hiring: bool) -> PanelContainer:
 	card.custom_minimum_size.y = UITokens.COMPACT_ROW_HEIGHT
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", UITokens.SPACE_MD)
 	var label := Label.new(); label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.text = "%s\n%s  ·  %d %s  ·  $%s/race%s" % [member.staff_name, member.role, member.rating, member.get_rating_grade(), number(member.salary), "  ·  %d races" % member.contract_races_remaining if member.hired else ""]
+	label.text = "%s\n%s  ·  %d %s  ·  $%s/race%s" % [member.staff_name, member.role, member.rating, member.get_rating_grade(), number(GameManager.team.get_effective_salary(member.salary)), "  ·  %d races" % member.contract_races_remaining if member.hired else ""]
 	label.theme_type_variation = &"BodyStrong"
 	var action := Button.new()
 	if hiring:
@@ -96,7 +96,7 @@ func make_row(member: StaffMember, hiring: bool) -> PanelContainer:
 			or GameManager.team.money < GameManager.team.get_discounted_cost(member.signing_fee))
 		var peers := GameManager.team.get_staff_by_role(member.role)
 		if not peers.is_empty():
-			label.tooltip_text = "Compared with %s: Overall %+d  ·  Primary %+d  ·  Secondary %+d  ·  Salary %+d/race" % [peers[0].staff_name, member.rating - peers[0].rating, member.primary_rating - peers[0].primary_rating, member.secondary_rating - peers[0].secondary_rating, member.salary - peers[0].salary]
+			label.tooltip_text = "Compared with %s: Overall %+d  ·  Primary %+d  ·  Secondary %+d  ·  Salary %+d/race" % [peers[0].staff_name, member.rating - peers[0].rating, member.primary_rating - peers[0].primary_rating, member.secondary_rating - peers[0].secondary_rating, GameManager.team.get_effective_salary(member.salary) - GameManager.team.get_effective_salary(peers[0].salary)]
 		if action.disabled:
 			action.tooltip_text = "Disabled: this role is at capacity." if not GameManager.team.can_add_staff_role(member.role) else "Disabled: insufficient cash for the signing fee."
 		action.pressed.connect(hire_member.bind(member))
@@ -118,7 +118,7 @@ func show_detail(member: StaffMember) -> void:
 	add_rating(detail, names[1], member.secondary_rating)
 	add_label(detail, "RACE EFFECT", &"EyebrowLabel")
 	add_label(detail, "Team performance: +%.1f%%\nCondition-loss reduction: %.1f%%" % [member.primary_rating * 0.035, member.secondary_rating * 0.08], &"BodyStrong")
-	add_label(detail, "Morale: %s (%d%%)  ·  %d XP\nContract: %d races remaining  ·  $%s/race\nDevelopment: %s" % [member.get_morale_label(), member.morale, member.experience, member.contract_races_remaining, number(member.salary), member.last_development], &"MutedLabel")
+	add_label(detail, "Morale: %s (%d%%)  ·  %d XP\nContract: %d races remaining  ·  $%s/race\nDevelopment: %s" % [member.get_morale_label(), member.morale, member.experience, member.contract_races_remaining, number(GameManager.team.get_effective_salary(member.salary)), member.last_development], &"MutedLabel")
 	var actions := HBoxContainer.new()
 	if member.hired:
 		var negotiate := Button.new(); negotiate.text = "Negotiate contract"; negotiate.theme_type_variation = &"PrimaryButton"; negotiate.pressed.connect(open_contract.bind(member))
@@ -134,7 +134,8 @@ func add_rating(parent: VBoxContainer, label_text: String, value: int) -> void:
 
 func open_contract(member: StaffMember) -> void:
 	pending = member
-	contract_summary.text = "Current salary: $%s / race\nRequested salary: $%s / race\nDuration: %d races\nRival interest: %s\nProjected season cost: $%s" % [number(member.salary), number(member.salary), member.get_default_contract_length(), member.rival_interest, number(member.salary * member.get_default_contract_length())]
+	var effective_salary := GameManager.team.get_effective_salary(member.salary)
+	contract_summary.text = "Current salary: $%s / race\nRequested salary: $%s / race\nDuration: %d races\nRival interest: %s\nProjected season cost: $%s" % [number(effective_salary), number(effective_salary), member.get_default_contract_length(), member.rival_interest, number(effective_salary * member.get_default_contract_length())]
 	contract_dialog.popup_centered(Vector2i(520, 330))
 
 func _confirm_contract() -> void:

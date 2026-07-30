@@ -100,13 +100,14 @@ static func _staff_check(team: Team) -> Dictionary:
 
 
 static func _finance_check(team: Team, race: Race) -> Dictionary:
-	if team.money < race.entry_fee:
-		return _check(BLOCKED, "ENTRY FUNDS", "You need $%s more to cover the $%s entry fee." % [_money(race.entry_fee - team.money), _money(race.entry_fee)], "Open Finances", "finances")
-	var reserve := team.money - race.entry_fee
+	var weekend_cost := team.get_effective_weekend_cost(race)
+	if team.money < weekend_cost:
+		return _check(BLOCKED, "ENTRY FUNDS", "You need $%s more to cover the $%s weekend cost." % [_money(weekend_cost - team.money), _money(weekend_cost)], "Open Finances", "finances")
+	var reserve := team.money - weekend_cost
 	var payroll := team.get_total_race_payroll()
 	if reserve < maxi(5000, payroll):
 		return _check(SUBOPTIMAL, "ENTRY FUNDS", "Entry is affordable, but only $%s remains before race payroll." % _money(reserve), "Open Finances", "finances", "Payroll $%s" % _money(payroll))
-	return _check(READY, "ENTRY FUNDS", "$%s remains after the $%s entry fee." % [_money(reserve), _money(race.entry_fee)], "", "", "Healthy reserve")
+	return _check(READY, "ENTRY FUNDS", "$%s remains after the $%s weekend cost." % [_money(reserve), _money(weekend_cost)], "", "", "Healthy reserve")
 
 
 static func _sponsor_check(team: Team) -> Dictionary:
@@ -114,7 +115,7 @@ static func _sponsor_check(team: Team) -> Dictionary:
 	if sponsor == null:
 		return _check(SUBOPTIMAL, "SPONSOR", "No sponsor is active, so this race has no sponsor income or objective bonus.", "Open Sponsors", "sponsors")
 	if team.sponsor_objective_completed:
-		return _check(READY, "SPONSOR", "%s's objective is already complete." % sponsor.sponsor_name, "", "", "$%s per race" % _money(sponsor.payment_per_race))
+		return _check(READY, "SPONSOR", "%s's objective is already complete." % sponsor.sponsor_name, "", "", "$%s per race" % _money(team.get_effective_sponsor_value(sponsor.payment_per_race)))
 	var needed := maxi(0, sponsor.objective_target - team.sponsor_objective_progress)
 	if needed > team.sponsor_races_remaining:
 		return _check(BLOCKED, "SPONSOR", "%s's objective is no longer achievable: %d results needed with %d races left." % [sponsor.sponsor_name, needed, team.sponsor_races_remaining], "Open Sponsors", "sponsors")

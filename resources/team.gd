@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 8
+const CURRENT_SAVE_FORMAT_VERSION: int = 9
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -82,6 +82,7 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var championship_standings: Array[Dictionary] = []
 @export var series_progress: Dictionary = {}
 @export var world_series_data: Dictionary = {}
+@export var ai_team_career: Dictionary = {}
 @export var drivers: Array[Driver] = []
 @export var contracted_driver_ids: Array[String] = []
 @export var race_teams: Array[RaceTeam] = []
@@ -100,15 +101,34 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var finance_history: Array[Dictionary] = []
 
 const DIFFICULTY_SETTINGS: Dictionary = {
-	"Rookie": {"starting_cash": 75000, "sponsor_multiplier": 1.25, "ai_growth": 0.45, "repair_multiplier": 0.75},
-	"Club": {"starting_cash": 50000, "sponsor_multiplier": 1.0, "ai_growth": 0.75, "repair_multiplier": 1.0},
-	"Pro": {"starting_cash": 35000, "sponsor_multiplier": 0.80, "ai_growth": 1.10, "repair_multiplier": 1.35}
+	"Rookie": {
+		"starting_cash": 75000, "sponsor_multiplier": 1.20, "ai_growth": 0.45,
+		"repair_multiplier": 0.75, "weekend_cost_multiplier": 0.88,
+		"prize_multiplier": 1.15, "salary_multiplier": 0.90, "market_cost_multiplier": 0.90,
+		"ai_pace_modifier": 0.96, "ai_strategy_modifier": 0.86,
+		"player_incident_multiplier": 0.72
+	},
+	"Club": {
+		"starting_cash": 50000, "sponsor_multiplier": 1.0, "ai_growth": 0.75,
+		"repair_multiplier": 1.0, "weekend_cost_multiplier": 1.0,
+		"prize_multiplier": 1.0, "salary_multiplier": 1.0, "market_cost_multiplier": 1.0,
+		"ai_pace_modifier": 1.0, "ai_strategy_modifier": 1.0,
+		"player_incident_multiplier": 1.0
+	},
+	"Pro": {
+		"starting_cash": 42000, "sponsor_multiplier": 0.88, "ai_growth": 1.10,
+		"repair_multiplier": 1.25, "weekend_cost_multiplier": 1.05,
+		"prize_multiplier": 0.95, "salary_multiplier": 1.05, "market_cost_multiplier": 1.04,
+		"ai_pace_modifier": 1.04, "ai_strategy_modifier": 1.12,
+		"player_incident_multiplier": 1.24
+	}
 }
 
 
 func _init() -> void:
 	ensure_series_progress()
 	ensure_world_series_data()
+	ensure_ai_team_career()
 	ensure_departments()
 	ensure_default_player_driver()
 	ensure_driver_market()
@@ -126,6 +146,20 @@ func set_career_difficulty(value: String) -> void:
 
 func get_difficulty_setting(key: String, fallback: Variant) -> Variant:
 	return (DIFFICULTY_SETTINGS.get(career_difficulty, DIFFICULTY_SETTINGS["Club"]) as Dictionary).get(key, fallback)
+
+
+func get_effective_weekend_cost(race: Race, entry_count: int = 1) -> int:
+	if race == null:
+		return 0
+	return roundi(float(race.get_weekend_cost() * maxi(1, entry_count)) * float(get_difficulty_setting("weekend_cost_multiplier", 1.0)))
+
+
+func get_effective_sponsor_value(base_value: int) -> int:
+	return roundi(float(base_value) * float(get_difficulty_setting("sponsor_multiplier", 1.0)))
+
+
+func get_effective_salary(base_value: int) -> int:
+	return roundi(float(base_value) * float(get_difficulty_setting("salary_multiplier", 1.0)))
 
 
 func accept_owner_investment() -> bool:
@@ -291,6 +325,220 @@ func set_world_series_data(series_id: String, data: Dictionary) -> void:
 	ensure_world_series_data()
 	world_series_data[series_id] = data.duplicate(true)
 	emit_changed()
+
+
+func ensure_ai_team_career() -> void:
+	for series in SeriesCatalog.SERIES:
+		var series_id := str(series.id)
+		for organization in TeamCatalog.get_teams(series_id):
+			var team_id := str(organization.team_id)
+			if ai_team_career.has(team_id):
+				continue
+			var car_price := int(series.car_price)
+			var operating_budget := int(series.estimated_race_cost) * int(series.season_length)
+			ai_team_career[team_id] = {
+				"team_id": team_id,
+				"base_team_id": team_id,
+				"team_name": str(organization.team_name),
+				"current_series_id": series_id,
+				"equipment_rating": int(organization.equipment_rating),
+				"engineering_rating": int(organization.engineering_rating),
+				"staff_quality": int(organization.pit_crew_rating),
+				"strategy_rating": int(organization.strategy_rating),
+				"budget": car_price * int(organization.driver_count) + operating_budget,
+				"trend": 0.0,
+				"seasons": 0,
+				"last_position": 0,
+				"financial_status": "Stable",
+				"driver_changes": 0,
+				"driver_generation": 0,
+				"driver_form": 0,
+				"movement": ""
+			}
+
+
+func get_ai_team_state(team_id: String) -> Dictionary:
+	ensure_ai_team_career()
+	return ai_team_career.get(team_id, {}) as Dictionary
+
+
+func get_ai_team_states_for_series(series_id: String) -> Array[Dictionary]:
+	ensure_ai_team_career()
+	var teams: Array[Dictionary] = []
+	for state_value in ai_team_career.values():
+		var state := state_value as Dictionary
+		if str(state.get("current_series_id", "")) == series_id:
+			teams.append(state)
+	teams.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+		if int(first.get("last_position", 0)) == int(second.get("last_position", 0)):
+			return str(first.get("team_id", "")) < str(second.get("team_id", ""))
+		if int(first.get("last_position", 0)) <= 0:
+			return false
+		if int(second.get("last_position", 0)) <= 0:
+			return true
+		return int(first.get("last_position", 0)) < int(second.get("last_position", 0))
+	)
+	return teams
+
+
+func get_ai_organizations_for_series(series_id: String) -> Array[Dictionary]:
+	var static_teams := TeamCatalog.get_teams(series_id)
+	var career_teams := get_ai_team_states_for_series(series_id)
+	var organizations: Array[Dictionary] = []
+	for index in static_teams.size():
+		var organization := static_teams[index].duplicate(true)
+		if index < career_teams.size():
+			var state := career_teams[index]
+			var identity := _get_ai_base_organization(str(state.get("base_team_id", state.team_id)))
+			if not identity.is_empty():
+				var target_driver_count := int(organization.driver_count)
+				organization = identity.duplicate(true)
+				organization["series_id"] = series_id
+				organization["driver_count"] = target_driver_count
+			organization["team_id"] = str(state.team_id)
+			organization["team_name"] = str(state.team_name)
+			organization["equipment_rating"] = int(state.equipment_rating)
+			organization["engineering_rating"] = int(state.engineering_rating)
+			organization["pit_crew_rating"] = int(state.staff_quality)
+			organization["strategy_rating"] = int(state.strategy_rating)
+			organization["overall_rating"] = roundi(_ai_team_strength(state))
+			organization["budget"] = int(state.budget)
+			organization["trend"] = float(state.trend)
+			organization["financial_status"] = str(state.financial_status)
+			organization["movement"] = str(state.movement)
+			organization["driver_changes"] = int(state.driver_changes)
+		organizations.append(organization)
+	return organizations
+
+
+func _get_ai_base_organization(team_id: String) -> Dictionary:
+	for series in SeriesCatalog.SERIES:
+		var organization := TeamCatalog.get_team(str(series.id), team_id)
+		if not organization.is_empty():
+			return organization
+	return {}
+
+
+func process_ai_team_season() -> Array[String]:
+	ensure_ai_team_career()
+	var summaries: Array[String] = []
+	for series in SeriesCatalog.SERIES:
+		var series_id := str(series.id)
+		var states := get_ai_team_states_for_series(series_id)
+		if states.is_empty():
+			continue
+		var team_points := _get_ai_team_points(series_id)
+		states.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+			var first_points := int(team_points.get(str(first.team_id), -1))
+			var second_points := int(team_points.get(str(second.team_id), -1))
+			if first_points == second_points:
+				return _ai_team_strength(first) > _ai_team_strength(second)
+			return first_points > second_points
+		)
+		for index in states.size():
+			var state := states[index]
+			var position := index + 1
+			var old_equipment := int(state.equipment_rating)
+			var season_cost := int(series.estimated_race_cost) * int(series.season_length)
+			var commercial_factor := lerpf(0.70, 1.35, 1.0 - float(position - 1) / maxf(1.0, float(states.size() - 1)))
+			var revenue := roundi(float(season_cost) * commercial_factor + float(series.car_price) * 0.16)
+			var expenses := roundi(float(season_cost) * (0.82 + float(state.staff_quality) / 500.0))
+			state["budget"] = int(state.budget) + revenue - expenses
+			var available_investment := maxi(0, int(state.budget) - roundi(float(season_cost) * 0.55))
+			var investment := mini(available_investment, roundi(float(series.car_price) * 0.20))
+			state["budget"] = int(state.budget) - investment
+			var development_rate := (float(state.engineering_rating) * 0.55 + float(state.staff_quality) * 0.25 + float(state.strategy_rating) * 0.20) / 100.0
+			var investment_rate := clampf(float(investment) / maxf(1.0, float(series.car_price) * 0.20), 0.0, 1.0)
+			var competitive_pressure := 0.45 if position > states.size() / 2 else 0.18
+			var rating_change := roundi(development_rate * investment_rate * 2.2 - competitive_pressure)
+			if int(state.budget) < 0:
+				rating_change -= 2
+				state["staff_quality"] = maxi(30, int(state.staff_quality) - 1)
+				state["financial_status"] = "Under pressure"
+			elif int(state.budget) < season_cost / 2:
+				state["financial_status"] = "Limited"
+			else:
+				state["financial_status"] = "Stable"
+			state["equipment_rating"] = clampi(old_equipment + rating_change, 30, 99)
+			state["engineering_rating"] = clampi(int(state.engineering_rating) + (1 if investment_rate > 0.72 else 0), 30, 99)
+			state["strategy_rating"] = clampi(int(state.strategy_rating) + (1 if position <= maxi(1, states.size() / 3) else 0), 30, 99)
+			state["trend"] = clampf(float(state.trend) * 0.55 + float(int(state.equipment_rating) - old_equipment), -5.0, 5.0)
+			state["last_position"] = position
+			state["seasons"] = int(state.seasons) + 1
+			state["movement"] = ""
+			var change_trigger := position > roundi(float(states.size()) * 0.70) or int(state.budget) < 0
+			if change_trigger and (season_number + position + str(state.team_id).length()) % 3 == 0:
+				state["driver_changes"] = int(state.driver_changes) + 1
+				state["driver_generation"] = int(state.driver_generation) + 1
+				state["driver_form"] = clampi(3 - position % 7, -3, 3)
+			else:
+				state["driver_form"] = clampi(int(state.driver_form) + (1 if position <= 3 else -1), -4, 4)
+			ai_team_career[str(state.team_id)] = state
+		var leader := states[0]
+		summaries.append("%s: %s leads development (%+.1f trend)." % [str(series.name), str(leader.team_name), float(leader.trend)])
+	summaries.append_array(_process_ai_promotions())
+	emit_changed()
+	return summaries
+
+
+func _get_ai_team_points(series_id: String) -> Dictionary:
+	var points := {}
+	var standings: Array[Dictionary] = []
+	if series_id == current_series_id:
+		standings = get_sorted_championship_standings()
+	else:
+		standings = _dictionary_array((get_world_series_data(series_id) as Dictionary).get("standings", []))
+	for row in standings:
+		var team_id := str(row.get("team_id", ""))
+		if not team_id.is_empty():
+			points[team_id] = int(points.get(team_id, 0)) + int(row.get("points", 0))
+	return points
+
+
+func _dictionary_array(value: Variant) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if value is Array:
+		for item in value:
+			if item is Dictionary:
+				result.append(item)
+	return result
+
+
+func _ai_team_strength(state: Dictionary) -> float:
+	return float(state.get("equipment_rating", 50)) * 0.45 + float(state.get("engineering_rating", 50)) * 0.25 + float(state.get("staff_quality", 50)) * 0.15 + float(state.get("strategy_rating", 50)) * 0.15 + float(state.get("trend", 0.0))
+
+
+func _process_ai_promotions() -> Array[String]:
+	var summaries: Array[String] = []
+	var moved := {}
+	for upper_index in range(SeriesCatalog.SERIES.size() - 1, 0, -1):
+		var lower_id := str(SeriesCatalog.SERIES[upper_index - 1].id)
+		var upper_id := str(SeriesCatalog.SERIES[upper_index].id)
+		var lower_teams := get_ai_team_states_for_series(lower_id)
+		var upper_teams := get_ai_team_states_for_series(upper_id)
+		var promoted: Dictionary = {}
+		var relegated: Dictionary = {}
+		for state in lower_teams:
+			if not moved.has(str(state.team_id)):
+				promoted = state
+				break
+		for index in range(upper_teams.size() - 1, -1, -1):
+			var state := upper_teams[index]
+			if not moved.has(str(state.team_id)):
+				relegated = state
+				break
+		if promoted.is_empty() or relegated.is_empty():
+			continue
+		promoted["current_series_id"] = upper_id
+		promoted["movement"] = "Promoted"
+		relegated["current_series_id"] = lower_id
+		relegated["movement"] = "Relegated"
+		moved[str(promoted.team_id)] = true
+		moved[str(relegated.team_id)] = true
+		ai_team_career[str(promoted.team_id)] = promoted
+		ai_team_career[str(relegated.team_id)] = relegated
+		summaries.append("%s promoted; %s relegated." % [str(promoted.team_name), str(relegated.team_name)])
+	return summaries
 
 
 func save_series_progress() -> void:
@@ -496,7 +744,8 @@ func get_discounted_cost(base_cost: int, include_accounting: bool = true) -> int
 	if base_cost <= 0:
 		return 0
 	var discount: float = get_department_bonus("accounting") if include_accounting else 0.0
-	return maxi(1, ceili(float(base_cost) * (1.0 - discount / 100.0)))
+	var market_scale := float(get_difficulty_setting("market_cost_multiplier", 1.0))
+	return maxi(1, ceili(float(base_cost) * market_scale * (1.0 - discount / 100.0)))
 
 
 func get_department_cost(department_id: String) -> int:
@@ -803,9 +1052,9 @@ func process_staff_race() -> Dictionary:
 		if member == null or not member.hired:
 			continue
 		if member.role == "Crew Chief":
-			crew_chief_salary += member.salary
+			crew_chief_salary += get_effective_salary(member.salary)
 		else:
-			engineering_payroll += member.salary
+			engineering_payroll += get_effective_salary(member.salary)
 		member.experience += 1
 		if member.experience % 6 == 0:
 			member.development_points += 1
@@ -832,13 +1081,13 @@ func get_staff_payroll() -> int:
 	var total := 0
 	for member in staff:
 		if member != null and member.hired:
-			total += member.salary
+			total += get_effective_salary(member.salary)
 	return total
 
 
 func get_total_race_payroll() -> int:
 	var driver := get_active_driver()
-	var driver_payroll := driver.salary if driver != null and driver_hired_for_season else 0
+	var driver_payroll := get_effective_salary(driver.salary) if driver != null and driver_hired_for_season else 0
 	return get_staff_payroll() + driver_payroll
 
 

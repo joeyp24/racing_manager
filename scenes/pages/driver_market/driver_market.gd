@@ -135,7 +135,8 @@ func create_candidate_row(driver: Driver) -> void:
 func _driver_comparison_tooltip(driver: Driver, active: Driver) -> String:
 	if active == null or active == driver:
 		return "Skill drives pace; consistency reduces variance; aggression adds overtaking pace and risk."
-	return "Compared with %s: Skill %+d  •  Consistency %+d  •  Aggression %+d  •  Salary %s$%s/race" % [active.driver_name, driver.skill - active.skill, driver.consistency - active.consistency, driver.aggression - active.aggression, "+" if driver.salary >= active.salary else "−", format_number(absi(driver.salary - active.salary))]
+	var salary_delta := GameManager.team.get_effective_salary(driver.salary) - GameManager.team.get_effective_salary(active.salary)
+	return "Compared with %s: Skill %+d  •  Consistency %+d  •  Aggression %+d  •  Salary %s$%s/race" % [active.driver_name, driver.skill - active.skill, driver.consistency - active.consistency, driver.aggression - active.aggression, "+" if salary_delta >= 0 else "−", format_number(absi(salary_delta))]
 
 
 func create_driver_details(driver: Driver) -> String:
@@ -151,7 +152,7 @@ func create_driver_details(driver: Driver) -> String:
 		driver.race_pace,
 		driver.qualifying_pace,
 		driver.tyre_management,
-		format_number(driver.salary),
+		format_number(GameManager.team.get_effective_salary(driver.salary)),
 		format_number(signing_cost)
 	]
 
@@ -163,7 +164,7 @@ func _on_hire_pressed(driver: Driver) -> void:
 		var response := GameManager.team.negotiate_driver_contract(driver, driver.salary, driver.signing_fee, driver.contract_length)
 		GameManager.save_game()
 		confirmation_dialog.title = "Contract negotiation"
-		confirmation_dialog.dialog_text = "%s\n\nProposed: $%s/race, $%s signing bonus, %d races." % [response.reason, format_number(driver.salary), format_number(driver.signing_fee), driver.contract_length]
+		confirmation_dialog.dialog_text = "%s\n\nProposed: $%s/race, $%s signing bonus, %d races." % [response.reason, format_number(GameManager.team.get_effective_salary(driver.salary)), format_number(GameManager.team.get_discounted_cost(driver.signing_fee)), driver.contract_length]
 		confirmation_dialog.get_ok_button().text = "Continue"
 		confirmation_dialog.popup_centered()
 		return
@@ -173,7 +174,7 @@ func _on_hire_pressed(driver: Driver) -> void:
 		% [
 			driver.driver_name,
 			format_number(GameManager.team.get_discounted_cost(driver.signing_fee)),
-			format_number(driver.salary)
+			format_number(GameManager.team.get_effective_salary(driver.salary))
 		]
 	)
 	confirmation_dialog.get_ok_button().text = "Confirm Hire"

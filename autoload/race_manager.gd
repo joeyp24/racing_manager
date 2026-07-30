@@ -182,9 +182,52 @@ func get_eligible_drivers_for_race(team: Team, race: Race) -> Array[Driver]:
 
 func get_ai_field_for_race(race: Race, player_entry_count: int = 1) -> Array[Dictionary]:
 	if race == null: return []
-	var roster := AIRosterCatalog.get_roster(race.series_id)
+	var roster := _get_effective_ai_roster(race.series_id)
 	roster.resize(maxi(0, get_maximum_field_size(race.series_id) - maxi(1, player_entry_count)))
 	return roster
+
+
+func _get_effective_ai_roster(series_id: String) -> Array[Dictionary]:
+	var roster := AIRosterCatalog.get_roster(series_id)
+	if GameManager.team == null:
+		return roster
+	var static_teams := TeamCatalog.get_teams(series_id)
+	var career_teams := GameManager.team.get_ai_team_states_for_series(series_id)
+	if career_teams.is_empty():
+		return roster
+	var slot_states := {}
+	for index in mini(static_teams.size(), career_teams.size()):
+		slot_states[str(static_teams[index].team_id)] = career_teams[index]
+	var strategy_scale := float(GameManager.team.get_difficulty_setting("ai_strategy_modifier", 1.0))
+	for index in roster.size():
+		var driver := roster[index]
+		var state := slot_states.get(str(driver.team_id), {}) as Dictionary
+		if state.is_empty():
+			continue
+		var base_team := TeamCatalog.get_team(series_id, str(driver.team_id))
+		var equipment_delta := int(state.get("equipment_rating", 50)) - int(base_team.get("equipment_rating", 50))
+		var form := int(state.get("driver_form", 0))
+		driver["team_id"] = str(state.team_id)
+		driver["team_name"] = str(state.team_name)
+		driver["skill"] = clampi(int(driver.skill) + form, 1, 100)
+		driver["consistency"] = clampi(int(driver.consistency) + roundi(float(state.staff_quality - 50) * 0.04), 1, 100)
+		driver["car_performance"] = clampi(int(driver.car_performance) + equipment_delta + roundi(float(state.trend)), 1, 100)
+		driver["strategy_rating"] = clampf(float(state.strategy_rating) * strategy_scale, 20.0, 100.0)
+		driver["reliability"] = clampf(float(state.equipment_rating) * 0.62 + float(state.staff_quality) * 0.38, 25.0, 99.0)
+		driver["fuel_efficiency"] = clampf(float(state.engineering_rating) * 0.75 + 12.0, 25.0, 99.0)
+		driver["tyre_preservation"] = clampf(float(state.staff_quality) * 0.70 + float(state.strategy_rating) * 0.30, 25.0, 99.0)
+		if int(state.get("driver_generation", 0)) > 0:
+			var name_seed := absi(hash(str(state.team_id))) + int(state.driver_generation) * 31 + int(driver.team_car_number) * 7
+			driver["driver_name"] = "%s %s" % [
+				AIRosterCatalog.FIRST_NAMES[name_seed % AIRosterCatalog.FIRST_NAMES.size()],
+				AIRosterCatalog.LAST_NAMES[(name_seed * 3) % AIRosterCatalog.LAST_NAMES.size()]
+			]
+		roster[index] = driver
+	return roster
+
+
+func get_ai_roster_for_series(series_id: String) -> Array[Dictionary]:
+	return _get_effective_ai_roster(series_id)
 
 
 func get_next_race(team: Team) -> Race:
@@ -219,11 +262,19 @@ func create_live_simulation(
 		detailed_ai_drivers.append(detailed)
 	var simulation := RaceSimulation.new()
 	var compound := "Medium"
+	var fuel_fraction := 0.56
 	var plan := str(weekend_data.get("pre_race_plan", ""))
 	if plan.begins_with("Hard"):
 		compound = "Hard"
+		fuel_fraction = 0.68
 	elif plan.begins_with("Soft"):
 		compound = "Soft"
+		fuel_fraction = 0.42
+	var player_race_attributes := player_car.get_race_attributes()
+	player_race_attributes["strategy_skill"] = clampf(42.0 + GameManager.team.get_crew_chief_performance_boost() * 7.0, 35.0, 98.0)
+	player_race_attributes["incident_scale"] = float(GameManager.team.get_difficulty_setting("player_incident_multiplier", 1.0))
+	player_race_attributes["pit_time_reduction"] = GameManager.team.get_pit_stop_time_reduction()
+	player_race_attributes["pit_mistake_reduction"] = GameManager.team.get_pit_mistake_reduction()
 	simulation.setup(
 		selected_race,
 		player_driver,
@@ -237,8 +288,10 @@ func create_live_simulation(
 		compound,
 		_build_additional_team_entries(selected_race, selected_strategy, weekend_data),
 		int(weekend_data.get("simulation_seed", -1)),
-		player_car.get_race_attributes(),
-		str(weekend_data.get("setup_emphasis", "Balanced"))
+		player_race_attributes,
+		str(weekend_data.get("setup_emphasis", "Balanced")),
+		weekend_data.get("practice_setup", {}) as Dictionary,
+		fuel_fraction
 	)
 	return simulation
 
@@ -251,6 +304,25 @@ func _get_entry_driver(weekend_data: Dictionary) -> Driver:
 		if assigned != null:
 			return assigned
 	return GameManager.team.get_active_driver()
+
+
+func _get_weekend_driver_payroll(weekend_data: Dictionary, fallback_driver: Driver) -> int:
+	if GameManager.team == null:
+		return fallback_driver.salary if fallback_driver != null else 0
+	var total := 0
+	var paid_driver_ids := {}
+	for entry_value in weekend_data.get("entries", []):
+		var entry := entry_value as Dictionary
+		var driver_id := str(entry.get("driver_id", ""))
+		if driver_id.is_empty() or paid_driver_ids.has(driver_id):
+			continue
+		var driver := GameManager.team.get_driver_by_id(driver_id)
+		if driver != null:
+			total += GameManager.team.get_effective_salary(driver.salary)
+			paid_driver_ids[driver_id] = true
+	if total <= 0 and fallback_driver != null:
+		total = GameManager.team.get_effective_salary(fallback_driver.salary)
+	return total
 
 
 func _build_additional_team_entries(selected_race: Race, selected_strategy: String, weekend_data: Dictionary) -> Array:
@@ -293,7 +365,7 @@ func finalize_live_race(
 	result.player_car = player_car
 	result.player_driver = player_driver
 	result.entry_fee = int(weekend_data.get("entry_fee_total", selected_race.entry_fee))
-	result.driver_salary = player_driver.salary
+	result.driver_salary = _get_weekend_driver_payroll(weekend_data, player_driver)
 	result.strategy_id = normalize_strategy_id(selected_strategy)
 	result.strategy_name = str(strategy.get("name", "Balanced"))
 	result.strategy_performance_modifier = float(strategy.get("performance_modifier", 1.0))
@@ -392,7 +464,7 @@ func run_race(
 	result.player_car = player_car
 	result.player_driver = player_driver
 	result.entry_fee = selected_race.entry_fee
-	result.driver_salary = player_driver.salary
+	result.driver_salary = _get_weekend_driver_payroll(weekend_data, player_driver)
 	result.strategy_id = normalize_strategy_id(selected_strategy)
 	result.strategy_name = str(strategy.get("name", "Balanced"))
 	result.strategy_performance_modifier = float(strategy.get("performance_modifier", 1.0))
@@ -618,6 +690,7 @@ func calculate_ai_score(
 	)
 
 	var driver_attribute_score := calculate_driver_attribute_score(selected_race, attributes) * 0.43
+	var car_development_score := (float(ai_driver.get("car_performance", 50)) - 50.0) * 0.22
 
 	var variance_limit: float = lerpf(
 		12.0,
@@ -632,11 +705,14 @@ func calculate_ai_score(
 		)
 	)
 
-	return (
+	var score := (
 		difficulty_score
 		+ driver_attribute_score
+		+ car_development_score
 		+ random_variance
 	)
+	var pace_scale := float(GameManager.team.get_difficulty_setting("ai_pace_modifier", 1.0)) if GameManager.team != null else 1.0
+	return 50.0 + (score - 50.0) * pace_scale
 
 
 func calculate_driver_attribute_score(selected_race: Race, attributes: Dictionary) -> float:
@@ -673,16 +749,20 @@ func calculate_prize_money(
 	selected_race: Race,
 	finishing_position: int
 ) -> int:
+	var prize := 0
 	if finishing_position == 1:
-		return selected_race.first_place_prize
-	if finishing_position == 2:
-		return selected_race.second_place_prize
-	if finishing_position == 3:
-		return selected_race.third_place_prize
-	# Weekly short-track purses pay the whole field, including start money.
-	var base_payouts: Array[int] = [175, 150, 125, 110, 100, 90, 85]
-	var base := base_payouts[finishing_position - 4] if finishing_position >= 4 and finishing_position <= 10 else 75
-	return roundi(float(base) * float(selected_race.first_place_prize) / 500.0)
+		prize = selected_race.first_place_prize
+	elif finishing_position == 2:
+		prize = selected_race.second_place_prize
+	elif finishing_position == 3:
+		prize = selected_race.third_place_prize
+	else:
+		# Weekly short-track purses pay the whole field, including start money.
+		var base_payouts: Array[int] = [175, 150, 125, 110, 100, 90, 85]
+		var base := base_payouts[finishing_position - 4] if finishing_position >= 4 and finishing_position <= 10 else 75
+		prize = roundi(float(base) * float(selected_race.first_place_prize) / 500.0)
+	var multiplier := float(GameManager.team.get_difficulty_setting("prize_multiplier", 1.0)) if GameManager.team != null else 1.0
+	return roundi(float(prize) * multiplier)
 
 
 func calculate_mileage_added(
@@ -849,7 +929,7 @@ func apply_sponsor_reward(result: RaceResult) -> void:
 		return
 
 	result.sponsor_name = sponsor.sponsor_name
-	result.sponsor_race_payment = roundi(float(sponsor.payment_per_race) * float(team.get_difficulty_setting("sponsor_multiplier", 1.0)))
+	result.sponsor_race_payment = team.get_effective_sponsor_value(sponsor.payment_per_race)
 	GameManager.add_team_money(result.sponsor_race_payment)
 	team.record_finance("Sponsor", result.sponsor_race_payment, "%s race payment" % sponsor.sponsor_name)
 	result.net_earnings += result.sponsor_race_payment
@@ -862,7 +942,7 @@ func apply_sponsor_reward(result: RaceResult) -> void:
 		if team.sponsor_objective_progress >= sponsor.objective_target:
 			team.sponsor_objective_completed = true
 			result.sponsor_objective_completed = true
-			result.sponsor_objective_bonus = roundi(float(sponsor.objective_bonus) * float(team.get_difficulty_setting("sponsor_multiplier", 1.0)))
+			result.sponsor_objective_bonus = team.get_effective_sponsor_value(sponsor.objective_bonus)
 			GameManager.add_team_money(result.sponsor_objective_bonus)
 			team.record_finance("Sponsor", result.sponsor_objective_bonus, "%s objective bonus" % sponsor.sponsor_name)
 			result.net_earnings += result.sponsor_objective_bonus
@@ -923,7 +1003,7 @@ func initialize_championship_standings(
 		"player_team"
 	)
 
-	for ai_driver in AIRosterCatalog.get_roster(GameManager.team.current_series_id):
+	for ai_driver in _get_effective_ai_roster(GameManager.team.current_series_id):
 		ensure_championship_entry(
 			str(ai_driver.get("driver_id", "")),
 			str(
@@ -1246,7 +1326,7 @@ func _simulate_world_series_race(series_id: String, race: Race, series_data: Dic
 		return
 
 	var field: Array[Dictionary] = []
-	var roster := AIRosterCatalog.get_roster(series_id)
+	var roster := _get_effective_ai_roster(series_id)
 	for driver in roster:
 		field.append({
 			"driver_id": str(driver.driver_id),
@@ -1338,7 +1418,8 @@ func calculate_season_prize(finishing_position: int, series_id: String = "local_
 	var payouts: Array = SeriesCatalog.get_series(series_id).get("championship_payouts", SEASON_PRIZES)
 	if finishing_position > payouts.size():
 		return 0
-	return int(payouts[finishing_position - 1])
+	var multiplier := float(GameManager.team.get_difficulty_setting("prize_multiplier", 1.0)) if GameManager.team != null else 1.0
+	return roundi(float(payouts[finishing_position - 1]) * multiplier)
 
 
 func start_new_season() -> bool:
@@ -1350,6 +1431,9 @@ func start_new_season() -> bool:
 
 	apply_driver_development()
 	GameManager.team.process_staff_season()
+	var ai_summaries := GameManager.team.process_ai_team_season()
+	for summary in ai_summaries:
+		GameManager.team.last_development_summary.append("AI paddock: %s" % summary)
 
 	GameManager.team.last_season_position = 0
 	GameManager.team.last_season_prize = 0
