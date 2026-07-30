@@ -8,6 +8,12 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
+[node name="advance_preview" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Advance Preview"
+ok_button_text = "Advance"
+cancel_button_text = "Cancel"
+dialog_text = "Review scheduled events before advancing."
 [node name="Scroll" type="ScrollContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15

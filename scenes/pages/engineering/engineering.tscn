@@ -62,4 +62,4 @@ theme_override_constants/separation = 10
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"StatusLabel"
-text = "Projects complete when you advance the week from the dashboard."
+text = "Projects progress by elapsed calendar days and complete on their displayed date."
