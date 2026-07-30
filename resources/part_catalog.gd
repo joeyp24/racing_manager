@@ -1,6 +1,50 @@
 extends RefCounted
 class_name PartCatalog
 
+const FACTORY_PROFILE_WEIGHTS := {
+	"Engine": 0.20,
+	"Suspension": 0.16,
+	"Brakes": 0.14,
+	"Chassis": 0.16,
+	"Drivetrain": 0.16,
+	"Body": 0.18,
+}
+
+
+static func create_factory_parts(series_id: String, target_base_pp: int, profile_id: String = "balanced") -> Array[CarPart]:
+	var parts: Array[CarPart] = []
+	if target_base_pp < CarPart.PART_TYPES.size():
+		push_error("A factory profile requires at least one PP per part.")
+		return parts
+	if profile_id != "balanced":
+		push_error("Unknown factory part profile: %s" % profile_id)
+		return parts
+
+	# Largest-remainder allocation preserves the requested total exactly. The
+	# part-type order provides a deterministic tie-break for equal fractions.
+	var allocations: Dictionary = {}
+	var remainders: Array[Dictionary] = []
+	var allocated := 0
+	for index in CarPart.PART_TYPES.size():
+		var part_type := CarPart.PART_TYPES[index]
+		var exact := float(target_base_pp) * float(FACTORY_PROFILE_WEIGHTS[part_type])
+		var whole := floori(exact)
+		allocations[part_type] = whole
+		allocated += whole
+		remainders.append({"type": part_type, "fraction": exact - whole, "index": index})
+	remainders.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a.fraction > b.fraction if not is_equal_approx(a.fraction, b.fraction) else a.index < b.index
+	)
+	for index in target_base_pp - allocated:
+		var part_type := str(remainders[index]["type"])
+		allocations[part_type] = int(allocations[part_type]) + 1
+
+	for part_type in CarPart.PART_TYPES:
+		var part := create_standard_part(part_type, int(allocations[part_type]))
+		part.part_name = "%s Factory %s" % [series_id.replace("_", " ").capitalize(), part_type]
+		parts.append(part)
+	return parts
+
 
 static func create_standard_part(part_type: String, base_performance_points: int = 8) -> CarPart:
 	var effects: Dictionary = {

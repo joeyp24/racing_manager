@@ -158,15 +158,16 @@ func create_used_car(car_template: Car) -> Car:
 		maximum_used_mileage
 	)
 
-	var performance_loss: int = random_number_generator.randi_range(
-		0,
-		8
-	)
-
-	used_car.performance = maxi(
-		1,
-		car_template.performance - performance_loss
-	)
+	# Wear the authoritative installed parts rather than the ignored legacy rating.
+	# Small per-part variation keeps used offers distinct while remaining reproducible
+	# from this dealership's RNG stream.
+	for part in used_car.installed_parts:
+		if part != null:
+			part.condition = clampi(
+				used_car.condition + random_number_generator.randi_range(-8, 5),
+				1,
+				100
+			)
 
 	used_car.purchase_price = calculate_used_price(
 		car_template,

@@ -1,8 +1,8 @@
-extends Resource
+extends RefCounted
 class_name PartPerformanceResult
 
-@export var base_points: int = 0
-@export var condition_points: float = 0.0
-@export var modifiers: Array[PerformancePointModifier] = []
-@export var effective_points: float = 0.0
-@export var displayed_points: int = 0
+var base_points: int = 0
+var condition_points: float = 0.0
+var modifiers: Array[PerformancePointModifier] = []
+var effective_points: float = 0.0
+var diagnostics: Array[String] = []

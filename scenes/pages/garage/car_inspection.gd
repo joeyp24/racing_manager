@@ -6,9 +6,12 @@ const REPAIR_VALUE_PERCENTAGE_PER_POINT: float = 0.001
 
 @onready var car_name_label: Label = %car_name_label
 @onready var details_label: Label = %details_label
+@onready var condition_label: Label = %condition_label
+@onready var condition_bar: ProgressBar = %condition_bar
 @onready var performance_points_label: Label = %performance_points_label
 @onready var car_modifiers_label: Label = %car_modifiers_label
 @onready var parts_container: VBoxContainer = %parts_container
+@onready var columns: HSplitContainer = %columns
 @onready var inventory_title_label: Label = %inventory_title_label
 @onready var inventory_container: VBoxContainer = %inventory_container
 @onready var repair_button: Button = %repair_button
@@ -19,6 +22,11 @@ const REPAIR_VALUE_PERCENTAGE_PER_POINT: float = 0.001
 @onready var back_button: Button = %back_button
 
 var selected_part_type: String = ""
+var installed_part_buttons := ButtonGroup.new()
+
+const POSITIVE_COLOR := Color("59df94")
+const NEGATIVE_COLOR := Color("ff615b")
+const NEUTRAL_COLOR := Color("a8afbd")
 
 
 func _ready() -> void:
@@ -33,6 +41,16 @@ func _ready() -> void:
 		return
 	GameManager.selected_car.ensure_standard_parts()
 	display_car()
+	update_responsive_split()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and is_node_ready():
+		update_responsive_split()
+
+
+func update_responsive_split() -> void:
+	columns.split_offset = clampi(roundi(size.x * 0.38), 300, 440)
 
 
 func display_car() -> void:
@@ -44,9 +62,12 @@ func display_car() -> void:
 	performance_points_label.text = "%d PERFORMANCE POINTS" % car_result.displayed_points
 	var car_modifier_text: Array[String] = []
 	for modifier in car_result.car_modifiers:
-		car_modifier_text.append("%s %s" % [modifier.label, format_raw_points(modifier.raw_points)])
+		car_modifier_text.append("%s %s" % [modifier.label, PerformancePointFormatter.format_modifier_points(modifier)])
 	car_modifiers_label.text = "Car Modifiers: %s" % ("None" if car_modifier_text.is_empty() else "  •  ".join(car_modifier_text))
-	details_label.text = "%d %s %s  •  Parts base: %d PP  •  Condition: %d%%\nMileage: %s  •  Value: $%s" % [car.year, car.manufacturer, car.model, car.get_base_performance_points(), car.condition, format_number(car.mileage), format_number(car.value)]
+	details_label.text = "%d %s %s  •  %s\nParts base %d PP  •  %s miles  •  Value $%s" % [car.year, car.manufacturer, car.model, SeriesCatalog.get_series(car.series_id).get("name", "Unknown series"), car.get_base_performance_points(), format_number(car.mileage), format_number(car.value)]
+	condition_label.text = "CONDITION %d%%" % car.condition
+	condition_bar.value = car.condition
+	condition_bar.modulate = POSITIVE_COLOR if car.condition >= 80 else (Color("f2b84b") if car.condition >= 50 else NEGATIVE_COLOR)
 	rename_line_edit.text = car.name
 	sell_button.text = "Sell Car ($%s)" % format_number(car.value)
 	update_repair_display(car)
@@ -62,9 +83,13 @@ func refresh_parts() -> void:
 		var part: CarPart = car.get_part(part_type)
 		var breakdown := GameManager.team.calculate_part_performance(part)
 		var button := Button.new()
-		button.text = "%s   %d PP\n%s\n%s" % [part_type, breakdown.displayed_points, part.get_summary(), format_performance_breakdown(breakdown)]
+		button.text = "%s   %s\n%s" % [part_type, PerformancePointFormatter.format_part_points(breakdown), part.get_summary()]
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		button.tooltip_text = "Choose a replacement %s" % part_type.to_lower()
+		button.toggle_mode = true
+		button.button_group = installed_part_buttons
+		button.button_pressed = part_type == selected_part_type
+		button.focus_mode = Control.FOCUS_ALL
+		button.tooltip_text = "%s\nChoose a replacement %s" % [format_performance_breakdown(breakdown), part_type.to_lower()]
 		button.pressed.connect(show_part_inventory.bind(part_type))
 		parts_container.add_child(button)
 
@@ -79,23 +104,49 @@ func show_part_inventory(part_type: String) -> void:
 		empty_label.text = "No spare %s parts. Buy some in the Parts Shop." % part_type.to_lower()
 		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		inventory_container.add_child(empty_label)
+		var shop_button := Button.new()
+		shop_button.text = "Open Parts Shop"
+		shop_button.theme_type_variation = &"PrimaryButton"
+		shop_button.pressed.connect(func() -> void: GameManager.load_page("res://scenes/pages/shop/shop.tscn"))
+		inventory_container.add_child(shop_button)
 		return
 	for part in available_parts:
-		var row := HBoxContainer.new()
+		var row := VBoxContainer.new()
+		var summary_row := HBoxContainer.new()
 		var label := Label.new()
 		var breakdown := GameManager.team.calculate_part_performance(part)
-		label.text = "%d PP  •  Base %d PP\n%s\n%s  •  Sell $%s" % [breakdown.displayed_points, breakdown.base_points, part.get_summary(), format_performance_breakdown(breakdown), format_number(part.sale_price)]
+		label.text = "%s\n%s  •  Base %d PP  •  Sell $%s" % [part.part_name, part.get_summary(), breakdown.base_points, format_number(part.sale_price)]
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var delta_label := Label.new()
+		var preview := preview_replacement(part)
+		delta_label.text = "PART %+.1f PP   •   CAR %d → %d PP (%+d)" % [preview.raw_delta, preview.current_pp, preview.preview_pp, preview.displayed_delta]
+		delta_label.add_theme_color_override("font_color", POSITIVE_COLOR if preview.displayed_delta > 0 else (NEGATIVE_COLOR if preview.displayed_delta < 0 else NEUTRAL_COLOR))
 		var install_button := Button.new()
 		install_button.text = "Install"
+		install_button.theme_type_variation = &"PrimaryButton"
 		install_button.pressed.connect(_on_install_part_pressed.bind(part))
 		var sell_part_button := Button.new()
 		sell_part_button.text = "Sell"
 		sell_part_button.pressed.connect(_on_sell_part_pressed.bind(part))
-		row.add_child(label)
-		row.add_child(install_button)
-		row.add_child(sell_part_button)
+		summary_row.add_child(label)
+		summary_row.add_child(install_button)
+		summary_row.add_child(sell_part_button)
+		row.add_child(summary_row)
+		row.add_child(delta_label)
 		inventory_container.add_child(row)
+
+
+func preview_replacement(candidate: CarPart) -> Dictionary:
+	var car: Car = GameManager.selected_car
+	var installed := car.get_part(candidate.part_type)
+	var installed_result := GameManager.team.calculate_part_performance(installed)
+	var candidate_result := GameManager.team.calculate_part_performance(candidate)
+	var current_result := GameManager.team.calculate_car_performance(car)
+	var preview_car := car.duplicate(true) as Car
+	preview_car.install_part(candidate.duplicate(true) as CarPart)
+	var preview_result := GameManager.team.calculate_car_performance(preview_car)
+	return {"raw_delta": candidate_result.effective_points - installed_result.effective_points, "current_pp": current_result.displayed_points, "preview_pp": preview_result.displayed_points, "displayed_delta": preview_result.displayed_points - current_result.displayed_points}
 
 
 func _on_install_part_pressed(part: CarPart) -> void:
@@ -195,13 +246,9 @@ func clear_container(container: Node) -> void:
 func format_performance_breakdown(breakdown: PartPerformanceResult) -> String:
 	var details: Array[String] = ["Base %d PP" % breakdown.base_points]
 	for modifier in breakdown.modifiers:
-		var percent_detail := " (+%.1f%%)" % modifier.raw_percent if modifier.raw_percent != 0.0 else ""
-		details.append("%s %s%s" % [modifier.label, format_raw_points(modifier.raw_points), percent_detail])
+		var percent_detail := " (+%.1f%%)" % modifier.value if modifier.operation != PerformancePointModifier.Operation.FLAT_POINTS else ""
+		details.append("%s %s%s" % [modifier.label, PerformancePointFormatter.format_modifier_points(modifier), percent_detail])
 	return "  •  ".join(details)
-
-
-func format_raw_points(points: float) -> String:
-	return "%+.2f PP" % points if absf(points) < 1.0 else "%+.1f PP" % points
 
 
 func format_number(number: int) -> String:

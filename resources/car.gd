@@ -8,7 +8,9 @@ class_name Car
 @export var model: String = "Stock Car"
 @export var year: int = 2026
 
-@export var performance: int = 50
+# Compatibility-only input for pre-v8 resources. Runtime car creation and PP
+# calculations must never use this value.
+@export_storage var legacy_performance: int = 50
 @export var condition: int = 100
 @export_range(0, 100) var horsepower: int = 50
 @export_range(0, 100) var aerodynamic_efficiency: int = 50
@@ -24,6 +26,14 @@ class_name Car
 @export var value: int = 7500
 
 @export var installed_parts: Array[CarPart] = []
+
+
+func _set(property: StringName, value: Variant) -> bool:
+	# Godot forwards the removed `performance` property from old .tres saves here.
+	if property == &"performance":
+		legacy_performance = int(value)
+		return true
+	return false
 
 
 func ensure_standard_parts() -> void:

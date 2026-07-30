@@ -3,13 +3,44 @@ extends Control
 @onready var offers_container: GridContainer = %offers_container
 @onready var inventory_label: Label = %inventory_label
 @onready var status_label: Label = %status_label
+@onready var comparison_car_selector: OptionButton = %comparison_car_selector
 
 var store_inventory: Array[CarPart] = []
 
 
 func _ready() -> void:
 	store_inventory = PartCatalog.create_store_inventory()
+	comparison_car_selector.item_selected.connect(func(_index: int) -> void: refresh_shop())
+	populate_comparison_cars()
 	refresh_shop()
+	update_responsive_columns()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and is_node_ready():
+		update_responsive_columns()
+
+
+func update_responsive_columns() -> void:
+	var width := size.x
+	offers_container.columns = 1 if width < 620.0 else (2 if width < 920.0 else 3)
+
+
+func populate_comparison_cars() -> void:
+	comparison_car_selector.clear()
+	comparison_car_selector.add_item("No car comparison")
+	comparison_car_selector.set_item_metadata(0, -1)
+	var preferred_bay := GameManager.selected_bay
+	for bay in GameManager.team.cars.size():
+		var car := GameManager.team.get_car(bay)
+		if car == null:
+			continue
+		comparison_car_selector.add_item("Bay %d — %s" % [bay + 1, car.name])
+		comparison_car_selector.set_item_metadata(comparison_car_selector.item_count - 1, bay)
+		if car == GameManager.selected_car or (GameManager.selected_car == null and bay == preferred_bay):
+			comparison_car_selector.select(comparison_car_selector.item_count - 1)
+	if comparison_car_selector.selected == 0 and comparison_car_selector.item_count > 1:
+		comparison_car_selector.select(1)
 
 
 func refresh_shop() -> void:
@@ -18,7 +49,8 @@ func refresh_shop() -> void:
 	for part in store_inventory:
 		var purchase_cost := GameManager.team.get_discounted_cost(part.purchase_price)
 		var panel := PanelContainer.new()
-		panel.custom_minimum_size = Vector2(225, 145)
+		panel.custom_minimum_size = Vector2(250, 220)
+		panel.theme_type_variation = &"CardPanel"
 		var margin := MarginContainer.new()
 		margin.add_theme_constant_override("margin_left", 10)
 		margin.add_theme_constant_override("margin_top", 8)
@@ -34,14 +66,22 @@ func refresh_shop() -> void:
 		var pp_bubble := PanelContainer.new()
 		var pp_label := Label.new()
 		pp_label.add_theme_font_size_override("font_size", 12)
-		pp_label.text = "%d base PP\n%.1f PP at %d%% condition\n%d effective PP with current team" % [part.base_performance_points, part.get_condition_adjusted_points(), part.condition, pp_result.displayed_points]
-		var installed := find_installed_part(part.part_type)
-		if installed != null:
+		pp_label.text = "PART PERFORMANCE\n%d base PP  •  %.1f at %d%% condition\n%s with current team" % [part.base_performance_points, part.get_condition_adjusted_points(), part.condition, PerformancePointFormatter.format_part_points(pp_result)]
+		var comparison := get_comparison_car()
+		if comparison != null and comparison.get_part(part.part_type) != null:
+			var installed := comparison.get_part(part.part_type)
 			var installed_result := GameManager.team.calculate_part_performance(installed)
-			pp_label.text += "\nInstalled: %d effective PP  •  Change: %+d PP" % [installed_result.displayed_points, pp_result.displayed_points - installed_result.displayed_points]
+			var current_result := GameManager.team.calculate_car_performance(comparison)
+			var preview := comparison.duplicate(true) as Car
+			preview.install_part(part.duplicate(true) as CarPart)
+			var preview_result := GameManager.team.calculate_car_performance(preview)
+			var displayed_delta := preview_result.displayed_points - current_result.displayed_points
+			pp_label.text += "\n\nWHOLE-CAR PREVIEW\n%s\n%d → %d PP   (%+d)\nPart change: %+.1f raw PP" % [get_comparison_car_label(), current_result.displayed_points, preview_result.displayed_points, displayed_delta, pp_result.effective_points - installed_result.effective_points]
+			pp_label.add_theme_color_override("font_color", Color("59df94") if displayed_delta > 0 else (Color("ff615b") if displayed_delta < 0 else Color("d9dee8")))
 		pp_bubble.add_child(pp_label)
 		var buy_button := Button.new()
 		buy_button.text = "Buy — $%s" % format_number(purchase_cost)
+		buy_button.theme_type_variation = &"PrimaryButton"
 		buy_button.disabled = GameManager.team.money < purchase_cost
 		details.tooltip_text = "Part attributes are separate from Performance Points. PP includes condition and current part-level team modifiers."
 		buy_button.tooltip_text = "Disabled: you need $%s more." % format_number(purchase_cost - GameManager.team.money) if buy_button.disabled else "Buy now; install and compare it from Car Inspection."
@@ -49,6 +89,11 @@ func refresh_shop() -> void:
 		content.add_child(title)
 		content.add_child(details)
 		content.add_child(pp_bubble)
+		if buy_button.disabled:
+			var affordability := Label.new()
+			affordability.text = "Need $%s more" % format_number(purchase_cost - GameManager.team.money)
+			affordability.theme_type_variation = &"DangerLabel"
+			content.add_child(affordability)
 		content.add_child(buy_button)
 		margin.add_child(content)
 		panel.add_child(margin)
@@ -56,12 +101,15 @@ func refresh_shop() -> void:
 	inventory_label.text = "Parts Inventory: %d item%s" % [GameManager.team.parts_inventory.size(), "" if GameManager.team.parts_inventory.size() == 1 else "s"]
 
 
-func find_installed_part(part_type: String) -> CarPart:
-	for car_value in GameManager.team.cars:
-		var car := car_value as Car
-		if car != null and car.get_part(part_type) != null:
-			return car.get_part(part_type)
-	return null
+func get_comparison_car() -> Car:
+	if comparison_car_selector.selected < 0:
+		return null
+	var bay := int(comparison_car_selector.get_item_metadata(comparison_car_selector.selected))
+	return GameManager.team.get_car(bay) if bay >= 0 else null
+
+
+func get_comparison_car_label() -> String:
+	return comparison_car_selector.get_item_text(comparison_car_selector.selected)
 
 
 func _on_buy_pressed(part: CarPart) -> void:
