@@ -63,10 +63,9 @@ func update_dashboard() -> void:
 		% String.num_int64(team.money)
 	)
 
-	reputation_label.text = (
-		"%d PTS"
-		% team.reputation
-	)
+	reputation_label.text = "LEVEL %d  •  %d / %d XP" % [
+		team.get_reputation_level(), team.get_current_level_xp(), Team.XP_PER_LEVEL
+	]
 
 	update_sponsor_summary(team)
 

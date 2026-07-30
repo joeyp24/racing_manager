@@ -14,7 +14,16 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 5
+const CURRENT_SAVE_FORMAT_VERSION: int = 6
+const XP_PER_LEVEL: int = 100
+const BASE_SCOUTING_HOURS: int = 20
+const SCOUTING_HOURS_PER_LEVEL: int = 10
+const SCOUTING_ACTIONS: Dictionary = {
+	"Current ability": {"hours": 10, "reveal": "ratings"},
+	"Potential": {"hours": 15, "reveal": "potential"},
+	"Background": {"hours": 5, "reveal": "background"},
+	"Recruit": {"hours": 10, "reveal": "recruiting"}
+}
 
 @export var team_name: String = "My Team"
 @export var hometown: String = "Charlotte, NC"
@@ -30,6 +39,10 @@ const CURRENT_SAVE_FORMAT_VERSION: int = 5
 @export_enum("Rookie", "Club", "Pro") var career_difficulty: String = "Club"
 @export var recovery_funding_used: bool = false
 @export var reputation: int = 0
+@export var scouting_hours_remaining: int = -1
+@export var scouting_hours_week: int = 0
+@export var recruiting_progress: Dictionary = {}
+@export var contract_offers: Dictionary = {}
 @export var hq_level: int = 1
 @export var current_series_id: String = "local_short_track"
 @export var entered_series_ids: Array[String] = ["local_short_track"]
@@ -151,13 +164,36 @@ func upgrade_hq() -> bool:
 	return true
 
 
+func get_reputation_level() -> int:
+	return maxi(1, floori(float(reputation) / float(XP_PER_LEVEL)) + 1)
+
+
+func get_current_level_xp() -> int:
+	return reputation % XP_PER_LEVEL
+
+
+func get_xp_to_next_level() -> int:
+	return XP_PER_LEVEL - get_current_level_xp()
+
+
+func add_reputation_xp(amount: int) -> void:
+	if amount <= 0:
+		return
+	reputation += amount
+	emit_changed()
+
+
+func get_required_level_for_series(series_id: String) -> int:
+	return int(SeriesCatalog.get_series(series_id).get("required_level", 1))
+
+
 func can_enter_series(series_id: String) -> bool:
 	var index := SeriesCatalog.get_index(series_id)
 	var current_index := SeriesCatalog.get_index(current_series_id)
 	if index < 0 or entered_series_ids.has(series_id) or index != current_index + 1:
 		return false
 	var series := SeriesCatalog.get_series(series_id)
-	return is_series_season_complete(current_series_id) and hq_level >= int(series.hq_level) and money >= get_series_required_cash(series_id)
+	return is_series_season_complete(current_series_id) and get_reputation_level() >= get_required_level_for_series(series_id) and hq_level >= int(series.hq_level) and money >= get_series_required_cash(series_id)
 
 
 func get_series_required_cash(series_id: String) -> int:
@@ -171,6 +207,7 @@ func get_series_entry_requirements(series_id: String) -> Array[String]:
 	var unmet: Array[String] = []
 	var series := SeriesCatalog.get_series(series_id)
 	if not is_series_season_complete(current_series_id): unmet.append("Finish the current season.")
+	if not series.is_empty() and get_reputation_level() < get_required_level_for_series(series_id): unmet.append("Reach team level %d (currently level %d)." % [get_required_level_for_series(series_id), get_reputation_level()])
 	if not series.is_empty() and hq_level < int(series.hq_level): unmet.append("Upgrade Team HQ to level %d." % int(series.hq_level))
 	if not series.is_empty() and money < get_series_required_cash(series_id): unmet.append("Raise $%s for the entry fee, eligible car, and three-race reserve." % String.num_int64(get_series_required_cash(series_id)))
 	return unmet
@@ -325,39 +362,81 @@ func get_drivers_for_series(series_id: String) -> Array[Driver]:
 	return eligible
 
 
-func start_scouting_assignment(driver: Driver, assignment_type: String) -> bool:
-	var types := {"Background check":500, "Current ability assessment":900, "Potential assessment":1200, "Technical evaluation":850, "Personality evaluation":700}
-	if driver == null or not types.has(assignment_type) or get_department_level("scouting") <= 0: return false
-	for assignment in scouting_assignments:
-		if assignment.get("driver_id") == driver.driver_id: return false
-	var cost := get_discounted_cost(int(types[assignment_type]))
-	if money < cost: return false
-	money -= cost
-	scouting_assignments.append({"driver_id":driver.driver_id, "type":assignment_type, "weeks_remaining":maxi(1, 4-get_department_level("scouting")), "cost":cost})
-	record_finance("Scouting", -cost, "%s: %s" % [driver.driver_name, assignment_type])
-	emit_changed(); return true
+func get_weekly_scouting_hours() -> int:
+	return BASE_SCOUTING_HOURS + get_department_level("scouting") * SCOUTING_HOURS_PER_LEVEL
 
 
-func advance_driver_programs() -> void:
-	for index in range(scouting_assignments.size() - 1, -1, -1):
-		var assignment := scouting_assignments[index]
-		assignment["weeks_remaining"] = int(assignment["weeks_remaining"]) - 1
-		if int(assignment["weeks_remaining"]) <= 0:
-			var driver := get_driver_by_id(str(assignment["driver_id"]))
-			if driver != null: scouting_reports[driver.driver_id] = build_scouting_report(driver, str(assignment["type"]))
-			scouting_assignments.remove_at(index)
-	for driver_id in driver_training_programs:
-		var driver := get_driver_by_id(str(driver_id)); var program := driver_training_programs[driver_id] as Dictionary
-		if driver == null or money < int(program.get("cost", 0)): continue
-		money -= int(program.get("cost", 0)); driver.development_points += 1; driver.fatigue = mini(100, driver.fatigue + int(program.get("fatigue", 5)))
-	process_driver_availability()
+func ensure_scouting_hours() -> void:
+	if scouting_hours_remaining < 0 or scouting_hours_week != current_race_week:
+		scouting_hours_remaining = get_weekly_scouting_hours()
+		scouting_hours_week = current_race_week
+
+
+func spend_scouting_hours(driver: Driver, action: String) -> bool:
+	ensure_scouting_hours()
+	if driver == null or not SCOUTING_ACTIONS.has(action) or get_department_level("scouting") <= 0:
+		return false
+	var cost := int((SCOUTING_ACTIONS[action] as Dictionary).hours)
+	if scouting_hours_remaining < cost:
+		return false
+	scouting_hours_remaining -= cost
+	var report := scouting_reports.get(driver.driver_id, {}) as Dictionary
+	var reveal := str((SCOUTING_ACTIONS[action] as Dictionary).reveal)
+	if reveal == "recruiting":
+		var gain := 20 + get_department_level("scouting") * 5
+		recruiting_progress[driver.driver_id] = mini(100, int(recruiting_progress.get(driver.driver_id, 0)) + gain)
+	else:
+		report.merge(build_scouting_report(driver, action), true)
+		report["revealed_%s" % reveal] = true
+		scouting_reports[driver.driver_id] = report
+	emit_changed()
+	return true
+
+
+func get_driver_required_level(driver: Driver) -> int:
+	if driver == null:
+		return 1
+	return maxi(get_required_level_for_series(driver.series_id), 1 + floori(float(maxi(0, driver.get_overall_rating() - 50)) / 5.0))
+
+
+func can_negotiate_with_driver(driver: Driver) -> bool:
+	return driver != null and get_reputation_level() >= get_driver_required_level(driver) and int(recruiting_progress.get(driver.driver_id, 0)) >= 50
+
+
+func negotiate_driver_contract(driver: Driver, salary_offer: int, signing_offer: int, length: int) -> Dictionary:
+	if not can_negotiate_with_driver(driver):
+		return {"accepted": false, "reason": "Earn the required team level and recruit this driver to 50 interest first."}
+	var salary_ratio := float(salary_offer) / maxi(1, driver.salary)
+	var signing_ratio := float(signing_offer) / maxi(1, driver.signing_fee)
+	var interest := int(recruiting_progress.get(driver.driver_id, 0))
+	var score := salary_ratio * 45.0 + signing_ratio * 30.0 + interest * 0.25
+	var accepted := score >= 88.0
+	contract_offers[driver.driver_id] = {"salary":salary_offer, "signing_fee":signing_offer, "length":clampi(length, 4, 36), "accepted":accepted}
+	if accepted:
+		driver.salary = salary_offer
+		driver.signing_fee = signing_offer
+		driver.contract_length = clampi(length, 4, 36)
+	emit_changed()
+	return {"accepted":accepted, "reason":"Offer accepted." if accepted else "The driver wants a stronger financial package."}
 
 
 func build_scouting_report(driver: Driver, assignment_type: String) -> Dictionary:
-	var level := get_department_level("scouting"); var spread := maxi(2, 12-level*3); var ratings := {}
+	var level := get_department_level("scouting"); var spread := maxi(1, 12-level*2); var ratings := {}
 	for field in Driver.RATING_FIELDS:
-		var value := int(driver.get(field)); ratings[field] = {"low":maxi(0,value-spread), "high":mini(99,value+spread), "confidence":mini(95,45+level*14)}
+		var value := int(driver.get(field)); ratings[field] = {"low":maxi(0,value-spread), "high":mini(99,value+spread), "confidence":mini(100,50+level*10)}
 	return {"assignment":assignment_type, "ratings":ratings, "potential_low":maxi(driver.get_overall_rating(),driver.get_potential_overall()-spread), "potential_high":mini(99,driver.get_potential_overall()+spread), "personality":driver.archetype, "strength":driver.archetype, "risk":"High expectations" if driver.ambition > 75 else "No major concern", "projected_role":driver.expected_role}
+
+
+func advance_driver_programs() -> void:
+	for driver_id in driver_training_programs:
+		var driver := get_driver_by_id(str(driver_id))
+		var program := driver_training_programs[driver_id] as Dictionary
+		if driver == null or money < int(program.get("cost", 0)):
+			continue
+		money -= int(program.get("cost", 0))
+		driver.development_points += 1
+		driver.fatigue = mini(100, driver.fatigue + int(program.get("fatigue", 5)))
+	process_driver_availability()
 
 
 func set_driver_training(driver: Driver, focus: String) -> bool:
@@ -874,6 +953,7 @@ func advance_to_next_race_week() -> Array[String]:
 	week_advance_required = false
 	var completed := complete_engineering_projects()
 	advance_driver_programs()
+	ensure_scouting_hours()
 	emit_changed()
 	return completed
 
@@ -1126,7 +1206,7 @@ func can_hire_driver(driver: Driver = null) -> bool:
 		not is_series_season_complete()
 		and get_completed_races().is_empty()
 		and contracted_driver_ids.size() < MAX_RACE_TEAMS
-		and (driver == null or not contracted_driver_ids.has(driver.driver_id))
+		and (driver == null or (not contracted_driver_ids.has(driver.driver_id) and can_negotiate_with_driver(driver) and bool((contract_offers.get(driver.driver_id, {}) as Dictionary).get("accepted", false))))
 	)
 
 

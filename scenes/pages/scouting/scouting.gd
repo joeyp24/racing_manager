@@ -11,6 +11,7 @@ var entries: Array[Dictionary] = []
 
 
 func _ready() -> void:
+	GameManager.team.ensure_scouting_hours()
 	series_filter.add_item("All series")
 	series_filter.set_item_metadata(0, "all")
 	for series in SeriesCatalog.SERIES:
@@ -39,7 +40,7 @@ func _refresh_list() -> void:
 	for entry in entries:
 		if selected_series_id == "all" or str(entry.series.id) == selected_series_id:
 			visible.append(entry)
-	summary.text = "%d drivers available across %s" % [visible.size(), "every series" if selected_series_id == "all" else str(SeriesCatalog.get_series(selected_series_id).name)]
+	summary.text = "%d drivers • %d / %d scouting hours this week • %s" % [visible.size(), GameManager.team.scouting_hours_remaining, GameManager.team.get_weekly_scouting_hours(), "every series" if selected_series_id == "all" else str(SeriesCatalog.get_series(selected_series_id).name)]
 	if visible.is_empty():
 		selected_driver_id = ""
 		_show_empty_detail()
@@ -77,7 +78,9 @@ func _show_selected_driver() -> void:
 	_add_section("DRIVER OVERVIEW")
 	var overview := GridContainer.new()
 	overview.columns = 4
-	for item in [["OVR", driver.get_overall_rating()], ["Age", driver.age], ["Potential", driver.get_potential_overall()], ["Development", driver.get_development_rate()]]:
+	var report := GameManager.team.scouting_reports.get(driver.driver_id, {}) as Dictionary
+	var potential_text := "%d–%d" % [report.get("potential_low", 0), report.get("potential_high", 99)] if report.get("revealed_potential", false) else "???"
+	for item in [["OVR", driver.get_overall_rating()], ["Age", driver.age], ["Potential", potential_text], ["Interest", "%d%%" % int(GameManager.team.recruiting_progress.get(driver.driver_id, 0))]]:
 		overview.add_child(_metric(str(item[0]), str(item[1])))
 	detail.add_child(overview)
 	_add_section("PERFORMANCE RATINGS")
@@ -94,21 +97,18 @@ func _show_selected_driver() -> void:
 		for result in results:
 			_add_body("%s  ·  P%d" % [result.race_name, result.position])
 	_add_section("SCOUTING")
-	var report := GameManager.team.scouting_reports.get(driver.driver_id, {}) as Dictionary
+	report = GameManager.team.scouting_reports.get(driver.driver_id, {}) as Dictionary
 	var active := _active_assignment(driver.driver_id)
 	if not report.is_empty():
-		_add_body("%s  ·  Potential %d–%d  ·  %s  ·  Risk: %s" % [report.get("projected_role", "Unknown role"), report.get("potential_low", 0), report.get("potential_high", 99), report.get("strength", "Unknown strength"), report.get("risk", "Unknown")])
-	elif not active.is_empty():
-		_add_muted("%s in progress · %d week(s) remaining" % [active.get("type", "Assessment"), active.get("weeks_remaining", 1)])
-	else:
-		var choices := OptionButton.new()
-		for assignment_type in ["Background check", "Current ability assessment", "Potential assessment", "Technical evaluation", "Personality evaluation"]:
-			choices.add_item(assignment_type)
+		var potential_summary := "%d–%d" % [report.get("potential_low", 0), report.get("potential_high", 99)] if report.get("revealed_potential", false) else "not scouted"
+		_add_body("%s  ·  Potential %s  ·  %s  ·  Risk: %s" % [report.get("projected_role", "Unknown role"), potential_summary, report.get("strength", "Unknown strength"), report.get("risk", "Unknown")])
+	_add_muted("Spend this week's hours to uncover ratings or build recruiting interest. Scouting HQ upgrades add 10 hours per week.")
+	for action in Team.SCOUTING_ACTIONS:
+		var hours := int((Team.SCOUTING_ACTIONS[action] as Dictionary).hours)
 		var button := Button.new()
-		button.text = "Assign scout"
-		button.theme_type_variation = &"PrimaryButton"
-		button.pressed.connect(_start_assignment.bind(driver, choices))
-		detail.add_child(choices)
+		button.text = "%s  •  %d hours" % [action, hours]
+		button.disabled = GameManager.team.get_department_level("scouting") <= 0 or GameManager.team.scouting_hours_remaining < hours
+		button.pressed.connect(_spend_hours.bind(driver, str(action)))
 		detail.add_child(button)
 
 
@@ -144,6 +144,12 @@ func _start_assignment(driver: Driver, choices: OptionButton) -> void:
 	if GameManager.team.start_scouting_assignment(driver, choices.get_item_text(choices.selected)):
 		GameManager.save_game()
 		_show_selected_driver()
+
+
+func _spend_hours(driver: Driver, action: String) -> void:
+	if GameManager.team.spend_scouting_hours(driver, action):
+		GameManager.save_game()
+		_refresh_list()
 
 
 func _on_series_selected(index: int) -> void:
