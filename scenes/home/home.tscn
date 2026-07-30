@@ -139,7 +139,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "▥   Race Teams"
+text = "▥   Teams"
 alignment = 0
 
 [node name="drivers_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]

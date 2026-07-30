@@ -930,7 +930,8 @@ func initialize_championship_standings(
 		player_driver.driver_id,
 		player_driver.driver_name,
 		GameManager.team.team_name,
-		true
+		true,
+		"player_team"
 	)
 
 	for ai_driver in AIRosterCatalog.get_roster(GameManager.team.current_series_id):
@@ -948,7 +949,8 @@ func initialize_championship_standings(
 					"Unknown Team"
 				)
 			),
-			false
+			false,
+			str(ai_driver.get("team_id", ""))
 		)
 
 	for entry in (
@@ -970,7 +972,8 @@ func ensure_championship_entry(
 	driver_id: String,
 	driver_name: String,
 	team_name: String,
-	is_player: bool
+	is_player: bool,
+	team_id: String = ""
 ) -> void:
 	if GameManager.team == null:
 		return
@@ -985,6 +988,7 @@ func ensure_championship_entry(
 
 			entry["driver_name"] = driver_name
 			entry["team_name"] = team_name
+			entry["team_id"] = team_id
 			entry["is_player"] = is_player
 			return
 
@@ -992,6 +996,7 @@ func ensure_championship_entry(
 		"driver_id": driver_id,
 		"driver_name": driver_name,
 		"team_name": team_name,
+		"team_id": team_id,
 		"points": 0,
 		"wins": 0,
 		"podiums": 0,
@@ -1179,6 +1184,7 @@ func _simulate_world_series_race(series_id: String, race: Race, series_data: Dic
 		field.append({
 			"driver_id": str(driver.driver_id),
 			"driver_name": str(driver.driver_name),
+			"team_id": str(driver.get("team_id", "")),
 			"team_name": str(driver.team_name),
 			"score": calculate_ai_score(race, driver)
 		})
@@ -1189,12 +1195,12 @@ func _simulate_world_series_race(series_id: String, race: Race, series_data: Dic
 	var standings := _as_dictionary_array(series_data.get("standings", []))
 	if standings.is_empty():
 		for driver in roster:
-			standings.append({"driver_id":str(driver.driver_id), "driver_name":str(driver.driver_name), "team_name":str(driver.team_name), "points":0, "wins":0, "podiums":0, "starts":0, "best_finish":999, "average_finish_total":0})
+			standings.append({"driver_id":str(driver.driver_id), "driver_name":str(driver.driver_name), "team_id":str(driver.get("team_id", "")), "team_name":str(driver.team_name), "points":0, "wins":0, "podiums":0, "starts":0, "best_finish":999, "average_finish_total":0})
 	var result_rows: Array[Dictionary] = []
 	for index in field.size():
 		var race_entry := field[index]
 		var position := index + 1
-		result_rows.append({"position":position, "driver_id":race_entry.driver_id, "driver_name":race_entry.driver_name, "team_name":race_entry.team_name})
+		result_rows.append({"position":position, "driver_id":race_entry.driver_id, "driver_name":race_entry.driver_name, "team_id":race_entry.team_id, "team_name":race_entry.team_name})
 		for championship_entry in standings:
 			if str(championship_entry.driver_id) != str(race_entry.driver_id):
 				continue

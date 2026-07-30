@@ -122,3 +122,23 @@ def test_other_series_are_simulated_saved_and_browsable():
     assert "SeriesCatalog.SERIES" in world_page
     assert 'data.get("results"' in world_page
     assert "world_series/world_series.tscn" in home
+
+
+def test_series_have_distinct_multi_car_teams_and_a_team_directory():
+    catalog = (ROOT / "resources/team_catalog.gd").read_text()
+    roster = (ROOT / "resources/ai_roster_catalog.gd").read_text()
+    page = (ROOT / "scenes/pages/race_teams/race_teams.gd").read_text()
+    scene = (ROOT / "scenes/pages/race_teams/race_teams.tscn").read_text()
+    manager = (ROOT / "autoload/race_manager.gd").read_text()
+    for series_id in ("local_short_track", "regional_short_track", "national_short_track", "continental_east_west", "continental_national", "national_truck", "national_grand", "premier_cup"):
+        assert f'"{series_id}": [' in catalog
+    assert "RATING_OFFSETS" in catalog
+    assert '"driver_count"' in catalog
+    assert "TeamCatalog.get_teams(series_id)" in roster
+    assert '"team_id":str(team.team_id)' in roster
+    assert '"team_car_number":team_car_index+1' in roster
+    assert '"team_id":race_entry.team_id' in manager
+    for section in ('add_section("TEAM RATINGS")', 'add_section("HISTORY")', 'add_section("DRIVERS")', 'add_section("SEASON STATS")', 'add_section("RACE RESULTS")'):
+        assert section in page
+    assert 'text = "Team Directory"' in scene
+    assert 'text = "My Race Operations"' in scene
