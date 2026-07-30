@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Team" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resources/team.gd" id="1"]
+[ext_resource type="Script" path="res://resources/car.gd" id="2"]
+[ext_resource type="Script" path="res://resources/car_part.gd" id="3"]
+
+[sub_resource type="Resource" id="Part_1"]
+script = ExtResource("3")
+part_name = "Legacy Engine"
+part_type = "Engine"
+base_performance_points = 8
+performance_bonus = 2
+
+[sub_resource type="Resource" id="Car_1"]
+script = ExtResource("2")
+name = "Legacy Partial Car"
+performance = 60
+installed_parts = Array[ExtResource("3")]([SubResource("Part_1")])
+
+[resource]
+script = ExtResource("1")
+save_format_version = 7
+cars = Array([SubResource("Car_1"), null, null, null, null, null])

@@ -136,7 +136,7 @@ static func _migrate_performance_points(team: Team) -> void:
 		for part_type in CarPart.PART_TYPES:
 			if car.get_part(part_type) == null:
 				missing_types.append(part_type)
-		var profile_total := maxi(CarPart.PART_TYPES.size(), car.performance)
+		var profile_total := maxi(CarPart.PART_TYPES.size(), car.legacy_performance)
 		var missing_total := maxi(missing_types.size(), profile_total - car.get_base_performance_points())
 		for index in missing_types.size():
 			var slots_left := missing_types.size() - index

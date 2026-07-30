@@ -3,13 +3,33 @@ extends Control
 @onready var offers_container: GridContainer = %offers_container
 @onready var inventory_label: Label = %inventory_label
 @onready var status_label: Label = %status_label
+@onready var comparison_car_selector: OptionButton = %comparison_car_selector
 
 var store_inventory: Array[CarPart] = []
 
 
 func _ready() -> void:
 	store_inventory = PartCatalog.create_store_inventory()
+	comparison_car_selector.item_selected.connect(func(_index: int) -> void: refresh_shop())
+	populate_comparison_cars()
 	refresh_shop()
+
+
+func populate_comparison_cars() -> void:
+	comparison_car_selector.clear()
+	comparison_car_selector.add_item("No car comparison")
+	comparison_car_selector.set_item_metadata(0, -1)
+	var preferred_bay := GameManager.selected_bay
+	for bay in GameManager.team.cars.size():
+		var car := GameManager.team.get_car(bay)
+		if car == null:
+			continue
+		comparison_car_selector.add_item("Bay %d — %s" % [bay + 1, car.name])
+		comparison_car_selector.set_item_metadata(comparison_car_selector.item_count - 1, bay)
+		if car == GameManager.selected_car or (GameManager.selected_car == null and bay == preferred_bay):
+			comparison_car_selector.select(comparison_car_selector.item_count - 1)
+	if comparison_car_selector.selected == 0 and comparison_car_selector.item_count > 1:
+		comparison_car_selector.select(1)
 
 
 func refresh_shop() -> void:
@@ -34,11 +54,16 @@ func refresh_shop() -> void:
 		var pp_bubble := PanelContainer.new()
 		var pp_label := Label.new()
 		pp_label.add_theme_font_size_override("font_size", 12)
-		pp_label.text = "%d base PP\n%.1f PP at %d%% condition\n%d effective PP with current team" % [part.base_performance_points, part.get_condition_adjusted_points(), part.condition, pp_result.displayed_points]
-		var installed := find_installed_part(part.part_type)
-		if installed != null:
+		pp_label.text = "%d base PP\n%.1f PP at %d%% condition\n%s with current team" % [part.base_performance_points, part.get_condition_adjusted_points(), part.condition, PerformancePointFormatter.format_part_points(pp_result)]
+		var comparison := get_comparison_car()
+		if comparison != null and comparison.get_part(part.part_type) != null:
+			var installed := comparison.get_part(part.part_type)
 			var installed_result := GameManager.team.calculate_part_performance(installed)
-			pp_label.text += "\nInstalled: %d effective PP  •  Change: %+d PP" % [installed_result.displayed_points, pp_result.displayed_points - installed_result.displayed_points]
+			var current_result := GameManager.team.calculate_car_performance(comparison)
+			var preview := comparison.duplicate(true) as Car
+			preview.install_part(part.duplicate(true) as CarPart)
+			var preview_result := GameManager.team.calculate_car_performance(preview)
+			pp_label.text += "\nCompared with %s\nInstalled: %s  •  Candidate: %s\nChange: %+.1f raw PP / %+d displayed car PP" % [get_comparison_car_label(), PerformancePointFormatter.format_part_points(installed_result), PerformancePointFormatter.format_part_points(pp_result), pp_result.effective_points - installed_result.effective_points, preview_result.displayed_points - current_result.displayed_points]
 		pp_bubble.add_child(pp_label)
 		var buy_button := Button.new()
 		buy_button.text = "Buy — $%s" % format_number(purchase_cost)
@@ -56,12 +81,15 @@ func refresh_shop() -> void:
 	inventory_label.text = "Parts Inventory: %d item%s" % [GameManager.team.parts_inventory.size(), "" if GameManager.team.parts_inventory.size() == 1 else "s"]
 
 
-func find_installed_part(part_type: String) -> CarPart:
-	for car_value in GameManager.team.cars:
-		var car := car_value as Car
-		if car != null and car.get_part(part_type) != null:
-			return car.get_part(part_type)
-	return null
+func get_comparison_car() -> Car:
+	if comparison_car_selector.selected < 0:
+		return null
+	var bay := int(comparison_car_selector.get_item_metadata(comparison_car_selector.selected))
+	return GameManager.team.get_car(bay) if bay >= 0 else null
+
+
+func get_comparison_car_label() -> String:
+	return comparison_car_selector.get_item_text(comparison_car_selector.selected)
 
 
 func _on_buy_pressed(part: CarPart) -> void:
