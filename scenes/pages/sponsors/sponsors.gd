@@ -1,5 +1,15 @@
 extends Control
 
+const PROFILE_COLORS: Dictionary = {
+	"GUARANTEED": Color("4da3ff"),
+	"PERFORMANCE": Color("ffb547"),
+	"GROWTH": Color("65d38e"),
+	"DEVELOPMENT": Color("a88bff"),
+	"HIGH PRESSURE": Color("ff626f"),
+	"REGIONAL": Color("55cfcc"),
+	"LEGACY": Color("8f9bad")
+}
+
 @onready var status_label: Label = %status_label
 @onready var offers_container: VBoxContainer = %offers_container
 
@@ -11,93 +21,234 @@ func _ready() -> void:
 func show_sponsors() -> void:
 	for child in offers_container.get_children():
 		child.queue_free()
-
 	var team := GameManager.team
 	if team == null:
 		status_label.text = "No team is currently loaded."
 		return
+	SponsorManager.ensure_state(team)
+	_show_market_header(team)
+	if not team.active_sponsor_contract.is_empty():
+		_create_active_contract(team)
+		_create_relationship_section(team)
+		return
+	_create_offer_comparison_header()
+	for index in team.sponsor_offers.size():
+		_create_offer_card(index, team.sponsor_offers[index], team)
+	_create_relationship_section(team)
 
-	var active := SponsorCatalog.find_by_id(team.active_sponsor_id)
-	if active != null:
+
+func _show_market_header(team: Team) -> void:
+	var series := SeriesCatalog.get_series(team.current_series_id)
+	var prestige := float(series.get("sponsor_prestige_multiplier", 1.0))
+	var races_left := maxi(0, int(series.get("season_length", 12)) - team.get_completed_races().size())
+	if team.active_sponsor_contract.is_empty():
 		status_label.text = (
-			"Active: %s — %d races remaining — Objective %d/%d%s"
-			% [
-				active.sponsor_name,
-				team.sponsor_races_remaining,
-				team.sponsor_objective_progress,
-				active.objective_target,
-				" (complete)" if team.sponsor_objective_completed else ""
-			]
-		)
-	elif team.sponsor_signed_season == team.season_number:
-		status_label.text = "Your season contract has ended. New offers arrive next season."
+			"PARTNERSHIP MARKET  /  SEASON %d\n"
+			+ "%s  -  %.1fx media prestige  -  %d race weekends remaining\n"
+			+ "Choose the commercial strategy that matches your team's ambitions."
+		) % [team.season_number, str(series.get("name", "Current Series")), prestige, races_left]
 	else:
-		status_label.text = "Choose one sponsor for Season %d." % team.season_number
+		var contract := team.active_sponsor_contract
+		status_label.text = (
+			"ACTIVE PARTNERSHIP  /  %s\n"
+			+ "%s profile  -  %d race weekends remaining"
+		) % [str(contract.sponsor_name), str(contract.profile), int(contract.races_remaining)]
 
-	for sponsor in SponsorCatalog.get_all():
-		create_offer(sponsor, team)
 
-
-func create_offer(sponsor: Sponsor, team: Team) -> void:
-	var panel := PanelContainer.new()
-	var content := HBoxContainer.new()
-	var details := Label.new()
-	var sign_button := Button.new()
-
+func _create_active_contract(team: Team) -> void:
+	var contract := team.active_sponsor_contract
+	var panel := _new_card(str(contract.profile))
+	var content := VBoxContainer.new()
 	panel.add_child(content)
-	content.add_child(details)
-	content.add_child(sign_button)
-	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	details.text = (
-		"%s\nRequires %d reputation  |  Signing bonus $%s  |  $%s per race\n%s — Bonus $%s  |  %d-race contract"
+	content.add_child(_label(
+		"%s   |   %s" % [str(contract.sponsor_name).to_upper(), str(contract.profile)],
+		&"SectionTitle"
+	))
+	var progress := int(contract.objective_progress)
+	var target := int(contract.objective_target)
+	content.add_child(_label(
+		"$%s each race   |   Objective bonus $%s   |   Failure exposure $%s"
 		% [
-			sponsor.sponsor_name,
-			sponsor.required_reputation,
-			format_number(team.get_effective_sponsor_value(sponsor.signing_bonus)),
-			format_number(team.get_effective_sponsor_value(sponsor.payment_per_race)),
-			sponsor.get_objective_description(),
-			format_number(team.get_effective_sponsor_value(sponsor.objective_bonus)),
-			sponsor.contract_length
+			_format_number(int(contract.payment_per_race)),
+			_format_number(int(contract.objective_bonus)),
+			_format_number(int(contract.failure_penalty))
 		]
-	)
-	sign_button.text = "Sign Contract"
-	sign_button.disabled = (
-		team.reputation < sponsor.required_reputation
-		or team.sponsor_signed_season == team.season_number
-		or not team.active_sponsor_id.is_empty()
-		or team.is_series_season_complete()
-	)
-	if team.reputation < sponsor.required_reputation:
-		sign_button.text = "Locked"
-	sign_button.pressed.connect(sign_sponsor.bind(sponsor))
+	))
+	content.add_child(_label(
+		"%s\n%s\nProgress %d/%d%s"
+		% [
+			SponsorManager.objective_description(contract),
+			SponsorManager.benefit_description(contract),
+			progress,
+			target,
+			" - SECURED" if bool(contract.objective_completed) else ""
+		]
+	))
+	var progress_bar := ProgressBar.new()
+	progress_bar.max_value = maxf(1.0, float(target))
+	progress_bar.value = float(progress)
+	progress_bar.show_percentage = true
+	content.add_child(progress_bar)
+	content.add_child(_label(
+		"Relationship: %s   |   Terms are locked for this contract"
+		% _relationship_label(int(team.sponsor_relationships.get(str(contract.sponsor_id), 0)))
+	))
 	offers_container.add_child(panel)
 
 
-func sign_sponsor(sponsor: Sponsor) -> void:
-	var team := GameManager.team
-	if (
-		team == null
-		or sponsor == null
-		or team.is_series_season_complete()
-		or not team.active_sponsor_id.is_empty()
-		or team.sponsor_signed_season == team.season_number
-		or team.reputation < sponsor.required_reputation
-	):
-		return
+func _create_offer_comparison_header() -> void:
+	var guide := PanelContainer.new()
+	var label := _label(
+		"READING THE MARKET\n"
+		+ "Guaranteed value is paid regardless of results. Expected value accounts for your estimated "
+		+ "objective chance and failure penalty. Maximum value assumes the objective is completed."
+	)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	guide.add_child(label)
+	offers_container.add_child(guide)
 
-	team.active_sponsor_id = sponsor.sponsor_id
-	team.sponsor_races_remaining = sponsor.contract_length
-	team.sponsor_objective_progress = 0
-	team.sponsor_objective_completed = false
-	team.sponsor_signed_season = team.season_number
-	var signing_bonus := team.get_effective_sponsor_value(sponsor.signing_bonus)
+
+func _create_offer_card(index: int, offer: Dictionary, team: Team) -> void:
+	var panel := _new_card(str(offer.profile))
+	var content := VBoxContainer.new()
+	var top_row := HBoxContainer.new()
+	var identity := VBoxContainer.new()
+	var action_column := VBoxContainer.new()
+	var sign_button := Button.new()
+	panel.add_child(content)
+	content.add_child(top_row)
+	top_row.add_child(identity)
+	top_row.add_child(action_column)
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_column.custom_minimum_size.x = 180.0
+
+	identity.add_child(_label(
+		"%s   |   %s" % [str(offer.sponsor_name).to_upper(), str(offer.profile)],
+		&"SectionTitle"
+	))
+	var renewal_text := "Renewal offer" if bool(offer.renewal) else "New relationship"
+	identity.add_child(_label(
+		"%s   |   Relationship: %s"
+		% [renewal_text, _relationship_label(int(offer.relationship))]
+	))
+	sign_button.text = "SIGN PARTNERSHIP"
+	sign_button.disabled = team.reputation < int(offer.required_reputation)
+	if sign_button.disabled:
+		sign_button.text = "REQUIRES %d REPUTATION" % int(offer.required_reputation)
+	sign_button.pressed.connect(_sign_offer.bind(index))
+	action_column.add_child(sign_button)
+
+	var metrics := GridContainer.new()
+	metrics.columns = 3
+	content.add_child(metrics)
+	_add_metric(metrics, "GUARANTEED", "$%s" % _format_number(int(offer.guaranteed_value)))
+	_add_metric(metrics, "EXPECTED", "$%s" % _format_number(int(offer.expected_value)))
+	_add_metric(metrics, "MAXIMUM", "$%s" % _format_number(int(offer.maximum_value)))
+	_add_metric(metrics, "PER EVENT", "$%s" % _format_number(int(offer.payment_per_race)))
+	_add_metric(metrics, "OBJECTIVE CHANCE", "%d%%" % roundi(float(offer.objective_probability) * 100.0))
+	_add_metric(metrics, "FAILURE PENALTY", "-$%s" % _format_number(int(offer.failure_penalty)))
+
+	var objective_label := _label(
+		"CAMPAIGN BRIEF\n%s\n%s\n%s\nCoverage: %d remaining race weekends"
+		% [
+			str(offer.interest_reason),
+			SponsorManager.objective_description(offer),
+			SponsorManager.benefit_description(offer),
+			int(offer.contract_length)
+		]
+	)
+	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(objective_label)
+	offers_container.add_child(panel)
+
+
+func _create_relationship_section(team: Team) -> void:
+	if team.sponsor_relationships.is_empty():
+		return
+	var lines := PackedStringArray()
+	for sponsor_id in team.sponsor_relationships:
+		var relationship := int(team.sponsor_relationships[sponsor_id])
+		if relationship != 0:
+			lines.append("%s: %s (%+d)" % [
+				_sponsor_name_for_id(str(sponsor_id), team),
+				_relationship_label(relationship),
+				relationship
+			])
+	if lines.is_empty():
+		return
+	var panel := PanelContainer.new()
+	panel.add_child(_label("PADDOCK RELATIONSHIPS\n" + "\n".join(lines)))
+	offers_container.add_child(panel)
+
+
+func _sign_offer(index: int) -> void:
+	var team := GameManager.team
+	var contract := SponsorManager.sign_offer(team, index)
+	if contract.is_empty():
+		return
+	var signing_bonus := int(contract.signing_bonus)
 	GameManager.add_team_money(signing_bonus)
-	team.record_finance("Sponsor", signing_bonus, "%s signing bonus" % sponsor.sponsor_name)
+	team.record_finance("Sponsor", signing_bonus, "%s signing bonus" % str(contract.sponsor_name))
+	SponsorManager.adjust_relationship(team, str(contract.sponsor_id), 3)
 	GameManager.save_game()
 	show_sponsors()
 
 
-func format_number(number: int) -> String:
+func _new_card(profile: String) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	var accent: Color = PROFILE_COLORS.get(profile, Color("8f9bad"))
+	style.bg_color = Color(0.055, 0.07, 0.10, 0.96)
+	style.border_color = accent
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 16.0
+	style.content_margin_right = 16.0
+	style.content_margin_top = 14.0
+	style.content_margin_bottom = 14.0
+	panel.add_theme_stylebox_override("panel", style)
+	return panel
+
+
+func _add_metric(grid: GridContainer, title: String, value: String) -> void:
+	var box := VBoxContainer.new()
+	box.custom_minimum_size = Vector2(190.0, 58.0)
+	box.add_child(_label(title))
+	box.add_child(_label(value, &"SectionTitle"))
+	grid.add_child(box)
+
+
+func _label(text: String, variation: StringName = &"") -> Label:
+	var label := Label.new()
+	label.text = text
+	if not variation.is_empty():
+		label.theme_type_variation = variation
+	return label
+
+
+func _relationship_label(value: int) -> String:
+	if value >= 50:
+		return "Trusted partner"
+	if value >= 20:
+		return "Strong"
+	if value > 0:
+		return "Positive"
+	if value <= -30:
+		return "Damaged"
+	if value < 0:
+		return "Wary"
+	return "New"
+
+
+func _sponsor_name_for_id(sponsor_id: String, team: Team) -> String:
+	for offer in team.sponsor_offers:
+		if str(offer.sponsor_id) == sponsor_id:
+			return str(offer.sponsor_name)
+	var sponsor := SponsorCatalog.find_by_id(sponsor_id)
+	return sponsor.sponsor_name if sponsor != null else sponsor_id.capitalize()
+
+
+func _format_number(number: int) -> String:
 	var number_string := str(number)
 	var formatted := ""
 	while number_string.length() > 3:

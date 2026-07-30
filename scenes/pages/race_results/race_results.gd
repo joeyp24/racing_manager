@@ -159,6 +159,7 @@ func create_financial_summary(result: RaceResult) -> String:
 		+ "Repair Costs: -$%s\n"
 		+ "Sponsor Race Payment: +$%s\n"
 		+ "Sponsor Objective Bonus: +$%s\n"
+		+ "Sponsor Failure Penalty: -$%s\n"
 		+ "Rules Penalty: -$%s\n"
 		+ "Net Earnings: %s\n\n"
 		+ "Championship Points: +%d\n"
@@ -174,6 +175,7 @@ func create_financial_summary(result: RaceResult) -> String:
 		format_number(result.repair_cost),
 		format_number(result.sponsor_race_payment),
 		format_number(result.sponsor_objective_bonus),
+		format_number(result.sponsor_failure_penalty),
 		format_number(result.cheating_penalty),
 		format_money_change(result.net_earnings),
 		result.championship_points_earned,

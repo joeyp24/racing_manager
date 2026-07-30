@@ -111,17 +111,18 @@ static func _finance_check(team: Team, race: Race) -> Dictionary:
 
 
 static func _sponsor_check(team: Team) -> Dictionary:
-	var sponsor := SponsorCatalog.find_by_id(team.active_sponsor_id)
-	if sponsor == null:
+	SponsorManager.ensure_state(team)
+	if team.active_sponsor_contract.is_empty():
 		return _check(SUBOPTIMAL, "SPONSOR", "No sponsor is active, so this race has no sponsor income or objective bonus.", "Open Sponsors", "sponsors")
-	if team.sponsor_objective_completed:
-		return _check(READY, "SPONSOR", "%s's objective is already complete." % sponsor.sponsor_name, "", "", "$%s per race" % _money(team.get_effective_sponsor_value(sponsor.payment_per_race)))
-	var needed := maxi(0, sponsor.objective_target - team.sponsor_objective_progress)
-	if needed > team.sponsor_races_remaining:
-		return _check(BLOCKED, "SPONSOR", "%s's objective is no longer achievable: %d results needed with %d races left." % [sponsor.sponsor_name, needed, team.sponsor_races_remaining], "Open Sponsors", "sponsors")
-	if needed == team.sponsor_races_remaining:
-		return _check(SUBOPTIMAL, "SPONSOR", "%s requires an objective result in every remaining race." % sponsor.sponsor_name, "Open Sponsors", "sponsors", "%d/%d complete" % [team.sponsor_objective_progress, sponsor.objective_target])
-	return _check(READY, "SPONSOR", "%s's objective remains achievable." % sponsor.sponsor_name, "", "", "%d/%d complete" % [team.sponsor_objective_progress, sponsor.objective_target])
+	var contract := team.active_sponsor_contract
+	if bool(contract.objective_completed):
+		return _check(READY, "SPONSOR", "%s's objective is already complete." % str(contract.sponsor_name), "", "", "$%s per race" % _money(int(contract.payment_per_race)))
+	var needed := maxi(0, int(contract.objective_target) - int(contract.objective_progress))
+	if needed > int(contract.races_remaining) and str(contract.objective_type) != "fans_gained":
+		return _check(BLOCKED, "SPONSOR", "%s's objective is no longer achievable: %d results needed with %d races left." % [str(contract.sponsor_name), needed, int(contract.races_remaining)], "Open Sponsors", "sponsors")
+	if needed == int(contract.races_remaining):
+		return _check(SUBOPTIMAL, "SPONSOR", "%s requires an objective result in every remaining race." % str(contract.sponsor_name), "Open Sponsors", "sponsors", "%d/%d complete" % [int(contract.objective_progress), int(contract.objective_target)])
+	return _check(READY, "SPONSOR", "%s's objective remains achievable." % str(contract.sponsor_name), "", "", "%d/%d complete" % [int(contract.objective_progress), int(contract.objective_target)])
 
 
 static func _check(status: String, title: String, explanation: String, action_label: String = "", action: String = "", threshold: String = "") -> Dictionary:

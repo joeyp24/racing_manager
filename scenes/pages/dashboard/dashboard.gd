@@ -107,20 +107,21 @@ func update_week_action(team: Team) -> void:
 
 
 func update_sponsor_summary(team: Team) -> void:
-	var sponsor := SponsorCatalog.find_by_id(team.active_sponsor_id)
-	if sponsor == null:
+	SponsorManager.ensure_state(team)
+	if team.active_sponsor_contract.is_empty():
 		sponsor_label.text = "No active contract • Visit Sponsors to review offers"
 		return
 
+	var contract := team.active_sponsor_contract
 	sponsor_label.text = (
 		"%s\n$%s per race  •  Objective %d/%d%s  •  %d races left"
 		% [
-			sponsor.sponsor_name,
-			String.num_int64(team.get_effective_sponsor_value(sponsor.payment_per_race)),
-			team.sponsor_objective_progress,
-			sponsor.objective_target,
-			" complete" if team.sponsor_objective_completed else "",
-			team.sponsor_races_remaining
+			str(contract.sponsor_name),
+			String.num_int64(int(contract.payment_per_race)),
+			int(contract.objective_progress),
+			int(contract.objective_target),
+			" complete" if bool(contract.objective_completed) else "",
+			int(contract.races_remaining)
 		]
 	)
 

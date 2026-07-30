@@ -186,8 +186,12 @@ func update_forecast() -> void:
 	var base_wear := 3 + roundi(float(race.difficulty) / 25.0) + roundi(float(race.lap_count) / 100.0)
 	var wear := maxi(1, roundi(float(base_wear) * float(strategy.get("wear_modifier", 1.0))))
 	var expected_prize := _prize_for_position(race, expected_position)
-	var sponsor := SponsorCatalog.find_by_id(GameManager.team.active_sponsor_id)
-	var sponsor_income := GameManager.team.get_effective_sponsor_value(sponsor.payment_per_race) if sponsor != null else 0
+	SponsorManager.ensure_state(GameManager.team)
+	var sponsor_income := (
+		int(GameManager.team.active_sponsor_contract.get("payment_per_race", 0))
+		if not GameManager.team.active_sponsor_contract.is_empty()
+		else 0
+	)
 	var driver_payroll := 0
 	for race_team in selected_race_teams:
 		var entry_driver := GameManager.team.get_driver_by_id(race_team.driver_id)

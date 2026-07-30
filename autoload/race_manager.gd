@@ -1018,38 +1018,29 @@ func apply_reputation_reward(result: RaceResult) -> void:
 
 func apply_sponsor_reward(result: RaceResult) -> void:
 	var team: Team = GameManager.team
-	if team.active_sponsor_id.is_empty():
+	SponsorManager.ensure_state(team)
+	if team.active_sponsor_contract.is_empty():
 		return
 
-	var sponsor := SponsorCatalog.find_by_id(team.active_sponsor_id)
-	if sponsor == null:
-		push_warning("Saved sponsor no longer exists: %s" % team.active_sponsor_id)
-		team.active_sponsor_id = ""
-		team.sponsor_races_remaining = 0
-		return
-
-	result.sponsor_name = sponsor.sponsor_name
-	result.sponsor_race_payment = team.get_effective_sponsor_value(sponsor.payment_per_race)
+	var outcome := SponsorManager.process_race_result(team, result)
+	result.sponsor_name = str(outcome.sponsor_name)
+	result.sponsor_race_payment = int(outcome.race_payment)
 	GameManager.add_team_money(result.sponsor_race_payment)
-	team.record_finance("Sponsor", result.sponsor_race_payment, "%s race payment" % sponsor.sponsor_name)
+	team.record_finance("Sponsor", result.sponsor_race_payment, "%s race payment" % result.sponsor_name)
 	result.net_earnings += result.sponsor_race_payment
 
-	if (
-		not team.sponsor_objective_completed
-		and sponsor.result_advances_objective(result.finishing_position)
-	):
-		team.sponsor_objective_progress += 1
-		if team.sponsor_objective_progress >= sponsor.objective_target:
-			team.sponsor_objective_completed = true
-			result.sponsor_objective_completed = true
-			result.sponsor_objective_bonus = team.get_effective_sponsor_value(sponsor.objective_bonus)
-			GameManager.add_team_money(result.sponsor_objective_bonus)
-			team.record_finance("Sponsor", result.sponsor_objective_bonus, "%s objective bonus" % sponsor.sponsor_name)
-			result.net_earnings += result.sponsor_objective_bonus
+	result.sponsor_objective_completed = bool(outcome.objective_completed)
+	result.sponsor_objective_bonus = int(outcome.objective_bonus)
+	if result.sponsor_objective_bonus > 0:
+		GameManager.add_team_money(result.sponsor_objective_bonus)
+		team.record_finance("Sponsor", result.sponsor_objective_bonus, "%s objective bonus" % result.sponsor_name)
+		result.net_earnings += result.sponsor_objective_bonus
 
-	team.sponsor_races_remaining = maxi(0, team.sponsor_races_remaining - 1)
-	if team.sponsor_races_remaining == 0:
-		team.active_sponsor_id = ""
+	result.sponsor_failure_penalty = int(outcome.failure_penalty)
+	if result.sponsor_failure_penalty > 0:
+		GameManager.charge_team_money(result.sponsor_failure_penalty)
+		team.record_finance("Sponsor", -result.sponsor_failure_penalty, "%s failed objective" % result.sponsor_name)
+		result.net_earnings -= result.sponsor_failure_penalty
 
 
 func update_driver_career_stats(
@@ -1606,6 +1597,10 @@ func complete_offseason() -> bool:
 	GameManager.team.sponsor_races_remaining = 0
 	GameManager.team.sponsor_objective_progress = 0
 	GameManager.team.sponsor_objective_completed = false
+	GameManager.team.active_sponsor_contract = {}
+	GameManager.team.sponsor_offers.clear()
+	GameManager.team.sponsor_offer_season = 0
+	GameManager.team.sponsor_offer_series_id = ""
 	GameManager.team.last_season_position = 0
 	GameManager.team.last_season_prize = 0
 	GameManager.team.offseason_data = {}

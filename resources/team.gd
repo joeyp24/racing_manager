@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 11
+const CURRENT_SAVE_FORMAT_VERSION: int = 12
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -73,6 +73,11 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var sponsor_objective_progress: int = 0
 @export var sponsor_objective_completed: bool = false
 @export var sponsor_signed_season: int = 0
+@export var active_sponsor_contract: Dictionary = {}
+@export var sponsor_offers: Array[Dictionary] = []
+@export var sponsor_offer_season: int = 0
+@export var sponsor_offer_series_id: String = ""
+@export var sponsor_relationships: Dictionary = {}
 
 @export var completed_races: Array[String] = []
 
@@ -173,7 +178,14 @@ func get_effective_weekend_cost(race: Race, entry_count: int = 1) -> int:
 
 
 func get_effective_sponsor_value(base_value: int) -> int:
-	return roundi(float(base_value) * float(get_difficulty_setting("sponsor_multiplier", 1.0)))
+	var series_multiplier := float(
+		SeriesCatalog.get_series(current_series_id).get("sponsor_prestige_multiplier", 1.0)
+	)
+	return roundi(
+		float(base_value)
+		* float(get_difficulty_setting("sponsor_multiplier", 1.0))
+		* series_multiplier
+	)
 
 
 func get_effective_salary(base_value: int) -> int:
