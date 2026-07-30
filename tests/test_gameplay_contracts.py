@@ -291,4 +291,4 @@ def test_weekly_scouting_hours_power_reports_and_recruiting():
     assert 'recruiting_progress[driver.driver_id]' in team
     assert "func negotiate_driver_contract" in team
     assert "scouting_hours_remaining" in scouting and '"???"' in scouting
-    assert "can_negotiate_with_driver" in market and "Potential OVR %s" in market
+    assert "Scouting is optional" in market and "Potential OVR %s" in market
