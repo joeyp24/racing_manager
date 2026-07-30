@@ -94,8 +94,8 @@ static func load_game(slot_id: String) -> Team:
 	var team := loaded as Team
 	var needs_resave := team.save_format_version < Team.CURRENT_SAVE_FORMAT_VERSION
 	_repair_and_migrate(team)
-	if needs_resave:
-		save_game(team, slot_id)
+	if needs_resave and not save_game(team, slot_id):
+		push_error("Loaded and migrated save, but could not persist migration.")
 	return team
 
 

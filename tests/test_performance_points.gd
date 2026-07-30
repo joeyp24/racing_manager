@@ -3,10 +3,23 @@ extends SceneTree
 
 func _initialize() -> void:
 	_test_factory_baseline_and_condition()
+	_test_series_factory_profiles()
 	_test_additive_modifiers_and_final_rounding()
 	_test_migration_is_idempotent()
 	print("Performance Points behavioral tests passed")
 	quit(0)
+
+
+func _test_series_factory_profiles() -> void:
+	for target in [48, 74, 94]:
+		var parts := PartCatalog.create_factory_parts("test_series", target)
+		assert(parts.size() == CarPart.PART_TYPES.size())
+		var total := 0
+		for part in parts:
+			total += part.base_performance_points
+		assert(total == target)
+	var premier_cars := SeriesCatalog.create_car_templates("premier_cup")
+	assert(premier_cars[1].get_base_performance_points() == 94)
 
 
 func _test_factory_baseline_and_condition() -> void:

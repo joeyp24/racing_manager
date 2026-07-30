@@ -43,7 +43,8 @@ static func create_car_templates(series_id: String) -> Array[Car]:
 		car.manufacturer = styles[index][0]
 		car.model = styles[index][1]
 		car.name = "%s %s" % [car.manufacturer, car.model]
-		car.performance = int(series.car_rating) + index - 1
+		var target_base_pp := int(series.car_rating) + index - 1
+		car.installed_parts = PartCatalog.create_factory_parts(series_id, target_base_pp)
 		car.purchase_price = roundi(float(series.car_price) * (0.9 + index * 0.1))
 		car.value = roundi(car.purchase_price * 0.75)
 		cars.append(car)
