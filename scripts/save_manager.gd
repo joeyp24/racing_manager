@@ -109,6 +109,8 @@ static func _repair_and_migrate(team: Team) -> void:
 		_migrate_performance_points(team)
 	team.ensure_series_progress(team.current_series_id)
 	team.load_series_progress(team.current_series_id)
+	team.ensure_world_series_data()
+	team.ensure_ai_team_career()
 	team.ensure_departments()
 	team.ensure_scouting_hours()
 	team.ensure_default_player_driver()

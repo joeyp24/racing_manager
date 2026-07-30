@@ -184,10 +184,10 @@ func _refresh_telemetry() -> void:
 	var pace := "STRONG" if player.last_lap_time <= player.best_lap_time + 0.18 else "MANAGING"
 	telemetry.text = "[table=2]" + \
 		"[cell][color=#778493]POSITION[/color]\n[b]P%d  %s[/b][/cell]" % [player.position, trend] + \
-		"[cell][color=#778493]TYRES[/color]\n[b]%d%%  %s[/b][/cell]" % [roundi(player.tyre_condition), player.tyre_compound] + \
+		"[cell][color=#778493]TYRES[/color]\n[b]%d%%  %s  %d°C[/b][/cell]" % [roundi(player.tyre_condition), player.tyre_compound, roundi(player.tyre_temperature)] + \
 		"[cell][color=#778493]GAP AHEAD[/color]\n[b]%s[/b][/cell]" % ahead + \
 		"[cell][color=#778493]GAP BEHIND[/color]\n[b]%s[/b][/cell]" % behind + \
-		"[cell][color=#778493]FUEL / CAR[/color]\n[b]%d%%  /  %d%%[/b][/cell]" % [roundi(player.fuel_remaining), roundi(player.car_condition)] + \
+		"[cell][color=#778493]FUEL LAPS / CAR / SYSTEMS[/color]\n[b]%.1f  /  %d%%  /  %d%%[/b][/cell]" % [player.fuel_laps / maxf(0.1, simulation.race.fuel_consumption_factor), roundi(player.car_condition), roundi(player.mechanical_health)] + \
 		"[cell][color=#778493]PACE[/color]\n[b]%s[/b][/cell]" % pace + \
 		"[cell][color=#778493]BRAKE BIAS[/color]\n[b]%s[/b][/cell]" % player.brake_bias + \
 		"[cell][color=#778493]PIT STOPS[/color]\n[b]%d[/b][/cell][/table]" % player.pit_stops

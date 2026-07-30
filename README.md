@@ -400,23 +400,25 @@ python tools/run_godot_checks.py
 ## Implemented and playable
 
 - Multi-season careers, driver and staff contracts, sponsorships, departments, parts, finances, championship standings, and multiple player race teams.
-- Live races with deterministic seed injection, tyre compounds, meaningful fuel weight and consumption, refueling, traffic, track-specific pit loss and overtaking, incidents, mechanical DNFs, yellow flags, safety cars, and restarts.
+- Live races with deterministic seed injection, explicit passing battles, traffic loss, tyre temperature and wear cliffs, fuel targets, strategic refueling, mechanical health warnings and failures, adaptive AI pit calls, yellow flags, field compression, safety cars, and restarts.
+- Three-run practice programmes with setup trade-offs, limited tyre sets, uncertain driver feedback, progressive engineering guidance, and a setup carried into qualifying and the race.
+- Difficulty-aware career finances covering purses, weekend fees, payroll, repairs, sponsorships, car and part costs, and progression investment.
+- Persistent AI organizations with budgets, equipment development, staff and strategy quality, driver turnover, form, multi-season trends, and promotion or relegation.
 - Versioned, verified atomic career saves with automatic backup recovery and collection repair.
 
 ## Implemented but needs balancing
 
 - Track demand profiles and distinct car attributes (power, aero, grip, braking, tyre preservation, fuel efficiency, and reliability).
-- Caution frequency, reliability risk, fuel windows, tyre degradation, and adaptive AI pit decisions.
-- Economy progression, sponsor objectives, staff bonuses, and AI season development.
+- Caution frequency, component health curves, fuel windows, tyre degradation, and adaptive AI strategy thresholds.
+- Economy values across every series and AI development rates over long careers.
 
 ## Prototype / experimental
 
-- Practice feedback and setup discovery, persistent rival development, and the team news feed are foundations for deeper authored content.
+- The team news feed and AI driver-transfer presentation are foundations for deeper authored content.
 - Department manufacturing and multi-team race entries may need additional usability passes.
 
 ## Next milestone
 
-- Expand practice into multiple timed runs with uncertain feedback and tyre allocation.
 - Add event eligibility, invitationals, schedule choices, offseason rules, transfers, rivalries, and richer historical commentary.
 - Grow deterministic headless coverage from simulation contracts into complete career journeys.
 

@@ -53,10 +53,10 @@ func create_offer(sponsor: Sponsor, team: Team) -> void:
 		% [
 			sponsor.sponsor_name,
 			sponsor.required_reputation,
-			format_number(sponsor.signing_bonus),
-			format_number(sponsor.payment_per_race),
+			format_number(team.get_effective_sponsor_value(sponsor.signing_bonus)),
+			format_number(team.get_effective_sponsor_value(sponsor.payment_per_race)),
 			sponsor.get_objective_description(),
-			format_number(sponsor.objective_bonus),
+			format_number(team.get_effective_sponsor_value(sponsor.objective_bonus)),
 			sponsor.contract_length
 		]
 	)
@@ -90,8 +90,9 @@ func sign_sponsor(sponsor: Sponsor) -> void:
 	team.sponsor_objective_progress = 0
 	team.sponsor_objective_completed = false
 	team.sponsor_signed_season = team.season_number
-	GameManager.add_team_money(sponsor.signing_bonus)
-	team.record_finance("Sponsor", sponsor.signing_bonus, "%s signing bonus" % sponsor.sponsor_name)
+	var signing_bonus := team.get_effective_sponsor_value(sponsor.signing_bonus)
+	GameManager.add_team_money(signing_bonus)
+	team.record_finance("Sponsor", signing_bonus, "%s signing bonus" % sponsor.sponsor_name)
 	GameManager.save_game()
 	show_sponsors()
 

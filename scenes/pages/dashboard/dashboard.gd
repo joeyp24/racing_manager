@@ -116,7 +116,7 @@ func update_sponsor_summary(team: Team) -> void:
 		"%s\n$%s per race  •  Objective %d/%d%s  •  %d races left"
 		% [
 			sponsor.sponsor_name,
-			String.num_int64(sponsor.payment_per_race),
+			String.num_int64(team.get_effective_sponsor_value(sponsor.payment_per_race)),
 			team.sponsor_objective_progress,
 			sponsor.objective_target,
 			" complete" if team.sponsor_objective_completed else "",

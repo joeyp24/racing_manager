@@ -29,7 +29,7 @@ func _build_entries() -> void:
 		for driver in GameManager.team.drivers:
 			if driver != null and not driver.is_player_driver and driver.series_id == str(series.id):
 				series_drivers.append(driver)
-		var race_roster := AIRosterCatalog.get_roster(str(series.id))
+		var race_roster := RaceManager.get_ai_roster_for_series(str(series.id))
 		for index in mini(series_drivers.size(), race_roster.size()):
 			entries.append({"driver":series_drivers[index], "race_driver":race_roster[index], "series":series})
 

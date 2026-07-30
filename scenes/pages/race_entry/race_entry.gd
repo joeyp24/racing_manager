@@ -56,7 +56,7 @@ func show_event_information() -> void:
 		prize_label.text = ""
 		return
 	race_name_label.text = race.race_name
-	event_details_label.text = "%s  •  %s\n%d laps  •  Difficulty %d/100  •  Track charges $%s  •  Operations $%s" % [race.track_name, race.race_date, race.lap_count, race.difficulty, format_number(race.get_track_charges()), format_number(race.get_operating_cost())]
+	event_details_label.text = "%s  •  %s\n%d laps  •  Difficulty %d/100  •  Weekend cost $%s per entry" % [race.track_name, race.race_date, race.lap_count, race.difficulty, format_number(GameManager.team.get_effective_weekend_cost(race))]
 	prize_label.text = "PRIZE STRUCTURE  1st $%s  •  2nd $%s  •  3rd $%s" % [format_number(race.first_place_prize), format_number(race.second_place_prize), format_number(race.third_place_prize)]
 
 
@@ -187,15 +187,15 @@ func update_forecast() -> void:
 	var wear := maxi(1, roundi(float(base_wear) * float(strategy.get("wear_modifier", 1.0))))
 	var expected_prize := _prize_for_position(race, expected_position)
 	var sponsor := SponsorCatalog.find_by_id(GameManager.team.active_sponsor_id)
-	var sponsor_income := sponsor.payment_per_race if sponsor != null else 0
+	var sponsor_income := GameManager.team.get_effective_sponsor_value(sponsor.payment_per_race) if sponsor != null else 0
 	var driver_payroll := 0
 	for race_team in selected_race_teams:
 		var entry_driver := GameManager.team.get_driver_by_id(race_team.driver_id)
 		if entry_driver != null:
-			driver_payroll += entry_driver.salary
+			driver_payroll += GameManager.team.get_effective_salary(entry_driver.salary)
 	var staff_payroll: int = GameManager.team.get_staff_payroll()
 	var objective_chance := clampi(roundi(72.0 + (strength - 60.0) - float(race.difficulty) * 0.25), 10, 95)
-	var total_fee: int = race.get_weekend_cost() * selected_race_teams.size()
+	var total_fee: int = GameManager.team.get_effective_weekend_cost(race, selected_race_teams.size())
 	var repair_per_point := maxi(50, roundi(float(selected_car.value) * 0.006))
 	var expected_wear_cost := wear * repair_per_point
 	var fixed_costs := total_fee + driver_payroll + staff_payroll + expected_wear_cost
@@ -227,7 +227,7 @@ func update_readiness() -> void:
 		return
 	var checks := RaceReadiness.evaluate(GameManager.team, GameManager.selected_race, selected_car)
 	var overall := RaceReadiness.get_overall_status(checks)
-	var total_fee: int = GameManager.selected_race.get_weekend_cost() * selected_race_teams.size()
+	var total_fee: int = GameManager.team.get_effective_weekend_cost(GameManager.selected_race, selected_race_teams.size())
 	if selected_race_teams.is_empty() or GameManager.team.money < total_fee:
 		overall = RaceReadiness.BLOCKED
 	readiness_summary_label.text = {RaceReadiness.READY: "READY TO ENTER", RaceReadiness.SUBOPTIMAL: "ENTRY AVAILABLE WITH WARNINGS", RaceReadiness.BLOCKED: "ENTRY BLOCKED"}.get(overall, "REVIEW")
@@ -273,7 +273,7 @@ func _on_confirm_button_pressed() -> void:
 	confirm_button.disabled = true
 	back_button.disabled = true
 	status_label.text = "Committing entry fee and opening race weekend..."
-	var total_fee: int = GameManager.selected_race.get_weekend_cost() * selected_race_teams.size()
+	var total_fee: int = GameManager.team.get_effective_weekend_cost(GameManager.selected_race, selected_race_teams.size())
 	if not GameManager.remove_team_money(total_fee):
 		status_label.text = "The entry fee could not be paid."
 		back_button.disabled = false

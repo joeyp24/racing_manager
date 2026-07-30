@@ -26,9 +26,9 @@ func refresh_finances() -> void:
 	overview_label.text = "Cash: $%s\nGarage value: $%s\nParts resale value: $%s\nTotal liquid and asset value: $%s\n\nRecorded income: +$%s\nRecorded expenses: -$%s\nRecorded net: %s" % [format_number(team.money), format_number(garage_value), format_number(inventory_value), format_number(team.money + garage_value + inventory_value), format_number(team.get_finance_total(true)), format_number(team.get_finance_total(false)), format_money(team.get_finance_total(true) - team.get_finance_total(false))]
 
 	var driver := team.get_active_driver()
-	var driver_salary := driver.salary if driver != null and team.driver_hired_for_season else 0
+	var driver_salary := team.get_effective_salary(driver.salary) if driver != null and team.driver_hired_for_season else 0
 	var chief := team.get_crew_chief()
-	var chief_salary := chief.salary if chief != null else 0
+	var chief_salary := team.get_effective_salary(chief.salary) if chief != null else 0
 	var engineer_salary := team.get_staff_payroll() - chief_salary
 	payroll_label.text = "Driver: $%s/race\nCrew chief: $%s/race\nEngineers: $%s/race\nTotal payroll: $%s/race\nRaces remaining: %d\nProjected remaining payroll: $%s" % [format_number(driver_salary), format_number(chief_salary), format_number(engineer_salary), format_number(team.get_total_race_payroll()), remaining_races, format_number(team.get_total_race_payroll() * remaining_races)]
 	recovery_button.disabled = team.recovery_funding_used or team.money >= 10000

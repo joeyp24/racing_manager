@@ -101,11 +101,14 @@ func create_standings_text(
 
 		if bool(entry.get("is_player", false)):
 			standings_text += (
-				"%d. %s — %s (Your Driver)\n"
+				"%d. %s — %s (Your Driver)  •  %d passes  •  %d stops  •  systems %d%%\n"
 				% [
 					position,
 					driver_name,
-					team_name
+					team_name,
+					int(entry.get("overtakes", 0)),
+					int(entry.get("pit_stops", 0)),
+					roundi(float(entry.get("mechanical_health", 100.0)))
 				]
 			)
 		else:

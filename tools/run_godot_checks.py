@@ -17,6 +17,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_performance_points.gd"),
     ),
     (
+        "career simulation depth tests",
+        ("--headless", "--path", ".", "--script", "tests/test_simulation_depth.gd"),
+    ),
+    (
         "UI scene smoke tests",
         ("--headless", "--path", ".", "--script", "tests/test_ui_scenes.gd"),
     ),
