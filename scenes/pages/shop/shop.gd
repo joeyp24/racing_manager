@@ -43,23 +43,6 @@ func populate_comparison_cars() -> void:
 		comparison_car_selector.select(1)
 
 
-func populate_comparison_cars() -> void:
-	comparison_car_selector.clear()
-	comparison_car_selector.add_item("No car comparison")
-	comparison_car_selector.set_item_metadata(0, -1)
-	var preferred_bay := GameManager.selected_bay
-	for bay in GameManager.team.cars.size():
-		var car := GameManager.team.get_car(bay)
-		if car == null:
-			continue
-		comparison_car_selector.add_item("Bay %d — %s" % [bay + 1, car.name])
-		comparison_car_selector.set_item_metadata(comparison_car_selector.item_count - 1, bay)
-		if car == GameManager.selected_car or (GameManager.selected_car == null and bay == preferred_bay):
-			comparison_car_selector.select(comparison_car_selector.item_count - 1)
-	if comparison_car_selector.selected == 0 and comparison_car_selector.item_count > 1:
-		comparison_car_selector.select(1)
-
-
 func refresh_shop() -> void:
 	for child in offers_container.get_children():
 		child.queue_free()
