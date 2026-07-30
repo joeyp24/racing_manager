@@ -7,6 +7,7 @@ extends Control
 @onready var cars_owned_label: Label = %cars_owned_label
 @onready var garage_value_label: Label = %garage_value_label
 @onready var reputation_label: Label = %reputation_label
+@onready var reputation_hint: Label = %reputation_hint
 @onready var sponsor_label: Label = %sponsor_label
 @onready var readiness_container: VBoxContainer = %readiness_container
 @onready var readiness_summary_label: Label = %readiness_summary_label
@@ -67,8 +68,18 @@ func update_dashboard() -> void:
 		% String.num_int64(team.money)
 	)
 
-	reputation_label.text = "LEVEL %d  •  %d / %d XP" % [
-		team.get_reputation_level(), team.get_current_level_xp(), Team.XP_PER_LEVEL
+	var standing := ReputationManager.ensure_state(team)
+	reputation_label.text = "%s  •  LEVEL %d\n%d / %d XP" % [
+		team.get_reputation_tier().to_upper(),
+		team.get_reputation_level(),
+		team.get_current_level_xp(),
+		team.get_level_xp_span()
+	]
+	reputation_hint.text = "MOMENTUM %+d  •  SPORT %d  •  PRO %d  •  COMM %d" % [
+		int(standing.momentum),
+		int(standing.sporting_credibility),
+		int(standing.professionalism),
+		int(standing.commercial_appeal)
 	]
 
 	update_sponsor_summary(team)

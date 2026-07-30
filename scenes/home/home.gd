@@ -15,6 +15,7 @@ extends Control
 @onready var shop_button: Button = %shop_button
 @onready var dealership_button: Button = %dealership_button
 @onready var sponsors_button: Button = %sponsors_button
+@onready var reputation_button: Button = %reputation_button
 @onready var hq_button: Button = %hq_button
 @onready var scouting_button: Button = %scouting_button
 @onready var career_hub_button: Button = %career_hub_button
@@ -38,7 +39,7 @@ func _ready() -> void:
 	GameManager.page_container = page_container
 	navigation_buttons = [home_button, race_calendar_button, championship_button, world_series_button,
 		garage_button, race_teams_button, drivers_button, engineering_button, staff_button, driver_market_button, shop_button,
-		dealership_button, sponsors_button, finances_button, hq_button, identity_button,
+		dealership_button, sponsors_button, reputation_button, finances_button, hq_button, identity_button,
 		scouting_button, career_hub_button]
 
 	home_button.pressed.connect(
@@ -70,6 +71,7 @@ func _ready() -> void:
 	shop_button.pressed.connect(_on_shop_button_pressed)
 	dealership_button.pressed.connect(_on_dealership_button_pressed)
 	sponsors_button.pressed.connect(_on_sponsors_button_pressed)
+	reputation_button.pressed.connect(_on_reputation_button_pressed)
 	hq_button.pressed.connect(_on_hq_button_pressed)
 	identity_button.pressed.connect(_on_identity_button_pressed)
 	glossary_button.pressed.connect(_on_glossary_button_pressed)
@@ -142,6 +144,7 @@ func _make_top_bar_actionable() -> void:
 		%money_label.get_parent(): _on_finances_button_pressed,
 		%position_label.get_parent(): _on_championship_button_pressed,
 		%next_event_label.get_parent(): _on_race_calendar_button_pressed,
+		%rep_label.get_parent(): _on_reputation_button_pressed,
 	}
 	for box: Control in actions:
 		box.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -252,6 +255,11 @@ func _on_sponsors_button_pressed() -> void:
 	GameManager.load_page("res://scenes/pages/sponsors/sponsors.tscn")
 
 
+func _on_reputation_button_pressed() -> void:
+	set_active_navigation(reputation_button)
+	GameManager.load_page("res://scenes/pages/reputation/reputation.tscn")
+
+
 func _on_hq_button_pressed() -> void:
 	set_active_navigation(hq_button)
 	GameManager.load_page("res://scenes/pages/departments/departments.tscn")
@@ -306,7 +314,7 @@ func update_team_display() -> void:
 	update_money_label(team.money)
 	team_name_label.text = team.team_name.to_upper()
 	season_label.text = "SEASON %d • TEAM HQ" % team.season_number
-	rep_label.text = "%d PTS" % team.reputation
+	rep_label.text = "%s  ·  L%d" % [team.get_reputation_tier(), team.get_reputation_level()]
 	next_event_label.text = get_next_event_name(team)
 	position_label.text = get_championship_position(team)
 	command_bar.display(NextActionModel.derive(team))
@@ -327,6 +335,7 @@ func _on_command_action_requested(action: String) -> void:
 		"staff": "res://scenes/pages/staff/staff.tscn",
 		"finances": "res://scenes/pages/finances/finances.tscn",
 		"sponsors": "res://scenes/pages/sponsors/sponsors.tscn",
+		"reputation": "res://scenes/pages/reputation/reputation.tscn",
 		"race_entry": "res://scenes/pages/race_entry/race_entry.tscn",
 	}
 	if not paths.has(action):
@@ -345,7 +354,7 @@ func _on_page_changed(scene_path: String) -> void:
 		"drivers": drivers_button, "driver_market": driver_market_button,
 		"engineering": engineering_button, "race_teams": race_teams_button,
 		"staff": staff_button, "finances": finances_button, "shop": shop_button,
-		"dealership": shop_button, "sponsors": sponsors_button,
+		"dealership": shop_button, "sponsors": sponsors_button, "reputation": reputation_button,
 		"departments": hq_button, "team_identity": identity_button,
 		"scouting": scouting_button,
 		"career_hub": career_hub_button,

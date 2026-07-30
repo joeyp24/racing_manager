@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 12
+const CURRENT_SAVE_FORMAT_VERSION: int = 13
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -42,6 +42,7 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export_enum("Rookie", "Club", "Pro") var career_difficulty: String = "Club"
 @export var recovery_funding_used: bool = false
 @export var reputation: int = 0
+@export var reputation_state: Dictionary = {}
 @export var scouting_hours_remaining: int = -1
 @export var scouting_hours_week: int = 0
 @export var recruiting_progress: Dictionary = {}
@@ -256,15 +257,23 @@ func upgrade_hq() -> bool:
 
 
 func get_reputation_level() -> int:
-	return maxi(1, floori(float(reputation) / float(XP_PER_LEVEL)) + 1)
+	return ReputationManager.get_level_for_xp(reputation)
 
 
 func get_current_level_xp() -> int:
-	return reputation % XP_PER_LEVEL
+	return reputation - ReputationManager.get_level_start_xp(get_reputation_level())
 
 
 func get_xp_to_next_level() -> int:
-	return XP_PER_LEVEL - get_current_level_xp()
+	return get_level_xp_span() - get_current_level_xp()
+
+
+func get_level_xp_span() -> int:
+	return ReputationManager.get_level_span(get_reputation_level())
+
+
+func get_reputation_tier() -> String:
+	return ReputationManager.get_tier_name(get_reputation_level())
 
 
 func add_reputation_xp(amount: int) -> void:
@@ -952,24 +961,59 @@ func get_driver_required_level(driver: Driver) -> int:
 
 
 func can_negotiate_with_driver(driver: Driver) -> bool:
-	return driver != null and get_reputation_level() >= get_driver_required_level(driver) and int(recruiting_progress.get(driver.driver_id, 0)) >= 50
+	return driver != null and int(recruiting_progress.get(driver.driver_id, 0)) >= 50
+
+
+func get_driver_negotiation_terms(driver: Driver) -> Dictionary:
+	if driver == null:
+		return {"salary_multiplier": 1.0, "signing_multiplier": 1.0, "level_gap": 0}
+	var level_gap := get_driver_required_level(driver) - get_reputation_level()
+	var professionalism := ReputationManager.get_dimension(self, "professionalism")
+	var sporting := ReputationManager.get_dimension(self, "sporting_credibility")
+	var gap_premium := maxf(0.0, float(level_gap) * 0.08)
+	var standing_discount := maxf(0.0, float(professionalism + sporting - 120) * 0.0025)
+	return {
+		"salary_multiplier": clampf(1.0 + gap_premium - standing_discount, 0.85, 1.65),
+		"signing_multiplier": clampf(1.0 + gap_premium * 1.25 - standing_discount, 0.82, 1.85),
+		"level_gap": level_gap
+	}
 
 
 func negotiate_driver_contract(driver: Driver, salary_offer: int, signing_offer: int, length: int) -> Dictionary:
 	if not can_negotiate_with_driver(driver):
-		return {"accepted": false, "reason": "Earn the required team level and recruit this driver to 50 interest first."}
-	var salary_ratio := float(salary_offer) / maxi(1, driver.salary)
-	var signing_ratio := float(signing_offer) / maxi(1, driver.signing_fee)
+		return {"accepted": false, "reason": "Recruit this driver to 50 interest before negotiating."}
+	var terms := get_driver_negotiation_terms(driver)
+	var requested_salary := roundi(float(driver.salary) * float(terms.salary_multiplier))
+	var requested_signing := roundi(float(driver.signing_fee) * float(terms.signing_multiplier))
+	var salary_ratio := float(salary_offer) / maxi(1, requested_salary)
+	var signing_ratio := float(signing_offer) / maxi(1, requested_signing)
 	var interest := int(recruiting_progress.get(driver.driver_id, 0))
-	var score := salary_ratio * 45.0 + signing_ratio * 30.0 + interest * 0.25
-	var accepted := score >= 88.0
-	contract_offers[driver.driver_id] = {"salary":salary_offer, "signing_fee":signing_offer, "length":clampi(length, 4, 36), "accepted":accepted}
+	var professionalism := ReputationManager.get_dimension(self, "professionalism")
+	var score := salary_ratio * 45.0 + signing_ratio * 30.0 + interest * 0.20 + float(professionalism) * 0.05
+	var accepted := (
+		(salary_offer >= requested_salary and signing_offer >= requested_signing)
+		or score >= 88.0
+	)
+	contract_offers[driver.driver_id] = {
+		"salary": salary_offer,
+		"signing_fee": signing_offer,
+		"counter_salary": requested_salary,
+		"counter_signing_fee": requested_signing,
+		"length": clampi(length, 4, 36),
+		"accepted": accepted
+	}
 	if accepted:
 		driver.salary = salary_offer
 		driver.signing_fee = signing_offer
 		driver.contract_length = clampi(length, 4, 36)
 	emit_changed()
-	return {"accepted":accepted, "reason":"Offer accepted." if accepted else "The driver wants a stronger financial package."}
+	var reason := "Offer accepted."
+	if not accepted:
+		reason = (
+			"The driver countered at $%s per race and a $%s signing fee. "
+			+ "Your prestige and professionalism shape these demands."
+		) % [String.num_int64(requested_salary), String.num_int64(requested_signing)]
+	return {"accepted":accepted, "reason":reason, "terms":terms}
 
 
 func build_scouting_report(driver: Driver, assignment_type: String) -> Dictionary:

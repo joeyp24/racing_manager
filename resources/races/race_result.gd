@@ -25,6 +25,7 @@ var sponsor_objective_bonus: int = 0
 var sponsor_objective_completed: bool = false
 var sponsor_failure_penalty: int = 0
 var reputation_earned: int = 0
+var reputation_changes: Dictionary = {}
 var fans_earned: int = 0
 var cheating_penalty: int = 0
 var penalties: Array[Dictionary] = []
@@ -45,6 +46,7 @@ var strategy_variance_modifier: float = 1.0
 var strategy_wear_modifier: float = 1.0
 
 var starting_position: int = 0
+var expected_finishing_position: int = 0
 var positions_gained: int = 0
 var practice_focus_name: String = ""
 var qualifying_approach_name: String = ""

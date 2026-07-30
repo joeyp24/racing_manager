@@ -84,6 +84,8 @@ func _test_retirement_does_not_advance_finish_objective() -> void:
 func _test_failure_applies_relationship_consequences() -> void:
 	var team := Team.new()
 	team.reputation = 20
+	var starting_professionalism := ReputationManager.get_dimension(team, "professionalism")
+	var starting_commercial_appeal := ReputationManager.get_dimension(team, "commercial_appeal")
 	team.active_sponsor_contract = {
 		"sponsor_id": "pressure_partner",
 		"sponsor_name": "Pressure Partner",
@@ -104,7 +106,9 @@ func _test_failure_applies_relationship_consequences() -> void:
 	assert(int(outcome.failure_penalty) == 750)
 	assert(team.active_sponsor_contract.is_empty())
 	assert(int(team.sponsor_relationships.pressure_partner) == -10)
-	assert(team.reputation == 15)
+	assert(team.reputation == 20)
+	assert(ReputationManager.get_dimension(team, "professionalism") == starting_professionalism - 5)
+	assert(ReputationManager.get_dimension(team, "commercial_appeal") == starting_commercial_appeal - 4)
 
 
 func _test_completed_season_cannot_collect_a_signing_bonus() -> void:

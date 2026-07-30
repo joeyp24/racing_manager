@@ -160,16 +160,17 @@ layout_mode = 2
 [node name="Caption" type="Label" parent="Scroll/Margin/Content/Kpis/Reputation/Stack"]
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
-text = "REPUTATION"
+text = "TEAM STANDING"
 [node name="reputation_label" type="Label" parent="Scroll/Margin/Content/Kpis/Reputation/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"StatValue"
 text = "0 PTS"
-[node name="Hint" type="Label" parent="Scroll/Margin/Content/Kpis/Reputation/Stack"]
+[node name="reputation_hint" type="Label" parent="Scroll/Margin/Content/Kpis/Reputation/Stack"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
-text = "TEAM PROFILE"
+text = "MOMENTUM 0  •  SPORT 50  •  PRO 50  •  COMM 50"
 [node name="Lower" type="HBoxContainer" parent="Scroll/Margin/Content"]
 layout_mode = 2
 theme_override_constants/separation = 12

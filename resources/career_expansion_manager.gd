@@ -85,7 +85,17 @@ static func defaults() -> Dictionary:
 		"logistics":{"transporter_level":1, "spare_cars":1, "damaged_inventory":0, "travel_plan":"Standard"},
 		"resource_allocations":{},
 		"sponsor_activations":[],
-		"merchandise":{"popularity":0, "stock":0, "price":25, "regional_fans":{}, "last_revenue":0},
+		"merchandise":{
+			"popularity":0,
+			"stock":0,
+			"price":25,
+			"regional_fans":{},
+			"last_revenue":0,
+			"last_weekly_units":0,
+			"last_weekly_revenue":0,
+			"lifetime_revenue":0,
+			"last_sales_day":0
+		},
 		"finance_forecast":{},
 		"calendar_variations":{},
 		"records":{"tracks":{}, "series":{}, "all_time":{}},
@@ -236,7 +246,14 @@ static func _apply_effects(team, effects: Dictionary) -> void:
 			"money":
 				team.money += amount
 				team.record_finance("Decision", amount, "Team principal decision")
-			"reputation": team.add_reputation_xp(amount)
+			"reputation":
+				ReputationManager.apply_event(team, "commercial_appeal", amount, "Media response improved public awareness", maxi(0, amount), "Media")
+			"sporting_credibility":
+				ReputationManager.apply_event(team, "sporting_credibility", amount, "Team decision changed sporting credibility", 0, "Decision")
+			"professionalism":
+				ReputationManager.apply_event(team, "professionalism", amount, "Team decision changed professional standing", 0, "Decision")
+			"commercial_appeal":
+				ReputationManager.apply_event(team, "commercial_appeal", amount, "Team decision changed commercial appeal", 0, "Decision")
 			"fans": team.fans = maxi(0, team.fans + amount)
 			"confidence": board.confidence = clampi(int(board.confidence) + amount, 0, 100)
 			"job_security": board.job_security = clampi(int(board.job_security) + amount, 0, 100)
@@ -273,6 +290,7 @@ static func _ensure_board_targets(team) -> void:
 static func process_day(team, elapsed_days: int) -> Array[String]:
 	var state := ensure_state(team)
 	var summaries: Array[String] = []
+	ReputationManager.advance_days(team, elapsed_days)
 	_process_rd(team, elapsed_days, summaries)
 	_process_construction(team, elapsed_days, summaries)
 	_process_injuries(team, elapsed_days, summaries)
@@ -280,9 +298,83 @@ static func process_day(team, elapsed_days: int) -> Array[String]:
 	_process_scouting_network(team, elapsed_days, summaries)
 	_process_staff(team, elapsed_days, summaries)
 	_apply_upkeep(team, elapsed_days, summaries)
+	_process_weekly_merchandise(team, elapsed_days, summaries)
 	_generate_paddock_event(team, elapsed_days)
 	update_finance_forecast(team)
 	return summaries
+
+
+static func start_new_season(team) -> void:
+	var merchandise := ensure_state(team).merchandise as Dictionary
+	merchandise.last_sales_day = team.current_season_day
+	merchandise.last_weekly_units = 0
+	merchandise.last_weekly_revenue = 0
+	update_finance_forecast(team)
+
+
+static func calculate_weekly_merchandise_demand(team) -> int:
+	var merchandise := team.career_state.get("merchandise", {}) as Dictionary
+	var prestige_level: int = team.get_reputation_level()
+	var commercial_appeal := ReputationManager.get_dimension(team, "commercial_appeal")
+	var momentum := int(ReputationManager.ensure_state(team).momentum)
+	var marketing_level: int = team.get_department_level("marketing")
+	return maxi(
+		3,
+		5
+		+ prestige_level * 2
+		+ roundi(float(commercial_appeal) / 5.0)
+		+ mini(45, roundi(float(team.fans) / 200.0))
+		+ marketing_level * 3
+		+ mini(15, roundi(float(merchandise.popularity) / 50.0))
+		+ maxi(-4, roundi(float(momentum) / 10.0))
+	)
+
+
+static func _process_weekly_merchandise(team, elapsed_days: int, summaries: Array[String]) -> void:
+	var merchandise := ensure_state(team).merchandise as Dictionary
+	if int(merchandise.last_sales_day) <= 0:
+		merchandise.last_sales_day = maxi(
+			CalendarCatalog.SEASON_START_DAY,
+			team.current_season_day - elapsed_days
+		)
+	var weeks_elapsed := floori(
+		float(team.current_season_day - int(merchandise.last_sales_day)) / 7.0
+	)
+	if weeks_elapsed <= 0:
+		return
+	var total_units := 0
+	var total_revenue := 0
+	var total_demand := 0
+	for week in weeks_elapsed:
+		var demand := calculate_weekly_merchandise_demand(team)
+		var units := mini(int(merchandise.stock), demand)
+		var revenue := units * int(merchandise.price)
+		merchandise.stock = maxi(0, int(merchandise.stock) - units)
+		merchandise.popularity = maxi(0, int(merchandise.popularity) + roundi(float(units) * 0.25))
+		total_units += units
+		total_revenue += revenue
+		total_demand += demand
+	merchandise.last_sales_day = int(merchandise.last_sales_day) + weeks_elapsed * 7
+	merchandise.last_weekly_units = total_units
+	merchandise.last_weekly_revenue = total_revenue
+	merchandise.last_revenue = total_revenue
+	merchandise.lifetime_revenue = int(merchandise.lifetime_revenue) + total_revenue
+	if total_revenue > 0:
+		var game_manager: Node = Engine.get_main_loop().root.get_node_or_null("GameManager")
+		if game_manager != null and game_manager.get("team") == team:
+			game_manager.call("add_team_money", total_revenue)
+		else:
+			team.money += total_revenue
+		team.record_finance(
+			"Merchandise",
+			total_revenue,
+			"%d week%s of reputation-driven merchandise sales"
+			% [weeks_elapsed, "" if weeks_elapsed == 1 else "s"]
+		)
+	summaries.append(
+		"Merchandise: sold %d of %d requested units for $%s"
+		% [total_units, total_demand, String.num_int64(total_revenue)]
+	)
 
 
 static func _process_rd(team, elapsed_days: int, summaries: Array[String]) -> void:
@@ -868,9 +960,9 @@ static func _generate_press_conference(team, result) -> void:
 	var subject := "Post-race press conference"
 	var body := "Reporters want your reaction after finishing P%d at %s." % [result.finishing_position, result.race.track_name]
 	add_inbox_item(team, "Media", subject, body, [
-		{"label":"Praise the whole team", "effects":{"driver_morale":3, "staff_morale":3, "fans":20, "sponsor":1, "rivalry":-1}},
-		{"label":"Demand more performance", "effects":{"confidence":2, "driver_morale":-3, "staff_morale":-2, "rivalry":4}},
-		{"label":"Entertain the fans", "effects":{"fans":60, "reputation":2, "confidence":-1, "sponsor":2, "rivalry":2}}
+		{"label":"Praise the whole team", "effects":{"driver_morale":3, "staff_morale":3, "fans":20, "professionalism":2, "commercial_appeal":1, "sponsor":1, "rivalry":-1}},
+		{"label":"Demand more performance", "effects":{"confidence":2, "driver_morale":-3, "staff_morale":-2, "sporting_credibility":2, "professionalism":-1, "rivalry":4}},
+		{"label":"Entertain the fans", "effects":{"fans":60, "reputation":2, "commercial_appeal":3, "confidence":-1, "sponsor":2, "rivalry":2}}
 	])
 
 
@@ -963,6 +1055,11 @@ static func complete_sponsor_activation(team, index: int) -> bool:
 		driver.morale = maxi(0, driver.morale - int(activation.get("morale_cost", 1)))
 	SponsorManager.adjust_relationship(team, str(activation.sponsor_id), 4)
 	SponsorManager.add_activation_progress(team, str(activation.sponsor_id))
+	ReputationManager.apply_changes(
+		team, 1, 0, 1, 3,
+		"Completed %s for %s" % [str(activation.type), str(activation.sponsor_name)],
+		"Sponsor activation"
+	)
 	team.record_finance("Sponsor activation", value, str(activation.event))
 	add_notification(team, "Sponsor", "Activation completed", "+$%s, fan growth and stronger partner relations" % value)
 	team.emit_changed()
@@ -978,6 +1075,11 @@ static func decline_sponsor_activation(team, index: int) -> bool:
 		return false
 	activation.declined = true
 	SponsorManager.adjust_relationship(team, str(activation.sponsor_id), -3)
+	ReputationManager.apply_changes(
+		team, 0, 0, -1, -2,
+		"Declined an activation for %s" % str(activation.sponsor_name),
+		"Sponsor activation"
+	)
 	add_notification(team, "Sponsor", "Activation declined", "Preparation time preserved, but the partner relationship cooled.")
 	team.emit_changed()
 	return true
@@ -1007,6 +1109,11 @@ static func _process_stewarding(team, result, simulation) -> void:
 		cases.push_front(case)
 		result.championship_points_earned = maxi(0, result.championship_points_earned - penalty)
 		result.penalties.append(case)
+		ReputationManager.apply_changes(
+			team, 0, -1, -6, -1,
+			"Received a stewarding penalty for avoidable contact",
+			"Stewarding"
+		)
 		add_inbox_item(team, "Stewarding", "Post-race penalty", "Race control issued a %d-point penalty for avoidable contact. The decision may be appealed." % penalty)
 
 
@@ -1237,8 +1344,18 @@ static func _generate_manufacturer_offers(team) -> void:
 	var manufacturer := team.career_state.manufacturer as Dictionary
 	var offers := manufacturer.offers as Array
 	offers.clear()
+	var leverage: int = (
+		team.get_reputation_level() * 220
+		+ ReputationManager.get_dimension(team, "sporting_credibility") * 12
+		+ ReputationManager.get_dimension(team, "professionalism") * 8
+	)
 	for index in 3:
-		offers.append({"partner":["Orion", "Apex", "Vanguard"][index], "support":45 + index * 15, "exclusivity":index == 2, "cost":maxi(1000, 7500 - team.reputation * 12 - index * 900)})
+		offers.append({
+			"partner": ["Orion", "Apex", "Vanguard"][index],
+			"support": 45 + index * 15,
+			"exclusivity": index == 2,
+			"cost": maxi(1000, 7500 - leverage - index * 900)
+		})
 
 
 static func update_finance_forecast(team) -> Dictionary:
@@ -1252,12 +1369,22 @@ static func update_finance_forecast(team) -> Dictionary:
 	var upkeep := 0
 	for facility_id in FACILITIES:
 		upkeep += int(FACILITIES[facility_id].upkeep) * get_facility_level(team, facility_id)
-	var projected_income := maxi(0, team.get_effective_sponsor_value(4000)) + roundi(float(team.fans) * 0.4)
+	var merchandise := state.merchandise as Dictionary
+	var weekly_merchandise_income := (
+		mini(int(merchandise.stock), calculate_weekly_merchandise_demand(team))
+		* int(merchandise.price)
+	)
+	var projected_income := (
+		maxi(0, team.get_effective_sponsor_value(4000))
+		+ roundi(float(team.fans) * 0.4)
+		+ weekly_merchandise_income
+	)
 	var projected_costs := weekly_salary + upkeep + maxi(0, int((state.logistics as Dictionary).damaged_inventory) * 600)
 	var weeks_remaining := maxi(0, SEASON_END_DAY - team.current_season_day) / 7
 	var forecast := {
 		"cash":team.money,
 		"weekly_income":projected_income,
+		"weekly_merchandise_income":weekly_merchandise_income,
 		"weekly_costs":projected_costs,
 		"weekly_net":projected_income - projected_costs,
 		"season_end_cash":team.money + (projected_income - projected_costs) * weeks_remaining,

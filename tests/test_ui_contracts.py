@@ -39,6 +39,7 @@ def test_primary_management_pages_use_page_titles():
         "race_entry/race_entry.tscn",
         "race_results/race_results.tscn",
         "race_teams/race_teams.tscn",
+        "reputation/reputation.tscn",
         "scouting/scouting.tscn",
         "shop/shop.tscn",
         "sponsors/sponsors.tscn",

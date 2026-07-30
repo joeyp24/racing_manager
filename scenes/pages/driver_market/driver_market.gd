@@ -123,8 +123,6 @@ func create_candidate_row(driver: Driver) -> void:
 			hire_button.tooltip_text = "Disabled: this driver is already under contract."
 		elif GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee):
 			hire_button.tooltip_text = "Disabled: you need $%s more for the signing fee." % format_number(GameManager.team.get_discounted_cost(driver.signing_fee) - GameManager.team.money)
-		elif GameManager.team.get_reputation_level() < GameManager.team.get_driver_required_level(driver):
-			hire_button.tooltip_text = "Reach team level %d to negotiate with this driver." % GameManager.team.get_driver_required_level(driver)
 		elif int(GameManager.team.recruiting_progress.get(driver.driver_id, 0)) < 50:
 			hire_button.tooltip_text = "Recruit this driver to at least 50%% interest in Scouting."
 		else:
@@ -147,13 +145,16 @@ func _driver_comparison_tooltip(driver: Driver, active: Driver) -> String:
 
 func create_driver_details(driver: Driver) -> String:
 	var signing_cost := GameManager.team.get_discounted_cost(driver.signing_fee)
+	var prestige_terms := GameManager.team.get_driver_negotiation_terms(driver)
+	var salary_change := roundi((float(prestige_terms.salary_multiplier) - 1.0) * 100.0)
 	var report := GameManager.team.scouting_reports.get(driver.driver_id, {}) as Dictionary
 	var potential_display := str(driver.get_potential_overall()) if report.get("revealed_potential", false) or GameManager.team.contracted_driver_ids.has(driver.driver_id) else "???"
-	return "Age %d | OVR %d | Potential OVR %s | Required level %d | Team seasons %d | Race pace %d | Qualifying %d | Tyre management %d | Salary $%s/race | Signing fee $%s" % [
+	return "Age %d | OVR %d | Potential OVR %s | Recommended prestige L%d | Terms %+d%% | Team seasons %d | Race pace %d | Qualifying %d | Tyre management %d | Salary $%s/race | Signing fee $%s" % [
 		driver.age,
 		driver.get_overall_rating(),
 		potential_display,
 		GameManager.team.get_driver_required_level(driver),
+		salary_change,
 		driver.seasons_with_team,
 		driver.race_pace,
 		driver.qualifying_pace,
@@ -167,10 +168,13 @@ func _on_hire_pressed(driver: Driver) -> void:
 	pending_driver = driver
 	var accepted := bool((GameManager.team.contract_offers.get(driver.driver_id, {}) as Dictionary).get("accepted", false))
 	if not accepted:
-		var response := GameManager.team.negotiate_driver_contract(driver, driver.salary, driver.signing_fee, driver.contract_length)
+		var existing_offer := GameManager.team.contract_offers.get(driver.driver_id, {}) as Dictionary
+		var salary_offer := int(existing_offer.get("counter_salary", driver.salary))
+		var signing_offer := int(existing_offer.get("counter_signing_fee", driver.signing_fee))
+		var response := GameManager.team.negotiate_driver_contract(driver, salary_offer, signing_offer, driver.contract_length)
 		GameManager.save_game()
 		confirmation_dialog.title = "Contract negotiation"
-		confirmation_dialog.dialog_text = "%s\n\nProposed: $%s/race, $%s signing bonus, %d races." % [response.reason, format_number(GameManager.team.get_effective_salary(driver.salary)), format_number(GameManager.team.get_discounted_cost(driver.signing_fee)), driver.contract_length]
+		confirmation_dialog.dialog_text = "%s\n\nProposed: $%s/race, $%s signing bonus, %d races." % [response.reason, format_number(GameManager.team.get_effective_salary(salary_offer)), format_number(GameManager.team.get_discounted_cost(signing_offer)), driver.contract_length]
 		confirmation_dialog.get_ok_button().text = "Continue"
 		confirmation_dialog.popup_centered()
 		return

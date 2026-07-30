@@ -163,7 +163,11 @@ func complete_qualifying() -> void:
 		"Heat races":
 			qualifying_score += float(driver.racecraft + driver.starts_restarts - 100) * 0.06
 		"Provisionals":
-			qualifying_score += float(GameManager.team.reputation) * 0.015
+			var prestige_bonus := minf(
+				2.0,
+				float(GameManager.team.get_reputation_level()) * 0.10
+			)
+			qualifying_score += prestige_bonus
 	var rival_scores: Array[float] = []
 	var player_entries := maxi(1, (weekend_data.get("entries", []) as Array).size())
 	for rival in RaceManager.get_ai_field_for_race(GameManager.selected_race, player_entries):

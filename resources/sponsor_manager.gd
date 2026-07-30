@@ -111,18 +111,28 @@ static func generate_offers(team: Team) -> Array[Dictionary]:
 	var marketing_level := team.get_department_level("marketing")
 	var active_driver: Driver = team.get_active_driver()
 	var driver_marketability := float(active_driver.marketability) / 500.0 if active_driver != null else 0.10
+	var commercial_appeal := ReputationManager.get_dimension(team, "commercial_appeal")
+	var professionalism := ReputationManager.get_dimension(team, "professionalism")
+	var sporting_credibility := ReputationManager.get_dimension(team, "sporting_credibility")
 	var marketability := clampf(
-		float(team.reputation) / 800.0
+		float(team.get_reputation_level()) / 60.0
 		+ float(team.fans) / 5000.0
 		+ float(marketing_level) * 0.05
-		+ driver_marketability,
+		+ driver_marketability
+		+ float(commercial_appeal - 50) / 500.0,
 		0.0,
 		0.35
 	)
 	for profile in OFFER_PROFILES:
 		var relationship := int(team.sponsor_relationships.get(str(profile.id), 0))
-		var loyalty_multiplier := 1.0 + maxf(0.0, float(relationship)) * 0.003
+		var loyalty_multiplier := (
+			1.0
+			+ maxf(0.0, float(relationship)) * 0.003
+			+ maxf(0.0, float(professionalism - 50)) * 0.001
+		)
 		var base_multiplier := 1.0 + marketability + float(series_index) * 0.035
+		if str(profile.profile) in ["PERFORMANCE", "HIGH PRESSURE"]:
+			base_multiplier += maxf(0.0, float(sporting_credibility - 50)) * 0.002
 		var signing := team.get_effective_sponsor_value(roundi(float(profile.signing) * base_multiplier * loyalty_multiplier))
 		var race_payment := team.get_effective_sponsor_value(roundi(float(profile.race) * base_multiplier * loyalty_multiplier))
 		var objective_bonus := team.get_effective_sponsor_value(roundi(float(profile.bonus) * base_multiplier * loyalty_multiplier))
@@ -151,8 +161,8 @@ static func generate_offers(team: Team) -> Array[Dictionary]:
 			"objective_probability": probability,
 			"interest_reason": str(profile.interest),
 			"relationship": relationship,
-			"renewal": relationship > 0,
-			"required_reputation": maxi(0, series_index * 35 - 25)
+			"renewal": relationship > 0 and professionalism >= 40,
+			"required_reputation": maxi(1, int(SeriesCatalog.get_series(team.current_series_id).get("required_level", 1)))
 		})
 	return offers
 
@@ -168,8 +178,6 @@ static func sign_offer(team: Team, offer_index: int) -> Dictionary:
 	if offer_index < 0 or offer_index >= team.sponsor_offers.size():
 		return {}
 	var offer := (team.sponsor_offers[offer_index] as Dictionary).duplicate(true)
-	if team.reputation < int(offer.required_reputation):
-		return {}
 	var remaining_races := maxi(1, _season_length(team) - team.get_completed_races().size())
 	offer["contract_length"] = remaining_races
 	offer["races_remaining"] = remaining_races
@@ -223,6 +231,7 @@ static func process_race_result(team: Team, result: RaceResult) -> Dictionary:
 			outcome.objective_completed = true
 			outcome.objective_bonus = int(contract.objective_bonus)
 			adjust_relationship(team, str(contract.sponsor_id), 12)
+			ReputationManager.apply_sponsor_outcome(team, true, str(contract.sponsor_name))
 	contract.races_remaining = maxi(0, int(contract.races_remaining) - 1)
 	team.active_sponsor_contract = contract
 	if int(contract.races_remaining) == 0:
@@ -230,7 +239,7 @@ static func process_race_result(team: Team, result: RaceResult) -> Dictionary:
 			outcome.failure_penalty = int(contract.failure_penalty)
 			contract.objective_failed = true
 			adjust_relationship(team, str(contract.sponsor_id), -10)
-			team.reputation = maxi(0, team.reputation - 5)
+			ReputationManager.apply_sponsor_outcome(team, false, str(contract.sponsor_name))
 		team.active_sponsor_contract = {}
 	_sync_legacy_fields(team)
 	return outcome

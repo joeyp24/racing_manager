@@ -25,6 +25,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_sponsorship_system.gd"),
     ),
     (
+        "reputation system tests",
+        ("--headless", "--path", ".", "--script", "tests/test_reputation_system.gd"),
+    ),
+    (
         "offseason and driver transfer tests",
         ("--headless", "--path", ".", "--script", "tests/test_offseason.gd"),
     ),

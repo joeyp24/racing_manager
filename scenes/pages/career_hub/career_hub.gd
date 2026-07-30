@@ -229,7 +229,26 @@ func _render_operations(state: Dictionary) -> void:
 			sponsor_actions.append({"label":"Decline activation %d" % (index + 1), "call":_decline_activation.bind(index)})
 	_add_section("SPONSOR ACTIVATION", "\n".join(sponsor_lines) if not sponsor_lines.is_empty() else "Strong race results generate appearances, hospitality and sponsor-specific activation opportunities.", sponsor_actions)
 	var merch := state.merchandise as Dictionary
-	_add_section("MERCHANDISE & FAN GROWTH", "%d fans · Popularity %d · Stock %d · $%d last revenue\nRegional fanbases grow through results and international programmes." % [GameManager.team.fans, int(merch.popularity), int(merch.stock), int(merch.last_revenue)], [{"label":"Order 50 units · $500", "call":_order_merch.bind(50)}, {"label":"Order 200 units · $2,000", "call":_order_merch.bind(200)}])
+	var weekly_demand := CareerExpansionManager.calculate_weekly_merchandise_demand(GameManager.team)
+	_add_section(
+		"MERCHANDISE & FAN GROWTH",
+		(
+			"%d fans · Popularity %d · Stock %d\n"
+			+ "Projected weekly demand %d units · Last week %d units / $%d\n"
+			+ "Higher prestige, commercial appeal and momentum create more weekly sales."
+		) % [
+			GameManager.team.fans,
+			int(merch.popularity),
+			int(merch.stock),
+			weekly_demand,
+			int(merch.get("last_weekly_units", 0)),
+			int(merch.get("last_weekly_revenue", 0))
+		],
+		[
+			{"label":"Order 50 units · $500", "call":_order_merch.bind(50)},
+			{"label":"Order 200 units · $2,000", "call":_order_merch.bind(200)}
+		]
+	)
 	var forecast := CareerExpansionManager.update_finance_forecast(GameManager.team)
 	_add_section("FINANCIAL FORECASTING", "Cash $%d · Weekly income $%d · Weekly costs $%d · Net %s$%d\nSeason-end forecast $%d · Safe upgrade budget $%d%s" % [int(forecast.cash), int(forecast.weekly_income), int(forecast.weekly_costs), "+" if int(forecast.weekly_net) >= 0 else "", int(forecast.weekly_net), int(forecast.season_end_cash), int(forecast.upgrade_budget), "\n⚠ Payroll exceeds sustainable income." if bool(forecast.payroll_warning) else ""])
 
