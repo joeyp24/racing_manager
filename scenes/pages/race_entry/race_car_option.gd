@@ -55,11 +55,11 @@ func update_display() -> void:
 	)
 
 	car_stats_label.text = (
-		"Performance: %d\n"
+		"Performance points: %d\n"
 		+ "Condition: %d%%\n"
 		+ "Mileage: %s"
 	) % [
-		car.get_total_performance(),
+		car.get_total_performance(GameManager.team),
 		car.condition,
 		format_number(car.mileage)
 	]

@@ -521,7 +521,7 @@ func _populate_decisive_factors(result: RaceResult, simulation: RaceSimulation =
 		+ (float(result.player_driver.aggression) - 50.0) * 0.03
 	)
 	result.car_factor = (
-		(float(result.player_car.get_total_performance()) - 50.0) * 0.55
+		(float(result.player_car.get_total_performance(GameManager.team)) - 50.0) * 0.55
 		+ (float(result.player_car.condition) - 75.0) * 0.08
 	)
 	result.setup_factor = result.setup_bonus
@@ -553,20 +553,8 @@ func calculate_player_score(
 	selected_race: Race = null
 ) -> float:
 	var strategy := get_strategy(selected_strategy)
-	var car_performance := float(player_car.get_total_performance())
+	var car_performance := float(player_car.get_total_performance(GameManager.team))
 	var team := GameManager.team
-	if team != null:
-		var part_bonus := 0
-		var body_bonus := 0
-		for part in player_car.installed_parts:
-			if part is CarPart:
-				part_bonus += part.get_effective_performance_bonus()
-				if part.part_type == "Body":
-					body_bonus += part.get_effective_performance_bonus()
-		car_performance += float(part_bonus) * team.get_department_bonus("engineering") / 100.0
-		car_performance += float(body_bonus) * team.get_department_bonus("wind_tunnel") / 100.0
-		car_performance *= 1.0 + team.get_department_bonus("cheating") / 100.0
-		car_performance *= 1.0 + (team.get_crew_chief_performance_boost() + team.get_engineering_performance_boost()) / 100.0
 	# A stock car should run in the midfield; several meaningful part upgrades
 	# are required before its raw pace matches the established front-runners.
 	var performance_score: float = car_performance * 0.55

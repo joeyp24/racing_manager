@@ -2,7 +2,7 @@ extends RefCounted
 class_name PartCatalog
 
 
-static func create_standard_part(part_type: String) -> CarPart:
+static func create_standard_part(part_type: String, base_performance_points: int = 8) -> CarPart:
 	var effects: Dictionary = {
 		"Engine": "Power",
 		"Suspension": "Handling",
@@ -15,6 +15,7 @@ static func create_standard_part(part_type: String) -> CarPart:
 	part.part_type = part_type
 	part.part_name = "Factory %s" % part_type
 	part.tier = "Standard"
+	part.base_performance_points = base_performance_points
 	part.effect_name = str(effects.get(part_type, "Performance"))
 	return part
 
@@ -42,7 +43,7 @@ static func create_store_inventory() -> Array[CarPart]:
 		part.tier = "Club" if int(definition["bonus"]) < 7 else "Pro"
 		part.effect_name = str(definition["effect"])
 		part.effect_value = int(definition["value"])
-		part.performance_bonus = int(definition["bonus"])
+		part.base_performance_points = 8 + int(definition["bonus"])
 		part.purchase_price = int(definition["price"])
 		part.sale_price = roundi(part.purchase_price * 0.6)
 		inventory.append(part)
@@ -64,8 +65,8 @@ static func create_manufactured_part(part_type: String, engineer: StaffMember) -
 	part.part_name = "%s Prototype" % engineer.staff_name.split(" ")[0]
 	part.tier = "Pro" if engineer.rating >= 80 else "Club"
 	part.effect_value = 5 + roundi(rating_factor * 13.0)
-	part.performance_bonus = 2 + roundi(rating_factor * 8.0) + specialty_bonus
-	part.purchase_price = get_manufactured_value(part.performance_bonus)
+	part.base_performance_points = 10 + roundi(rating_factor * 8.0) + specialty_bonus
+	part.purchase_price = get_manufactured_value(part.base_performance_points - 8)
 	part.sale_price = roundi(float(part.purchase_price) * 0.6)
 	part.condition = 70 + roundi(rating_factor * 30.0)
 	part.manufactured_by = engineer.staff_name

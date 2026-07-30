@@ -6,6 +6,7 @@ const REPAIR_VALUE_PERCENTAGE_PER_POINT: float = 0.001
 
 @onready var car_name_label: Label = %car_name_label
 @onready var details_label: Label = %details_label
+@onready var performance_points_label: Label = %performance_points_label
 @onready var parts_container: VBoxContainer = %parts_container
 @onready var inventory_title_label: Label = %inventory_title_label
 @onready var inventory_container: VBoxContainer = %inventory_container
@@ -38,7 +39,8 @@ func display_car() -> void:
 	if car == null:
 		return
 	car_name_label.text = car.name
-	details_label.text = "%d %s %s  •  Performance: %d (base %d)  •  Condition: %d%%\nMileage: %s  •  Value: $%s" % [car.year, car.manufacturer, car.model, car.get_total_performance(), car.performance, car.condition, format_number(car.mileage), format_number(car.value)]
+	performance_points_label.text = "%d PERFORMANCE POINTS" % car.get_total_performance(GameManager.team)
+	details_label.text = "%d %s %s  •  Parts base: %d PP  •  Condition: %d%%\nMileage: %s  •  Value: $%s" % [car.year, car.manufacturer, car.model, car.get_base_performance_points(), car.condition, format_number(car.mileage), format_number(car.value)]
 	rename_line_edit.text = car.name
 	sell_button.text = "Sell Car ($%s)" % format_number(car.value)
 	update_repair_display(car)
@@ -52,8 +54,9 @@ func refresh_parts() -> void:
 	var car: Car = GameManager.selected_car
 	for part_type in CarPart.PART_TYPES:
 		var part: CarPart = car.get_part(part_type)
+		var breakdown := GameManager.team.get_part_performance_breakdown(part)
 		var button := Button.new()
-		button.text = "%s\n%s" % [part_type, part.get_summary()]
+		button.text = "%s   %d PP\n%s\n%s" % [part_type, int(breakdown.total), part.get_summary(), format_performance_breakdown(breakdown)]
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.tooltip_text = "Choose a replacement %s" % part_type.to_lower()
 		button.pressed.connect(show_part_inventory.bind(part_type))
@@ -74,7 +77,8 @@ func show_part_inventory(part_type: String) -> void:
 	for part in available_parts:
 		var row := HBoxContainer.new()
 		var label := Label.new()
-		label.text = "%s\nEffective performance +%d  •  Sell $%s" % [part.get_summary(), part.get_effective_performance_bonus(), format_number(part.sale_price)]
+		var breakdown := GameManager.team.get_part_performance_breakdown(part)
+		label.text = "%d PP  •  Base %d PP\n%s\n%s  •  Sell $%s" % [int(breakdown.total), int(breakdown.base), part.get_summary(), format_performance_breakdown(breakdown), format_number(part.sale_price)]
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var install_button := Button.new()
 		install_button.text = "Install"
@@ -180,6 +184,14 @@ func return_to_garage() -> void:
 func clear_container(container: Node) -> void:
 	for child in container.get_children():
 		child.queue_free()
+
+
+func format_performance_breakdown(breakdown: Dictionary) -> String:
+	var details: Array[String] = ["Base %d PP" % int(breakdown.get("base", 0))]
+	for modifier in breakdown.get("modifiers", []):
+		var points := int(modifier.get("points", 0))
+		details.append("%s %s%d PP%s" % [str(modifier.get("label", "Modifier")), "+" if points >= 0 else "", points, " (%s)" % modifier.detail if modifier.has("detail") else ""])
+	return "  •  ".join(details)
 
 
 func format_number(number: int) -> String:
