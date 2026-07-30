@@ -12,4 +12,4 @@ performance = 60
 [resource]
 script = ExtResource("1")
 save_format_version = 7
-cars = Array([SubResource("Car_1"), null, null, null, null, null])
+cars = [SubResource("Car_1"), null, null, null, null, null]
