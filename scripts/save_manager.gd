@@ -107,6 +107,8 @@ static func _repair_and_migrate(team: Team) -> void:
 		team.current_series_id = "local_short_track"
 	if team.save_format_version < 8:
 		_migrate_performance_points(team)
+	if team.save_format_version < 13:
+		ReputationManager.migrate_legacy_xp(team)
 	team.ensure_series_progress(team.current_series_id)
 	team.load_series_progress(team.current_series_id)
 	team.ensure_world_series_data()
@@ -123,6 +125,7 @@ static func _repair_and_migrate(team: Team) -> void:
 	team.ensure_race_week_progression()
 	CareerExpansionManager.ensure_state(team)
 	SponsorManager.ensure_state(team)
+	ReputationManager.ensure_state(team)
 	team.save_format_version = Team.CURRENT_SAVE_FORMAT_VERSION
 
 

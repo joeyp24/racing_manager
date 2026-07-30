@@ -260,17 +260,25 @@ def test_team_sizes_vary_and_scouting_covers_every_series():
     assert 'row.get("driver_id"' in scouting
 
 
-def test_reputation_is_xp_and_gates_series_and_driver_access():
+def test_reputation_is_progressive_prestige_with_soft_driver_leverage():
     team = (ROOT / "resources/team.gd").read_text()
     series = (ROOT / "resources/series_catalog.gd").read_text()
     race_manager = (ROOT / "autoload/race_manager.gd").read_text()
+    reputation = (ROOT / "resources/reputation_manager.gd").read_text()
     assert "const XP_PER_LEVEL" in team
     assert "func get_reputation_level()" in team
+    assert "func get_level_xp_span()" in team
     assert "get_reputation_level() >= get_required_level_for_series(series_id)" in team
     assert "func get_driver_required_level(driver: Driver)" in team
     assert "func can_negotiate_with_driver(driver: Driver)" in team
+    assert "func get_driver_negotiation_terms(driver: Driver)" in team
     assert series.count('"required_level":') == 8
-    assert "add_reputation_xp(result.reputation_earned)" in race_manager
+    assert "ReputationManager.apply_race_result" in race_manager
+    assert "LEVEL_THRESHOLDS" in reputation
+    assert "expectation_delta" in reputation
+    weekend = (ROOT / "scenes/pages/race_weekend/race_weekend.gd").read_text()
+    assert "var prestige_bonus := minf(" in weekend
+    assert "float(GameManager.team.reputation) * 0.015" not in weekend
 
 
 def test_weekly_scouting_hours_power_reports_and_recruiting():

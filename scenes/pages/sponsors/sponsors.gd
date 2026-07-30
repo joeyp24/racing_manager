@@ -132,9 +132,10 @@ func _create_offer_card(index: int, offer: Dictionary, team: Team) -> void:
 		% [renewal_text, _relationship_label(int(offer.relationship))]
 	))
 	sign_button.text = "SIGN PARTNERSHIP"
-	sign_button.disabled = team.reputation < int(offer.required_reputation)
-	if sign_button.disabled:
-		sign_button.text = "REQUIRES %d REPUTATION" % int(offer.required_reputation)
+	sign_button.tooltip_text = (
+		"Recommended prestige level %d. Lower standing changes the offer value, but does not block negotiation."
+		% int(offer.required_reputation)
+	)
 	sign_button.pressed.connect(_sign_offer.bind(index))
 	action_column.add_child(sign_button)
 

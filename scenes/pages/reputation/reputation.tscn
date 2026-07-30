@@ -1,0 +1,322 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/pages/reputation/reputation.gd" id="1"]
+[ext_resource type="Script" path="res://scenes/pages/reputation/reputation_trend.gd" id="2"]
+
+[node name="reputation" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Margin" type="MarginContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="Scroll/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"PageTitle"
+text = "Team Standing"
+
+[node name="Subtitle" type="Label" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Prestige unlocks opportunity. Momentum and public perception respond to how the organization races and behaves."
+
+[node name="Hero" type="HBoxContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Prestige" type="PanelContainer" parent="Scroll/Margin/Content/Hero"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Hero/Prestige"]
+layout_mode = 2
+
+[node name="tier_label" type="Label" parent="Scroll/Margin/Content/Hero/Prestige/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"StatValue"
+
+[node name="tier_description" type="Label" parent="Scroll/Margin/Content/Hero/Prestige/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="prestige_progress" type="ProgressBar" parent="Scroll/Margin/Content/Hero/Prestige/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+show_percentage = false
+
+[node name="prestige_detail" type="Label" parent="Scroll/Margin/Content/Hero/Prestige/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+
+[node name="Momentum" type="PanelContainer" parent="Scroll/Margin/Content/Hero"]
+custom_minimum_size = Vector2(290, 0)
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Hero/Momentum"]
+layout_mode = 2
+
+[node name="Caption" type="Label" parent="Scroll/Margin/Content/Hero/Momentum/Stack"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "PADDOCK MOMENTUM"
+
+[node name="momentum_label" type="Label" parent="Scroll/Margin/Content/Hero/Momentum/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"StatValue"
+
+[node name="momentum_detail" type="Label" parent="Scroll/Margin/Content/Hero/Momentum/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="DimensionsTitle" type="Label" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Public Perception"
+
+[node name="Dimensions" type="HBoxContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Sporting" type="PanelContainer" parent="Scroll/Margin/Content/Dimensions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Dimensions/Sporting"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Dimensions/Sporting/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Sporting Credibility"
+
+[node name="sporting_bar" type="ProgressBar" parent="Scroll/Margin/Content/Dimensions/Sporting/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 100.0
+
+[node name="sporting_detail" type="Label" parent="Scroll/Margin/Content/Dimensions/Sporting/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="Professionalism" type="PanelContainer" parent="Scroll/Margin/Content/Dimensions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Dimensions/Professionalism"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Dimensions/Professionalism/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Professionalism"
+
+[node name="professionalism_bar" type="ProgressBar" parent="Scroll/Margin/Content/Dimensions/Professionalism/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 100.0
+
+[node name="professionalism_detail" type="Label" parent="Scroll/Margin/Content/Dimensions/Professionalism/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="Commercial" type="PanelContainer" parent="Scroll/Margin/Content/Dimensions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Dimensions/Commercial"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Dimensions/Commercial/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Commercial Appeal"
+
+[node name="commercial_bar" type="ProgressBar" parent="Scroll/Margin/Content/Dimensions/Commercial/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 100.0
+
+[node name="commercial_detail" type="Label" parent="Scroll/Margin/Content/Dimensions/Commercial/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="SeasonTrend" type="PanelContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/SeasonTrend"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/SeasonTrend/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Season Standing Trend"
+
+[node name="Legend" type="HBoxContainer" parent="Scroll/Margin/Content/SeasonTrend/Stack"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Sporting" type="Label" parent="Scroll/Margin/Content/SeasonTrend/Stack/Legend"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25098, 0.65098, 1, 1)
+text = "— Sporting"
+
+[node name="Professionalism" type="Label" parent="Scroll/Margin/Content/SeasonTrend/Stack/Legend"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25098, 0.85098, 0.521569, 1)
+text = "— Professionalism"
+
+[node name="Commercial" type="Label" parent="Scroll/Margin/Content/SeasonTrend/Stack/Legend"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.658824, 0.2, 1)
+text = "— Commercial"
+
+[node name="season_trend" type="Control" parent="Scroll/Margin/Content/SeasonTrend/Stack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("2")
+
+[node name="Merchandise" type="PanelContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Merchandise"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Merchandise/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Weekly Merchandise Demand"
+
+[node name="merchandise_label" type="Label" parent="Scroll/Margin/Content/Merchandise/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="Columns" type="HBoxContainer" parent="Scroll/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="History" type="PanelContainer" parent="Scroll/Margin/Content/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Columns/History"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Scroll/Margin/Content/Columns/History/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Recent Standing Changes"
+
+[node name="history_label" type="Label" parent="Scroll/Margin/Content/Columns/History/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="Outlook" type="PanelContainer" parent="Scroll/Margin/Content/Columns"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="Stack" type="VBoxContainer" parent="Scroll/Margin/Content/Columns/Outlook"]
+layout_mode = 2
+
+[node name="UnlockTitle" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Next Prestige Milestone"
+
+[node name="unlock_label" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="OrganizationsTitle" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Organizations Showing Interest"
+
+[node name="organizations_label" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="RelationshipsTitle" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Sponsor Relationships"
+
+[node name="relationships_label" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="MarketsTitle" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Strongest Markets"
+
+[node name="markets_label" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="AchievementsTitle" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Notable Achievements"
+
+[node name="achievements_label" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="RisksTitle" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Active Risks"
+
+[node name="risks_label" type="Label" parent="Scroll/Margin/Content/Columns/Outlook/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 2

@@ -424,6 +424,11 @@ func finalize_live_race(
 	result.strategy_variance_modifier = float(strategy.get("variance_modifier", 1.0))
 	result.strategy_wear_modifier = float(strategy.get("wear_modifier", 1.0))
 	result.starting_position = int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1))
+	result.expected_finishing_position = clampi(
+		result.starting_position - roundi(float(weekend_data.get("race_modifier", 0.0)) / 2.0),
+		1,
+		get_maximum_field_size(selected_race.series_id)
+	)
 	result.practice_focus_name = str(weekend_data.get("practice_focus_name", "None"))
 	result.qualifying_approach_name = str(weekend_data.get("qualifying_approach_name", "Balanced lap"))
 	result.qualifying_score = float(weekend_data.get("qualifying_score", 0.0))
@@ -531,6 +536,11 @@ func run_race(
 	result.strategy_variance_modifier = float(strategy.get("variance_modifier", 1.0))
 	result.strategy_wear_modifier = float(strategy.get("wear_modifier", 1.0))
 	result.starting_position = int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1))
+	result.expected_finishing_position = clampi(
+		result.starting_position - roundi(float(weekend_data.get("race_modifier", 0.0)) / 2.0),
+		1,
+		get_maximum_field_size(selected_race.series_id)
+	)
 	result.practice_focus_name = str(weekend_data.get("practice_focus_name", "None"))
 	result.qualifying_approach_name = str(weekend_data.get("qualifying_approach_name", "Balanced lap"))
 	result.qualifying_score = float(weekend_data.get("qualifying_score", 0.0))
@@ -1001,19 +1011,7 @@ func apply_department_race_effects(result: RaceResult) -> void:
 
 
 func apply_reputation_reward(result: RaceResult) -> void:
-	var position := result.finishing_position
-	if position == 1:
-		result.reputation_earned = 25
-	elif position <= 5:
-		result.reputation_earned = 15
-	elif position <= 10:
-		result.reputation_earned = 10
-	elif position <= 15:
-		result.reputation_earned = 5
-	elif position > 0:
-		result.reputation_earned = 2
-
-	GameManager.team.add_reputation_xp(result.reputation_earned)
+	ReputationManager.apply_race_result(GameManager.team, result)
 
 
 func apply_sponsor_reward(result: RaceResult) -> void:
@@ -1512,8 +1510,7 @@ func finish_season_if_complete() -> void:
 	GameManager.team.set_series_season_complete(GameManager.team.current_series_id, true)
 	GameManager.team.last_season_position = player_position
 	GameManager.team.last_season_prize = prize_money
-	if player_position == 1:
-		GameManager.team.add_reputation_xp(100)
+	ReputationManager.apply_season_result(GameManager.team, player_position)
 	GameManager.add_team_money(prize_money)
 	GameManager.team.record_finance("Championship", prize_money, "Season prize")
 	_call_career_expansion_manager(&"process_season_end", [GameManager.team, player_position])
@@ -1577,6 +1574,7 @@ func complete_offseason() -> bool:
 	GameManager.team.driver_training_programs.clear()
 	GameManager.team.contract_offers.clear()
 	var expansion := _call_career_expansion_manager(&"ensure_state", [team]) as Dictionary
+	_call_career_expansion_manager(&"start_new_season", [team])
 	expansion.preseason = {"completed":false, "runs":[], "reliability_known":false}
 	for contracted_driver in GameManager.team.get_contracted_drivers():
 		contracted_driver.series_id = team.current_series_id

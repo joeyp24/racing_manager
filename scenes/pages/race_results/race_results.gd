@@ -164,7 +164,8 @@ func create_financial_summary(result: RaceResult) -> String:
 		+ "Net Earnings: %s\n\n"
 		+ "Championship Points: +%d\n"
 		+ "Season Total: %d\n"
-		+ "Reputation: +%d\n"
+		+ "Prestige XP: +%d\n"
+		+ "Team Standing: Sporting %+d  |  Professionalism %+d  |  Commercial %+d\n"
 		+ "Fans: +%d%s"
 	) % [
 		format_number(result.entry_fee),
@@ -181,6 +182,9 @@ func create_financial_summary(result: RaceResult) -> String:
 		result.championship_points_earned,
 		result.total_championship_points,
 		result.reputation_earned,
+		int(result.reputation_changes.get("sporting_credibility", 0)),
+		int(result.reputation_changes.get("professionalism", 0)),
+		int(result.reputation_changes.get("commercial_appeal", 0)),
 		result.fans_earned,
 		("\n%s objective completed!" % result.sponsor_name if result.sponsor_objective_completed else "")
 		+ ("\nContracts expired: %s" % ", ".join(result.expired_staff_names) if not result.expired_staff_names.is_empty() else "")
