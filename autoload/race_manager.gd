@@ -1169,8 +1169,13 @@ func simulate_other_series_through_round(target_round: int) -> void:
 
 
 func _simulate_world_series_race(series_id: String, race: Race, series_data: Dictionary) -> void:
+	if race == null:
+		push_error("Cannot simulate a world series race without race data.")
+		return
+
 	var field: Array[Dictionary] = []
-	for driver in AIRosterCatalog.get_roster(series_id):
+	var roster := AIRosterCatalog.get_roster(series_id)
+	for driver in roster:
 		field.append({
 			"driver_id": str(driver.driver_id),
 			"driver_name": str(driver.driver_name),
@@ -1178,9 +1183,12 @@ func _simulate_world_series_race(series_id: String, race: Race, series_data: Dic
 			"score": calculate_ai_score(race, driver)
 		})
 	field.sort_custom(func(first: Dictionary, second: Dictionary) -> bool: return float(first.score) > float(second.score))
-	var standings: Array[Dictionary] = series_data.get("standings", [])
+	# Values read from dictionaries (and therefore from saved games) are untyped
+	# Arrays. Assigning one directly to Array[Dictionary] raises a runtime type
+	# error even when every element is a Dictionary, so copy and validate it.
+	var standings := _as_dictionary_array(series_data.get("standings", []))
 	if standings.is_empty():
-		for driver in AIRosterCatalog.get_roster(series_id):
+		for driver in roster:
 			standings.append({"driver_id":str(driver.driver_id), "driver_name":str(driver.driver_name), "team_name":str(driver.team_name), "points":0, "wins":0, "podiums":0, "starts":0, "best_finish":999, "average_finish_total":0})
 	var result_rows: Array[Dictionary] = []
 	for index in field.size():
@@ -1204,6 +1212,16 @@ func _simulate_world_series_race(series_id: String, race: Race, series_data: Dic
 	results.append({"race_id":race.race_id, "race_name":race.race_name, "track_name":race.track_name, "round":race.season_round, "rows":result_rows})
 	series_data["results"] = results
 	series_data["standings"] = standings
+
+
+func _as_dictionary_array(value: Variant) -> Array[Dictionary]:
+	var dictionaries: Array[Dictionary] = []
+	if value is not Array:
+		return dictionaries
+	for item in value:
+		if item is Dictionary:
+			dictionaries.append(item)
+	return dictionaries
 
 
 func finish_season_if_complete() -> void:
