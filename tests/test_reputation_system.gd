@@ -81,7 +81,7 @@ func _test_driver_reputation_is_negotiation_leverage() -> void:
 	driver.salary = 1000
 	driver.signing_fee = 5000
 	driver.initialize_detailed_ratings(88, 88, 86, 90)
-	team.recruiting_progress[driver.driver_id] = 50
+	assert(not team.recruiting_progress.has(driver.driver_id))
 	assert(team.can_negotiate_with_driver(driver))
 	var terms := team.get_driver_negotiation_terms(driver)
 	assert(int(terms.level_gap) > 0)

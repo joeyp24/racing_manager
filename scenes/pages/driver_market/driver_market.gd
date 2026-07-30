@@ -115,7 +115,6 @@ func create_candidate_row(driver: Driver) -> void:
 	hire_button.disabled = (
 		is_contracted
 		or (has_accepted_offer and not GameManager.team.can_hire_driver(driver))
-		or (not has_accepted_offer and not GameManager.team.can_negotiate_with_driver(driver))
 		or GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee)
 	)
 	if hire_button.disabled:
@@ -123,10 +122,10 @@ func create_candidate_row(driver: Driver) -> void:
 			hire_button.tooltip_text = "Disabled: this driver is already under contract."
 		elif GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee):
 			hire_button.tooltip_text = "Disabled: you need $%s more for the signing fee." % format_number(GameManager.team.get_discounted_cost(driver.signing_fee) - GameManager.team.money)
-		elif int(GameManager.team.recruiting_progress.get(driver.driver_id, 0)) < 50:
-			hire_button.tooltip_text = "Recruit this driver to at least 50%% interest in Scouting."
 		else:
 			hire_button.tooltip_text = "Disabled: hiring is closed or the driver roster is full."
+	elif int(GameManager.team.recruiting_progress.get(driver.driver_id, 0)) < 50:
+		hire_button.tooltip_text = "Scouting is optional: it reveals more information and can improve negotiating interest."
 	hire_button.pressed.connect(_on_hire_pressed.bind(driver))
 
 	row.add_child(details)

@@ -961,7 +961,10 @@ func get_driver_required_level(driver: Driver) -> int:
 
 
 func can_negotiate_with_driver(driver: Driver) -> bool:
-	return driver != null and int(recruiting_progress.get(driver.driver_id, 0)) >= 50
+	# A new team must be able to open a conversation immediately. Scouting still
+	# improves negotiating interest and reveals information, but it is not a
+	# hard gate that can prevent a career from starting.
+	return driver != null
 
 
 func get_driver_negotiation_terms(driver: Driver) -> Dictionary:
@@ -981,7 +984,7 @@ func get_driver_negotiation_terms(driver: Driver) -> Dictionary:
 
 func negotiate_driver_contract(driver: Driver, salary_offer: int, signing_offer: int, length: int) -> Dictionary:
 	if not can_negotiate_with_driver(driver):
-		return {"accepted": false, "reason": "Recruit this driver to 50 interest before negotiating."}
+		return {"accepted": false, "reason": "Select a valid driver before negotiating."}
 	var terms := get_driver_negotiation_terms(driver)
 	var requested_salary := roundi(float(driver.salary) * float(terms.salary_multiplier))
 	var requested_signing := roundi(float(driver.signing_fee) * float(terms.signing_multiplier))
