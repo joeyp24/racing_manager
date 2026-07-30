@@ -149,6 +149,7 @@ func get_calendar_for_series(series_id: String) -> Array[Race]:
 		race.series_id = series_id
 		race.race_id = str(event.race_id); race.race_name = str(event.race_name)
 		race.track_name = str(event.track_name); race.race_date = str(event.race_date)
+		race.schedule_day = int(event.schedule_day)
 		race.travel_region = str(event.travel_region); race.track_type = str(event.track_type)
 		race.season_round = int(event.season_round)
 		var multiplier := float(series.weekend_cost_multiplier)
@@ -1147,16 +1148,16 @@ func complete_race(
 	):
 		GameManager.team.complete_race_for_series(completed_race.series_id, completed_race.race_id)
 	GameManager.team.save_series_progress()
-	simulate_other_series_through_round(GameManager.team.get_completed_races().size())
 	GameManager.team.week_advance_required = true
 
 	GameManager.team.emit_changed()
 	finish_season_if_complete()
 
 
-func simulate_other_series_through_round(target_round: int) -> void:
+func simulate_other_series_through_date(target_day: int) -> Array[String]:
+	var summaries: Array[String] = []
 	if GameManager.team == null:
-		return
+		return summaries
 	GameManager.team.ensure_world_series_data()
 	for series in SeriesCatalog.SERIES:
 		var series_id := str(series.id)
@@ -1164,13 +1165,19 @@ func simulate_other_series_through_round(target_round: int) -> void:
 			continue
 		var calendar := get_calendar_for_series(series_id)
 		var series_data := GameManager.team.get_world_series_data(series_id)
+		if int(series_data.get("season_number", 0)) != GameManager.team.season_number:
+			series_data = {"completed_rounds":0, "results":[], "standings":[], "season_number":GameManager.team.season_number}
 		var completed_rounds := int(series_data.get("completed_rounds", 0))
-		var last_round := mini(target_round, calendar.size())
-		while completed_rounds < last_round:
+		var simulated_count := 0
+		while completed_rounds < calendar.size() and calendar[completed_rounds].schedule_day <= target_day:
 			_simulate_world_series_race(series_id, calendar[completed_rounds], series_data)
 			completed_rounds += 1
+			simulated_count += 1
 			series_data["completed_rounds"] = completed_rounds
 		GameManager.team.set_world_series_data(series_id, series_data)
+		if simulated_count > 0:
+			summaries.append("%s: %d race%s" % [str(series.name), simulated_count, "" if simulated_count == 1 else "s"])
+	return summaries
 
 
 func _simulate_world_series_race(series_id: String, race: Race, series_data: Dictionary) -> void:
@@ -1291,6 +1298,7 @@ func start_new_season() -> bool:
 	GameManager.team.championship_points = 0
 	GameManager.team.driver_hired_for_season = false
 	GameManager.team.current_race_week = 1
+	GameManager.team.current_season_day = calendar[0].schedule_day if not calendar.is_empty() else CalendarCatalog.SEASON_START_DAY
 	GameManager.team.week_advance_required = false
 	GameManager.team.engineering_projects.clear()
 	for contracted_driver in GameManager.team.get_contracted_drivers():

@@ -26,10 +26,25 @@ def test_race_week_progression_is_dashboard_owned():
     dashboard = (ROOT / "scenes/pages/dashboard/dashboard.gd").read_text()
     race_manager = (ROOT / "autoload/race_manager.gd").read_text()
     assert "@export var current_race_week" in team
-    assert "func advance_to_next_race_week()" in team
+    assert "func advance_to_next_race_week(" in team
     assert "GameManager.team.week_advance_required = true" in race_manager
-    assert "ADVANCE TO NEXT RACE WEEK" in dashboard
-    assert "advance_to_next_race_week()" in dashboard
+    assert "ADVANCE TO NEXT RACE" in dashboard
+    assert "advance_to_next_race_week(next_day)" in dashboard
+
+
+def test_yearly_calendar_advances_by_date_and_catches_up_world_series():
+    calendar = (ROOT / "resources/calendar_catalog.gd").read_text()
+    race = (ROOT / "resources/races/race.gd").read_text()
+    team = (ROOT / "resources/team.gd").read_text()
+    manager = (ROOT / "autoload/race_manager.gd").read_text()
+    dashboard = (ROOT / "scenes/pages/dashboard/dashboard.gd").read_text()
+    assert "SEASON_START_DAY := 32" in calendar
+    assert "SEASON_END_DAY := 334" in calendar
+    assert '"schedule_day":schedule_day' in calendar
+    assert "@export var schedule_day" in race
+    assert "@export var current_season_day" in team
+    assert "while completed_rounds < calendar.size() and calendar[completed_rounds].schedule_day <= target_day" in manager
+    assert "simulate_other_series_through_date(next_day)" in dashboard
 
 
 def test_engineering_and_roster_have_dedicated_pages():
@@ -113,7 +128,7 @@ def test_other_series_are_simulated_saved_and_browsable():
     home = (ROOT / "scenes/home/home.gd").read_text()
     assert "@export var world_series_data" in team
     assert "func ensure_world_series_data()" in team
-    assert "simulate_other_series_through_round" in manager
+    assert "simulate_other_series_through_date" in manager
     assert 'var standings := _as_dictionary_array(series_data.get("standings", []))' in manager
     assert "func _as_dictionary_array(value: Variant) -> Array[Dictionary]:" in manager
     assert "calculate_championship_points(series_id" in manager
