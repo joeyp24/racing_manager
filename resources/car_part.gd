@@ -28,6 +28,11 @@ var part_type: String = "Engine"
 @export_range(-30, 30) var reliability_modifier: int = 0
 @export_range(-20, 20) var tyre_wear_modifier: int = 0
 @export_range(-20, 20) var fuel_efficiency_modifier: int = 0
+@export_range(0, 100) var manufacturing_quality: int = 65
+@export var serial_number: String = ""
+@export var is_prototype: bool = false
+@export var has_production_defect: bool = false
+@export var service_life_races: int = 0
 
 
 func get_effect_text() -> String:

@@ -28,7 +28,7 @@ const PRACTICE_ADJUSTMENTS: Array[Dictionary] = [
 	{"axis": "brake_bias", "delta": -1, "name": "Move brake bias rearward", "description": "Helps rotation but makes braking less forgiving."}
 ]
 
-const PRACTICE_COMPOUNDS: Array[String] = ["Soft", "Medium", "Hard"]
+const PRACTICE_COMPOUNDS: Array[String] = ["Soft", "Medium", "Hard", "Intermediate", "Wet"]
 
 const DECISIONS: Array[Dictionary] = [
 	{"title": "CAUTION — Pit window opens", "text": "The field has slowed under caution. Pit now for fresh tyres or protect track position?", "choices": ["Pit now", "Stay out"]},
@@ -56,8 +56,10 @@ func show_practice() -> void:
 	_ensure_practice_data()
 	var run_number := (weekend_data["practice_runs"] as Array).size() + 1
 	phase_label.text = "PRACTICE"
+	progress_label.text = "Race weekend · Practice run %d of %d · %s forecast" % [run_number, PracticeRunSimulator.RUN_LIMIT, (weekend_data.forecast as Dictionary).weather]
 	progress_label.text = "Race weekend • Practice run %d of %d" % [run_number, PracticeRunSimulator.RUN_LIMIT]
 	briefing_label.text = "Use three timed runs to find the setup window. Feedback becomes clearer with each run, but the driver can still misread the car."
+	progress_label.text = "Race weekend · Practice run %d of %d · %s forecast" % [run_number, PracticeRunSimulator.RUN_LIMIT, (weekend_data.forecast as Dictionary).weather]
 	choice_label.text = "Setup adjustment"
 	fill_selector(choice_selector, PRACTICE_ADJUSTMENTS, "name")
 	secondary_label.text = "Tyre set"
@@ -113,8 +115,10 @@ func complete_practice() -> void:
 func show_qualifying() -> void:
 	phase = 1
 	phase_label.text = "QUALIFYING"
+	progress_label.text = "Race weekend · %s qualifying" % weekend_data.qualifying_format
 	progress_label.text = "Race weekend • Stage 2 of 4"
 	briefing_label.text = "Commit to a qualifying approach. Aggression can gain grid places, but produces a less predictable lap."
+	progress_label.text = "Race weekend · %s qualifying" % weekend_data.qualifying_format
 	choice_label.text = "Lap approach"
 	set_string_items(choice_selector, ["Conservative lap", "Balanced lap", "Aggressive lap"])
 	choice_selector.select(1)
@@ -145,6 +149,21 @@ func complete_qualifying() -> void:
 		+ approach_modifiers[choice_selector.selected]
 		+ RaceManager.random_number_generator.randf_range(-variance, variance)
 	)
+	var forecast_weather := str((weekend_data.forecast as Dictionary).weather)
+	if forecast_weather == "Wet":
+		qualifying_score += float(driver.wet_weather - driver.qualifying_pace) * 0.18
+	elif forecast_weather == "Mixed":
+		qualifying_score += float(driver.wet_weather - 50) * 0.08
+	match str(weekend_data.qualifying_format):
+		"Knockout":
+			var second_run := qualifying_score + RaceManager.random_number_generator.randf_range(-variance, variance)
+			qualifying_score = maxf(qualifying_score, second_run)
+		"Groups":
+			qualifying_score += RaceManager.random_number_generator.randf_range(-2.5, 2.5)
+		"Heat races":
+			qualifying_score += float(driver.racecraft + driver.starts_restarts - 100) * 0.06
+		"Provisionals":
+			qualifying_score += float(GameManager.team.reputation) * 0.015
 	var rival_scores: Array[float] = []
 	var player_entries := maxi(1, (weekend_data.get("entries", []) as Array).size())
 	for rival in RaceManager.get_ai_field_for_race(GameManager.selected_race, player_entries):
@@ -171,7 +190,7 @@ func show_strategy() -> void:
 	secondary_label.text = "Tyre and fuel plan"
 	secondary_label.visible = true
 	secondary_selector.visible = true
-	set_string_items(secondary_selector, ["Hard tyres / 68% fuel / long stint", "Medium tyres / 56% fuel / flexible", "Soft tyres / 42% fuel / early stop"])
+	set_string_items(secondary_selector, ["Hard tyres / 68% fuel / long stint", "Medium tyres / 56% fuel / flexible", "Soft tyres / 42% fuel / early stop", "Intermediate tyres / 56% fuel / changeable", "Wet tyres / 60% fuel / heavy rain"])
 	secondary_selector.select(1)
 	outcome_label.text = "Grid: P%d • Setup: %s" % [int(weekend_data["starting_position"]), weekend_data["setup_emphasis"]]
 	action_button.text = "Start Race"
@@ -342,6 +361,12 @@ func _get_primary_driver() -> Driver:
 
 
 func _ensure_practice_data() -> void:
+	if not weekend_data.has("forecast") or not weekend_data.has("qualifying_format"):
+		var expansion_weekend := CareerExpansionManager.configure_race_weekend(GameManager.team, GameManager.selected_race)
+		weekend_data["forecast"] = (expansion_weekend.forecast as Dictionary).duplicate(true)
+		weekend_data["qualifying_format"] = str(expansion_weekend.qualifying_format)
+		weekend_data["team_order"] = str(expansion_weekend.team_order)
+		GameManager.selected_race.weather = str((weekend_data.forecast as Dictionary).weather)
 	if not weekend_data.has("practice_setup"):
 		weekend_data["practice_setup"] = PracticeRunSimulator.DEFAULT_SETUP.duplicate(true)
 	if not weekend_data.has("practice_runs"):

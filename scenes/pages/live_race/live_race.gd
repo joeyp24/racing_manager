@@ -18,6 +18,11 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 @onready var pit_button: Button = %pit_button
 @onready var setup_selector: OptionButton = %setup_selector
 @onready var apply_setup_button: Button = %apply_setup_button
+@onready var fuel_selector: OptionButton = %fuel_selector
+@onready var racecraft_selector: OptionButton = %racecraft_selector
+@onready var apply_command_button: Button = %apply_command_button
+@onready var team_order_selector: OptionButton = %team_order_selector
+@onready var apply_team_order_button: Button = %apply_team_order_button
 
 var simulation: RaceSimulation
 var lap_timer := Timer.new()
@@ -47,18 +52,28 @@ func _ready() -> void:
 	next_lap_button.pressed.connect(_advance_one_lap)
 	pit_button.pressed.connect(_request_pit_stop)
 	apply_setup_button.pressed.connect(_apply_setup)
+	apply_command_button.pressed.connect(_apply_commands)
+	apply_team_order_button.pressed.connect(_apply_team_order)
 	for speed in SPEEDS:
 		speed_selector.add_item("%dx" % speed)
 	pace_selector.add_item("Conserve")
 	pace_selector.add_item("Balanced")
 	pace_selector.add_item("Attack")
 	pace_selector.select(1)
-	for compound in ["Soft", "Medium", "Hard"]:
+	for compound in ["Soft", "Medium", "Hard", "Intermediate", "Wet"]:
 		tyre_selector.add_item(compound)
 	for setup in ["Forward", "Neutral", "Rearward"]:
 		setup_selector.add_item(setup)
+	for fuel_target in ["Save", "Balanced", "Push"]:
+		fuel_selector.add_item(fuel_target)
+	for command in ["Conserve", "Race", "Overtake", "Defend"]:
+		racecraft_selector.add_item(command)
+	for order in ["Race freely", "Hold position", "Swap positions", "Help lead car", "Conserve equipment"]:
+		team_order_selector.add_item(order)
 	tyre_selector.select(1)
 	setup_selector.select(1)
+	fuel_selector.select(1)
+	racecraft_selector.select(1)
 	speed_selector.select(1)
 	_update_timer_speed()
 	_refresh_display()
@@ -92,7 +107,8 @@ func _on_speed_selected(_index: int) -> void:
 
 func _update_timer_speed() -> void:
 	var speed := SPEEDS[speed_selector.selected] if speed_selector.selected >= 0 else 1
-	lap_timer.wait_time = 1.1 / float(speed)
+	var accessibility_speed := float(CareerExpansionManager.ensure_state(GameManager.team).accessibility.simulation_speed)
+	lap_timer.wait_time = 1.1 / (float(speed) * accessibility_speed)
 	if not is_paused:
 		lap_timer.start()
 	_refresh_header()
@@ -131,6 +147,27 @@ func _apply_setup() -> void:
 	var setup := setup_selector.get_item_text(setup_selector.selected)
 	simulation.set_player_brake_bias(setup)
 	message_label.text = "%s brake bias applied" % setup
+	_refresh_display()
+
+
+func _apply_commands() -> void:
+	if simulation == null or simulation.is_complete:
+		return
+	var fuel_target := fuel_selector.get_item_text(fuel_selector.selected)
+	var command := racecraft_selector.get_item_text(racecraft_selector.selected)
+	simulation.set_player_fuel_target(fuel_target)
+	simulation.set_player_racecraft_command(command)
+	message_label.text = "%s fuel · %s instruction" % [fuel_target, command]
+	_refresh_display()
+
+
+func _apply_team_order() -> void:
+	if simulation == null or simulation.is_complete:
+		return
+	var order := team_order_selector.get_item_text(team_order_selector.selected)
+	simulation.set_team_order(order, GameManager.team.team_name)
+	weekend_data["team_order"] = order
+	message_label.text = "Team order: %s" % order
 	_refresh_display()
 
 
@@ -190,7 +227,9 @@ func _refresh_telemetry() -> void:
 		"[cell][color=#778493]FUEL LAPS / CAR / SYSTEMS[/color]\n[b]%.1f  /  %d%%  /  %d%%[/b][/cell]" % [player.fuel_laps / maxf(0.1, simulation.race.fuel_consumption_factor), roundi(player.car_condition), roundi(player.mechanical_health)] + \
 		"[cell][color=#778493]PACE[/color]\n[b]%s[/b][/cell]" % pace + \
 		"[cell][color=#778493]BRAKE BIAS[/color]\n[b]%s[/b][/cell]" % player.brake_bias + \
-		"[cell][color=#778493]PIT STOPS[/color]\n[b]%d[/b][/cell][/table]" % player.pit_stops
+		"[cell][color=#778493]PIT STOPS[/color]\n[b]%d[/b][/cell]" % player.pit_stops + \
+		"[cell][color=#778493]TRACK[/color]\n[b]%s · %d%% GRIP[/b][/cell]" % [simulation.weather_state, roundi(simulation.track_grip * 100.0)] + \
+		"[cell][color=#778493]COMMANDS[/color]\n[b]%s FUEL · %s[/b][/cell][/table]" % [player.fuel_target_mode, player.racecraft_command]
 
 
 func _refresh_feed() -> void:
@@ -212,6 +251,8 @@ func _finish_race() -> void:
 	apply_pace_button.disabled = true
 	pit_button.disabled = true
 	apply_setup_button.disabled = true
+	apply_command_button.disabled = true
+	apply_team_order_button.disabled = true
 	next_lap_button.disabled = true
 	message_label.text = "Race complete — preparing official results"
 	var result := RaceManager.finalize_live_race(simulation, GameManager.selected_car, str(weekend_data.get("strategy_id", "balanced")), weekend_data)

@@ -16,6 +16,14 @@ var green_flag_laps: int = 0
 var player_pit_time_reduction: float = 0.0
 var player_pit_mistake_reduction: float = 0.0
 var random_number_generator := RandomNumberGenerator.new()
+var weather_state: String = "Dry"
+var rain_intensity: float = 0.0
+var track_grip: float = 0.92
+var track_temperature: float = 24.0
+var rubber_level: float = 0.0
+var forecast: Dictionary = {}
+var weather_timeline: Array[Dictionary] = []
+var replay_timeline: Array[Dictionary] = []
 
 
 func setup(
@@ -109,10 +117,21 @@ func setup(
 	event_log.append("LAP 0  The field takes the green flag.")
 
 
+func configure_environment(data: Dictionary) -> void:
+	forecast = data.duplicate(true)
+	weather_state = str(forecast.get("weather", race.weather))
+	track_temperature = float(forecast.get("temperature", 24.0))
+	rain_intensity = 0.72 if weather_state == "Wet" else (0.22 if weather_state == "Mixed" else 0.0)
+	track_grip = 0.72 if rain_intensity > 0.45 else (0.86 if rain_intensity > 0.0 else 0.92)
+	weather_timeline.append({"lap":0, "weather":weather_state, "rain":rain_intensity, "grip":track_grip})
+	event_log.append("FORECAST  %s, %d°C, %d%% rain risk." % [weather_state, roundi(track_temperature), int(forecast.get("rain_chance", 0))])
+
+
 func simulate_lap() -> void:
 	if is_complete or race == null:
 		return
 	current_lap += 1
+	_update_environment()
 	_update_track_state()
 	if race_state == "GREEN FLAG":
 		green_flag_laps += 1
@@ -151,7 +170,7 @@ func simulate_lap() -> void:
 		entry.tyre_condition = maxf(0.0, entry.tyre_condition - float(pace_data.wear))
 		entry.stint_laps += 1
 		_update_tyre_temperature(entry)
-		var consumption := race.fuel_consumption_factor * float(pace_data.fuel)
+		var consumption := race.fuel_consumption_factor * float(pace_data.fuel) * float({"Save":0.90, "Balanced":1.0, "Push":1.08}.get(entry.fuel_target_mode, 1.0))
 		entry.fuel_laps = maxf(0.0, entry.fuel_laps - consumption)
 		entry.fuel_remaining = clampf(entry.fuel_laps / maxf(1.0, entry.fuel_target_laps) * 100.0, 0.0, 100.0)
 		if entry.fuel_laps <= 0.0 and current_lap < race.lap_count:
@@ -168,6 +187,7 @@ func simulate_lap() -> void:
 		event_log.append("LAP %d  %s is now P%d." % [current_lap, player.driver_name, player.position])
 	if player != null and current_lap % maxi(4, race.lap_count / 8) == 0:
 		event_log.append("LAP %d  Crew chief: tyres %d%%, fuel %.1f laps, car %d%%, systems %d%%." % [current_lap, roundi(player.tyre_condition), player.fuel_laps / maxf(0.1, race.fuel_consumption_factor), roundi(player.car_condition), roundi(player.mechanical_health)])
+	_record_replay_snapshot()
 	elapsed_race_time = entries[0].elapsed_time
 	lap_completed.emit(current_lap)
 	if current_lap >= race.lap_count:
@@ -175,6 +195,35 @@ func simulate_lap() -> void:
 		race_state = "CHECKERED FLAG"
 		event_log.append("LAP %d  Checkered flag — %s wins." % [current_lap, entries[0].driver_name])
 		race_completed.emit()
+
+
+func _update_environment() -> void:
+	var previous_weather := weather_state
+	var rain_chance := float(forecast.get("rain_chance", 0)) / 100.0
+	var race_progress := float(current_lap) / maxf(1.0, float(race.lap_count))
+	var change_chance := 0.035 + (0.06 if str(forecast.get("weather", "")) == "Mixed" else 0.0)
+	if random_number_generator.randf() < change_chance:
+		if random_number_generator.randf() < rain_chance:
+			rain_intensity = clampf(rain_intensity + random_number_generator.randf_range(0.16, 0.38), 0.0, 1.0)
+		else:
+			rain_intensity = clampf(rain_intensity - random_number_generator.randf_range(0.14, 0.30), 0.0, 1.0)
+	else:
+		var drying := 0.018 + track_temperature * 0.0006
+		rain_intensity = maxf(0.0, rain_intensity - drying)
+	weather_state = "Wet" if rain_intensity >= 0.45 else ("Damp" if rain_intensity >= 0.08 else "Dry")
+	rubber_level = clampf(rubber_level + (0.012 if weather_state == "Dry" and race_state == "GREEN FLAG" else -0.018), 0.0, 1.0)
+	var evolved_grip := 0.90 + rubber_level * 0.11 + race_progress * 0.02
+	track_grip = clampf(evolved_grip - rain_intensity * 0.34, 0.58, 1.05)
+	if weather_state != previous_weather:
+		event_log.append("LAP %d  WEATHER — conditions change to %s; track grip is %d%%." % [current_lap, weather_state.to_upper(), roundi(track_grip * 100.0)])
+		weather_timeline.append({"lap":current_lap, "weather":weather_state, "rain":rain_intensity, "grip":track_grip})
+
+
+func _record_replay_snapshot() -> void:
+	var positions: Array[Dictionary] = []
+	for entry in entries:
+		positions.append({"driver_id":entry.driver_id, "driver":entry.driver_name, "position":entry.position, "status":entry.status, "compound":entry.tyre_compound, "pit_stops":entry.pit_stops})
+	replay_timeline.append({"lap":current_lap, "flag":race_state, "weather":weather_state, "grip":track_grip, "positions":positions})
 
 
 func _update_track_state() -> void:
@@ -195,8 +244,12 @@ func _pace_data(entry: RaceEntryState) -> Dictionary:
 	var result := {"mode": 0.0, "compound": 0.0, "wear": wear, "fuel": 1.0}
 	if entry.tyre_compound == "Soft": result.merge({"compound": -0.18, "wear": wear * 1.28}, true)
 	elif entry.tyre_compound == "Hard": result.merge({"compound": 0.16, "wear": wear * 0.72}, true)
+	elif entry.tyre_compound == "Intermediate": result.merge({"compound": -0.12 if weather_state == "Damp" else 0.45, "wear": wear * (0.82 if rain_intensity > 0.08 else 1.65)}, true)
+	elif entry.tyre_compound == "Wet": result.merge({"compound": -0.16 if weather_state == "Wet" else 0.75, "wear": wear * (0.70 if rain_intensity > 0.35 else 1.90)}, true)
 	if entry.pace_mode == "Conserve": result.merge({"mode": 0.32, "wear": float(result.wear) * 0.72, "fuel": 0.88}, true)
 	elif entry.pace_mode == "Attack": result.merge({"mode": -0.28, "wear": float(result.wear) * 1.38, "fuel": 1.12}, true)
+	if entry.fuel_target_mode == "Save": result.mode = float(result.mode) + 0.18
+	elif entry.fuel_target_mode == "Push": result.mode = float(result.mode) - 0.10
 	if race_state != "GREEN FLAG":
 		result.wear = float(result.wear) * 0.35
 		result.fuel = float(result.fuel) * 0.55
@@ -206,8 +259,10 @@ func _pace_data(entry: RaceEntryState) -> Dictionary:
 func _resolve_incident(entry: RaceEntryState) -> float:
 	var pace_risk: float = float({"Conserve": 0.70, "Balanced": 1.0, "Attack": 1.65}.get(entry.pace_mode, 1.0))
 	var traffic_risk := 1.0 + race.overtaking_difficulty * (0.5 if entry.position > 1 else 0.0)
-	var control := (entry.rating("consistency") + entry.rating("composure") + (entry.rating("wet_weather") if race.weather == "Wet" else 50)) / 3.0
-	var incident_chance: float = 0.0015 * race.accident_factor * pace_risk * traffic_risk * lerpf(1.45, 0.55, control / 100.0) * entry.difficulty_scale
+	var control := (entry.rating("consistency") + entry.rating("composure") + (entry.rating("wet_weather") if weather_state != "Dry" else 50)) / 3.0
+	var weather_risk := 1.0 + rain_intensity * 1.2
+	var command_risk: float = float({"Conserve":0.72, "Race":1.0, "Overtake":1.30, "Defend":1.18}.get(entry.racecraft_command, 1.0))
+	var incident_chance: float = 0.0015 * race.accident_factor * pace_risk * traffic_risk * weather_risk * command_risk * lerpf(1.45, 0.55, control / 100.0) * entry.difficulty_scale
 	var health_risk := lerpf(0.45, 4.8, 1.0 - entry.mechanical_health / 100.0)
 	var failure_chance: float = 0.0006 * race.mechanical_stress * pace_risk * lerpf(1.8, 0.35, entry.reliability / 100.0) * health_risk * entry.difficulty_scale
 	if random_number_generator.randf() < failure_chance:
@@ -249,7 +304,8 @@ func _traffic_penalty(entry: RaceEntryState) -> float:
 	if entry.elapsed_time - ahead.elapsed_time < 1.0:
 		var dirty_air := lerpf(0.48, 0.12, entry.rating("racecraft") / 100.0)
 		var tyre_offset := maxf(0.0, ahead.tyre_condition - entry.tyre_condition) * 0.002
-		return race.overtaking_difficulty * dirty_air + tyre_offset
+		var command_modifier := 0.76 if entry.racecraft_command == "Overtake" else (1.15 if entry.racecraft_command == "Conserve" else 1.0)
+		return (race.overtaking_difficulty * dirty_air + tyre_offset) * command_modifier
 	return 0.0
 
 
@@ -325,7 +381,15 @@ func _resolve_overtaking_battles() -> void:
 		var tyre_advantage := clampf((chaser.tyre_condition - ahead.tyre_condition) * 0.008, -0.15, 0.22)
 		var aggression_bonus := (float(chaser.aggression) - 50.0) * 0.002
 		var track_window := lerpf(0.34, 0.10, race.overtaking_difficulty)
-		var pass_chance := clampf(track_window + pace_advantage + tyre_advantage + aggression_bonus + (racecraft - 0.5) * 0.18, 0.03, 0.72)
+		var command_bonus := 0.12 if chaser.racecraft_command == "Overtake" else (-0.06 if chaser.racecraft_command == "Conserve" else 0.0)
+		var defence_penalty := 0.11 if ahead.racecraft_command == "Defend" else 0.0
+		if chaser.team_name == ahead.team_name and chaser.team_order == "Swap positions":
+			command_bonus += 0.62
+			defence_penalty = 0.0
+		elif chaser.team_name == ahead.team_name and chaser.team_order == "Hold position":
+			command_bonus -= 0.30
+		var grip_window := lerpf(0.65, 1.05, track_grip)
+		var pass_chance := clampf((track_window + pace_advantage + tyre_advantage + aggression_bonus + command_bonus - defence_penalty + (racecraft - 0.5) * 0.18) * grip_window, 0.02, 0.78)
 		if random_number_generator.randf() >= pass_chance:
 			continue
 		chaser.elapsed_time = minf(chaser.elapsed_time, ahead.elapsed_time - 0.04)
@@ -367,9 +431,9 @@ func _update_mechanical_health(entry: RaceEntryState, pace_data: Dictionary) -> 
 
 
 func _update_tyre_temperature(entry: RaceEntryState) -> void:
-	var compound_target: float = float({"Soft": 96.0, "Medium": 92.0, "Hard": 88.0}.get(entry.tyre_compound, 92.0))
+	var compound_target: float = float({"Soft": 96.0, "Medium": 92.0, "Hard": 88.0, "Intermediate":76.0, "Wet":68.0}.get(entry.tyre_compound, 92.0))
 	var mode_offset: float = float({"Conserve": -7.0, "Balanced": 0.0, "Attack": 8.0}.get(entry.pace_mode, 0.0))
-	var track_offset := race.heat_factor * 10.0
+	var track_offset := race.heat_factor * 10.0 + (track_temperature - 24.0) * 0.25 - rain_intensity * 12.0
 	var target := float(compound_target) + float(mode_offset) + track_offset
 	if race_state != "GREEN FLAG":
 		target -= 18.0
@@ -379,10 +443,18 @@ func _update_tyre_temperature(entry: RaceEntryState) -> void:
 func _tyre_performance_penalty(entry: RaceEntryState) -> float:
 	var wear_penalty := pow(1.0 - entry.tyre_condition / 100.0, 2.0) * 2.4
 	var cliff_penalty := pow(maxf(0.0, 18.0 - entry.tyre_condition) / 18.0, 2.0) * 3.2
-	var ideal_temperature := float({"Soft": 96.0, "Medium": 92.0, "Hard": 88.0}.get(entry.tyre_compound, 92.0))
+	var ideal_temperature := float({"Soft": 96.0, "Medium": 92.0, "Hard": 88.0, "Intermediate":76.0, "Wet":68.0}.get(entry.tyre_compound, 92.0))
 	var temperature_penalty := pow(absf(entry.tyre_temperature - ideal_temperature) / 18.0, 2.0) * 0.45
 	var stint_penalty := maxf(0.0, float(entry.stint_laps) / maxf(8.0, float(race.lap_count) * 0.55) - 1.0) * 0.35
-	return wear_penalty + cliff_penalty + temperature_penalty + stint_penalty
+	var is_wet_tyre := entry.tyre_compound in ["Intermediate", "Wet"]
+	var weather_penalty := 0.0
+	if rain_intensity >= 0.45 and not is_wet_tyre:
+		weather_penalty = 2.6 + rain_intensity * 2.2
+	elif rain_intensity >= 0.08 and not is_wet_tyre:
+		weather_penalty = 1.15
+	elif rain_intensity < 0.05 and is_wet_tyre:
+		weather_penalty = 1.45 if entry.tyre_compound == "Intermediate" else 2.4
+	return wear_penalty + cliff_penalty + temperature_penalty + stint_penalty + weather_penalty + maxf(0.0, 0.92 - track_grip) * 2.0
 
 
 func _sort_standings() -> void:
@@ -408,9 +480,40 @@ func set_player_pace(mode: String) -> void:
 		event_log.append("LAP %d  Pit wall: %s mode requested for next lap." % [current_lap, mode])
 
 
+func set_player_fuel_target(mode: String) -> void:
+	var player := get_player_entry()
+	if player != null and mode in ["Save", "Balanced", "Push"]:
+		player.fuel_target_mode = mode
+		event_log.append("LAP %d  Fuel target set to %s." % [current_lap, mode])
+
+
+func set_player_racecraft_command(command: String) -> void:
+	var player := get_player_entry()
+	if player != null and command in ["Conserve", "Race", "Overtake", "Defend"]:
+		player.racecraft_command = command
+		event_log.append("LAP %d  Driver command: %s." % [current_lap, command])
+
+
+func set_team_order(order: String, team_name: String) -> void:
+	for entry in entries:
+		if entry.team_name != team_name:
+			continue
+		entry.team_order = order
+		if order == "Hold position":
+			entry.racecraft_command = "Conserve"
+		elif order == "Swap positions":
+			entry.racecraft_command = "Overtake" if not entry.is_player else "Race"
+		elif order == "Help lead car":
+			entry.racecraft_command = "Defend" if not entry.is_player else "Race"
+		elif order == "Conserve equipment":
+			entry.pending_pace_mode = "Conserve"
+			entry.racecraft_command = "Conserve"
+	event_log.append("LAP %d  Team order issued: %s." % [current_lap, order])
+
+
 func request_player_pit_stop(compound: String) -> bool:
 	var player := get_player_entry()
-	if player == null or is_complete or compound not in ["Soft", "Medium", "Hard"]:
+	if player == null or is_complete or compound not in ["Soft", "Medium", "Hard", "Intermediate", "Wet"]:
 		return false
 	player.pending_pit_compound = compound
 	event_log.append("LAP %d  Pit wall: box next lap for %s tyres." % [current_lap, compound])
@@ -429,7 +532,7 @@ func _perform_pit_stop(entry: RaceEntryState, compound: String) -> float:
 	entry.tyre_compound = compound
 	entry.tyre_condition = 100.0
 	entry.stint_laps = 0
-	entry.tyre_temperature = float({"Soft": 82.0, "Medium": 78.0, "Hard": 74.0}.get(compound, 78.0))
+	entry.tyre_temperature = float({"Soft": 82.0, "Medium": 78.0, "Hard": 74.0, "Intermediate":68.0, "Wet":62.0}.get(compound, 78.0))
 	var fuel_margin := lerpf(1.08, 1.025, entry.strategy_skill / 100.0)
 	var remaining_laps := race.lap_count - current_lap
 	var planned_stint := mini(remaining_laps, maxi(6, roundi(float(race.lap_count) * lerpf(0.34, 0.48, entry.strategy_skill / 100.0))))
@@ -454,6 +557,10 @@ func _perform_pit_stop(entry: RaceEntryState, compound: String) -> float:
 
 
 func _choose_ai_compound(entry: RaceEntryState) -> String:
+	if rain_intensity >= 0.45:
+		return "Wet"
+	if rain_intensity >= 0.08:
+		return "Intermediate"
 	var remaining := race.lap_count - current_lap
 	if remaining <= race.lap_count / 5 and entry.strategy_skill >= 48.0:
 		return "Soft"
@@ -494,6 +601,9 @@ func as_final_standings() -> Array[Dictionary]:
 			"pit_stops": entry.pit_stops,
 			"tyre_condition": entry.tyre_condition,
 			"mechanical_health": entry.mechanical_health,
+			"fuel_target": entry.fuel_target_mode,
+			"racecraft_command": entry.racecraft_command,
+			"team_order": entry.team_order,
 			"is_player": entry.is_player
 		})
 	return standings

@@ -21,6 +21,10 @@ const ROLES: Array[String] = ["Crew Chief", "Engineer", "Mechanic", "Spotter", "
 @export var development_points: int = 0
 @export var rival_interest: String = "Low"
 @export var last_development: String = "No change"
+@export_range(0, 100) var loyalty: int = 70
+@export_range(0, 100) var burnout: int = 0
+@export var relationship_notes: Dictionary = {}
+@export var succession_candidate_id: String = ""
 
 
 func get_rating_grade() -> String:

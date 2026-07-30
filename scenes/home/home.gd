@@ -17,6 +17,7 @@ extends Control
 @onready var sponsors_button: Button = %sponsors_button
 @onready var hq_button: Button = %hq_button
 @onready var scouting_button: Button = %scouting_button
+@onready var career_hub_button: Button = %career_hub_button
 @onready var identity_button: Button = %identity_button
 @onready var glossary_button: Button = %glossary_button
 @onready var money_label: Label = %money_label
@@ -38,7 +39,7 @@ func _ready() -> void:
 	navigation_buttons = [home_button, race_calendar_button, championship_button, world_series_button,
 		garage_button, race_teams_button, drivers_button, engineering_button, staff_button, driver_market_button, shop_button,
 		dealership_button, sponsors_button, finances_button, hq_button, identity_button,
-		scouting_button]
+		scouting_button, career_hub_button]
 
 	home_button.pressed.connect(
 		_on_home_button_pressed
@@ -73,6 +74,7 @@ func _ready() -> void:
 	identity_button.pressed.connect(_on_identity_button_pressed)
 	glossary_button.pressed.connect(_on_glossary_button_pressed)
 	scouting_button.pressed.connect(_on_scouting_button_pressed)
+	career_hub_button.pressed.connect(_on_career_hub_button_pressed)
 	fullscreen_button.pressed.connect(_on_fullscreen_button_pressed)
 	_make_top_bar_actionable()
 	command_bar.action_requested.connect(_on_command_action_requested)
@@ -272,6 +274,11 @@ func _on_scouting_button_pressed() -> void:
 	GameManager.load_page("res://scenes/pages/scouting/scouting.tscn")
 
 
+func _on_career_hub_button_pressed() -> void:
+	set_active_navigation(career_hub_button)
+	GameManager.load_page("res://scenes/pages/career_hub/career_hub.tscn")
+
+
 func update_unlocked_navigation() -> void:
 	var unlocked := GameManager.team != null and GameManager.team.get_department_level("scouting") > 0
 	scouting_button.disabled = not unlocked
@@ -341,6 +348,7 @@ func _on_page_changed(scene_path: String) -> void:
 		"dealership": shop_button, "sponsors": sponsors_button,
 		"departments": hq_button, "team_identity": identity_button,
 		"scouting": scouting_button,
+		"career_hub": career_hub_button,
 	}
 	var page_id := scene_path.get_file().get_basename()
 	set_active_navigation(destinations.get(page_id, null) as Button)

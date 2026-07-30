@@ -39,6 +39,7 @@ func is_fullscreen() -> bool:
 
 func new_game(slot_id: String = "") -> void:
 	team = Team.new()
+	CareerExpansionManager.apply_accessibility(team)
 	active_save_id = slot_id if not slot_id.is_empty() else SaveManager.make_slot_id(team.team_name)
 	clear_selected_data()
 	refresh_team_money()
@@ -72,6 +73,8 @@ func load_game(slot_id: String) -> bool:
 	team.ensure_car_parts()
 	team.ensure_staff_market()
 	team.ensure_race_teams()
+	CareerExpansionManager.ensure_state(team)
+	CareerExpansionManager.apply_accessibility(team)
 	clear_selected_data()
 	refresh_team_money()
 	team_loaded.emit(team)

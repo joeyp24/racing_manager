@@ -26,6 +26,13 @@ var sponsor_objective_completed: bool = false
 var reputation_earned: int = 0
 var fans_earned: int = 0
 var cheating_penalty: int = 0
+var penalties: Array[Dictionary] = []
+var appeals: Array[Dictionary] = []
+var weather_summary: String = "Dry"
+var track_evolution_summary: String = ""
+var replay_timeline: Array[Dictionary] = []
+var qualifying_format: String = "Standard"
+var team_order_summary: String = "Race freely"
 
 var mileage_added: int = 0
 var condition_lost: int = 0

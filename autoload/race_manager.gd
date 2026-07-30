@@ -158,6 +158,16 @@ func get_calendar_for_series(series_id: String) -> Array[Race]:
 		race.facility_cost = roundi(race.facility_cost * multiplier)
 		race.first_place_prize = roundi(race.first_place_prize * multiplier); race.second_place_prize = roundi(race.second_place_prize * multiplier); race.third_place_prize = roundi(race.third_place_prize * multiplier)
 		calendar.append(race)
+	if GameManager.team != null:
+		var expansion := CareerExpansionManager.ensure_state(GameManager.team)
+		var variation := (expansion.calendar_variations as Dictionary).get(str(GameManager.team.current_season_year), {}) as Dictionary
+		if not variation.is_empty() and not calendar.is_empty():
+			var rotating_index := absi(hash(series_id + str(GameManager.team.current_season_year))) % calendar.size()
+			var rotating_race := calendar[rotating_index]
+			rotating_race.track_name = str(variation.get("added", rotating_race.track_name))
+			rotating_race.race_name = "%s %s" % [rotating_race.track_name, rotating_race.lap_count]
+			rotating_race.schedule_day = clampi(rotating_race.schedule_day + int(variation.get("date_shift", 0)), CalendarCatalog.SEASON_START_DAY, CalendarCatalog.SEASON_END_DAY)
+			rotating_race.travel_region = "International"
 	return calendar
 
 
@@ -286,7 +296,17 @@ func create_live_simulation(
 	elif plan.begins_with("Soft"):
 		compound = "Soft"
 		fuel_fraction = 0.42
+	elif plan.begins_with("Intermediate"):
+		compound = "Intermediate"
+		fuel_fraction = 0.56
+	elif plan.begins_with("Wet"):
+		compound = "Wet"
+		fuel_fraction = 0.60
 	var player_race_attributes := player_car.get_race_attributes()
+	var expansion_modifiers := CareerExpansionManager.get_race_modifiers(GameManager.team)
+	player_race_attributes["reliability"] = clampf(float(player_race_attributes.get("reliability", 75.0)) + float(expansion_modifiers.reliability), 1.0, 100.0)
+	player_race_attributes["fuel"] = clampf(float(player_race_attributes.get("fuel", 50.0)) + float(expansion_modifiers.fuel), 1.0, 100.0)
+	player_race_attributes["tyres"] = clampf(float(player_race_attributes.get("tyres", 50.0)) + float(expansion_modifiers.tyres), 1.0, 100.0)
 	player_race_attributes["strategy_skill"] = clampf(42.0 + GameManager.team.get_crew_chief_performance_boost() * 7.0, 35.0, 98.0)
 	player_race_attributes["incident_scale"] = float(GameManager.team.get_difficulty_setting("player_incident_multiplier", 1.0))
 	player_race_attributes["pit_time_reduction"] = GameManager.team.get_pit_stop_time_reduction()
@@ -309,6 +329,12 @@ func create_live_simulation(
 		weekend_data.get("practice_setup", {}) as Dictionary,
 		fuel_fraction
 	)
+	var weekend_environment := weekend_data.get("forecast", {}) as Dictionary
+	if weekend_environment.is_empty():
+		weekend_environment = (CareerExpansionManager.configure_race_weekend(GameManager.team, selected_race).get("forecast", {}) as Dictionary)
+	simulation.configure_environment(weekend_environment)
+	var team_order := str(weekend_data.get("team_order", "Race freely"))
+	simulation.set_team_order(team_order, GameManager.team.team_name)
 	return simulation
 
 
@@ -393,6 +419,11 @@ func finalize_live_race(
 	result.qualifying_score = float(weekend_data.get("qualifying_score", 0.0))
 	result.setup_bonus = float(weekend_data.get("setup_bonus", 0.0))
 	result.strategy_effectiveness = float(weekend_data.get("race_modifier", 0.0))
+	result.qualifying_format = str(weekend_data.get("qualifying_format", "Standard"))
+	result.team_order_summary = str(weekend_data.get("team_order", "Race freely"))
+	result.weather_summary = "%s · %d weather changes" % [simulation.weather_state, simulation.weather_timeline.size() - 1]
+	result.track_evolution_summary = "Grip finished at %d%% with %d%% rubber." % [roundi(simulation.track_grip * 100.0), roundi(simulation.rubber_level * 100.0)]
+	result.replay_timeline = simulation.replay_timeline.duplicate(true)
 	for summary in weekend_data.get("decision_log", []):
 		result.weekend_summary.append(str(summary))
 	result.weekend_summary.append("Live timing completed over %d laps." % selected_race.lap_count)
@@ -416,6 +447,7 @@ func finalize_live_race(
 	result.net_earnings -= result.crew_chief_salary + result.engineering_payroll
 	player_driver.record_race({"race_id":selected_race.race_id, "race_name":selected_race.race_name, "start":result.starting_position, "finish":result.finishing_position, "positions_gained":result.positions_gained, "qualifying":result.starting_position, "points":result.championship_points_earned, "track_type":selected_race.track_type, "weather":selected_race.weather, "status":str((result.standings[result.finishing_position - 1] as Dictionary).get("status", "Finished")), "incident":false})
 	GameManager.team.process_driver_race_contracts(weekend_data)
+	CareerExpansionManager.process_race(GameManager.team, result, simulation)
 	apply_race_effects(result)
 	complete_race(selected_race)
 	last_result = result
@@ -713,6 +745,11 @@ func calculate_player_score(
 	)
 
 	var spotter_restart_bonus: float = team.get_restart_performance_boost() if team != null else 0.0
+	var expansion_bonus := 0.0
+	if team != null:
+		var expansion_modifiers := CareerExpansionManager.get_race_modifiers(team)
+		var track_bias := selected_race.power_demand * float(expansion_modifiers.power) + selected_race.handling_demand * float(expansion_modifiers.grip) if selected_race != null else float(expansion_modifiers.power) + float(expansion_modifiers.grip)
+		expansion_bonus = track_bias * 0.32
 
 	var total_score: float = (
 		performance_score
@@ -720,6 +757,7 @@ func calculate_player_score(
 		+ driver_attribute_score
 		+ feedback_score
 		+ spotter_restart_bonus
+		+ expansion_bonus
 		+ random_variance
 	)
 	return total_score * float(strategy.get("performance_modifier", 1.0))
@@ -1477,6 +1515,7 @@ func finish_season_if_complete() -> void:
 		GameManager.team.add_reputation_xp(100)
 	GameManager.add_team_money(prize_money)
 	GameManager.team.record_finance("Championship", prize_money, "Season prize")
+	CareerExpansionManager.process_season_end(GameManager.team, player_position)
 	GameManager.team.emit_changed()
 
 
@@ -1536,6 +1575,7 @@ func complete_offseason() -> bool:
 	GameManager.team.engineering_projects.clear()
 	GameManager.team.driver_training_programs.clear()
 	GameManager.team.contract_offers.clear()
+	CareerExpansionManager.ensure_state(team).preseason = {"completed":false, "runs":[], "reliability_known":false}
 	for contracted_driver in GameManager.team.get_contracted_drivers():
 		contracted_driver.series_id = team.current_series_id
 		contracted_driver.team_name = team.team_name

@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 10
+const CURRENT_SAVE_FORMAT_VERSION: int = 11
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -87,6 +87,7 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var offseason_data: Dictionary = {}
 @export var transfer_history: Array[Dictionary] = []
 @export var season_history: Array[Dictionary] = []
+@export var career_state: Dictionary = {}
 @export var drivers: Array[Driver] = []
 @export var contracted_driver_ids: Array[String] = []
 @export var race_teams: Array[RaceTeam] = []
@@ -141,6 +142,7 @@ func _init() -> void:
 	ensure_race_teams()
 	ensure_car_parts()
 	ensure_staff_market()
+	CareerExpansionManager.ensure_state(self)
 
 
 func set_career_difficulty(value: String) -> void:
@@ -156,7 +158,9 @@ func get_difficulty_setting(key: String, fallback: Variant) -> Variant:
 func get_effective_weekend_cost(race: Race, entry_count: int = 1) -> int:
 	if race == null:
 		return 0
-	return roundi(float(race.get_weekend_cost() * maxi(1, entry_count)) * float(get_difficulty_setting("weekend_cost_multiplier", 1.0)))
+	var travel_plan := str((career_state.get("logistics", {}) as Dictionary).get("travel_plan", "Standard"))
+	var logistics_multiplier: float = float({"Economy":0.94, "Standard":1.0, "Performance":1.08}.get(travel_plan, 1.0))
+	return roundi(float(race.get_weekend_cost() * maxi(1, entry_count)) * float(get_difficulty_setting("weekend_cost_multiplier", 1.0)) * logistics_multiplier)
 
 
 func get_effective_sponsor_value(base_value: int) -> int:
@@ -1537,6 +1541,7 @@ func advance_to_date(target_day: int) -> Array[String]:
 	var clamped_target := clampi(target_day, current_season_day, CalendarCatalog.SEASON_END_DAY)
 	if clamped_target == current_season_day:
 		return []
+	var elapsed_days := clamped_target - current_season_day
 	var summaries := complete_engineering_projects(clamped_target)
 	for driver_id in driver_training_programs.keys():
 		var program := driver_training_programs[driver_id] as Dictionary
@@ -1554,6 +1559,7 @@ func advance_to_date(target_day: int) -> Array[String]:
 	week_advance_required = false
 	process_driver_availability()
 	ensure_scouting_hours()
+	summaries.append_array(CareerExpansionManager.process_day(self, elapsed_days))
 	emit_changed()
 	return summaries
 
@@ -1574,6 +1580,7 @@ func manufacture_part(engineer: StaffMember, part_type: String) -> CarPart:
 		return null
 	money -= cost
 	var part := PartCatalog.create_manufactured_part(part_type, engineer)
+	CareerExpansionManager.apply_manufacturing_quality(self, part)
 	parts_inventory.append(part)
 	record_finance("Workshop", -cost, "Manufactured %s" % part.part_name)
 	emit_changed()

@@ -25,6 +25,14 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_offseason.gd"),
     ),
     (
+        "career-wide expansion tests",
+        ("--headless", "--path", ".", "--script", "tests/test_career_expansion.gd"),
+    ),
+    (
+        "Career HQ interaction smoke tests",
+        ("--headless", "--path", ".", "--script", "tests/test_career_hub.gd"),
+    ),
+    (
         "UI scene smoke tests",
         ("--headless", "--path", ".", "--script", "tests/test_ui_scenes.gd"),
     ),
