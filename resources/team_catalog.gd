@@ -107,6 +107,19 @@ const TEAM_IDENTITIES: Dictionary = {
 
 const RATING_OFFSETS: Array[int] = [12, 8, 5, 2, 0, -2, -5, -8, -11, 6, -6, 3, -3, -9]
 
+# Organization sizes are intentionally uneven: leading teams can support four
+# cars while independents may arrive with only one or two entries.
+const TEAM_CAR_COUNTS: Dictionary = {
+	"local_short_track": [4, 4, 3, 3, 2, 2, 2],
+	"regional_short_track": [4, 4, 4, 3, 3, 2, 2, 2],
+	"national_short_track": [4, 4, 4, 4, 3, 3, 2, 2, 2, 2],
+	"continental_east_west": [4, 4, 3, 3, 3, 3, 2, 2],
+	"continental_national": [4, 4, 4, 4, 3, 3, 2, 2, 2, 2],
+	"national_truck": [4, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2],
+	"national_grand": [4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 1],
+	"premier_cup": [4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 2, 2, 1, 1]
+}
+
 
 static func get_teams(series_id: String) -> Array[Dictionary]:
 	var identities: Array = TEAM_IDENTITIES.get(series_id, [])
@@ -116,6 +129,12 @@ static func get_teams(series_id: String) -> Array[Dictionary]:
 		return teams
 	var base_rating := int(series.car_rating)
 	var field_size := int(series.maximum_field_size)
+	var car_counts: Array = TEAM_CAR_COUNTS.get(series_id, [])
+	assert(car_counts.size() == identities.size(), "Every organization needs a configured car count.")
+	var configured_field_size := 0
+	for car_count in car_counts:
+		configured_field_size += int(car_count)
+	assert(configured_field_size == field_size, "Team car counts must match the configured field size.")
 	for index in identities.size():
 		var identity: Array = identities[index]
 		var overall := clampi(base_rating + RATING_OFFSETS[index % RATING_OFFSETS.size()], 35, 99)
@@ -128,7 +147,7 @@ static func get_teams(series_id: String) -> Array[Dictionary]:
 			"engineering_rating": clampi(overall + ((index * 5) % 9) - 4, 1, 99),
 			"pit_crew_rating": clampi(overall + ((index * 7) % 11) - 5, 1, 99),
 			"strategy_rating": clampi(overall + ((index * 2) % 9) - 4, 1, 99),
-			"driver_count": field_size / identities.size() + (1 if index < field_size % identities.size() else 0)
+			"driver_count": int(car_counts[index])
 		})
 	return teams
 
@@ -138,4 +157,3 @@ static func get_team(series_id: String, team_id: String) -> Dictionary:
 		if str(team.team_id) == team_id:
 			return team
 	return {}
-

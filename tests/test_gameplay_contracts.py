@@ -142,3 +142,17 @@ def test_series_have_distinct_multi_car_teams_and_a_team_directory():
         assert section in page
     assert 'text = "Team Directory"' in scene
     assert 'text = "My Race Operations"' in scene
+
+
+def test_team_sizes_vary_and_scouting_covers_every_series():
+    catalog = (ROOT / "resources/team_catalog.gd").read_text()
+    scouting = (ROOT / "scenes/pages/scouting/scouting.gd").read_text()
+    assert "TEAM_CAR_COUNTS" in catalog
+    assert "configured_field_size == field_size" in catalog
+    for count in (1, 2, 3, 4):
+        assert re.search(rf"\b{count}\b", catalog.split("TEAM_CAR_COUNTS", 1)[1])
+    assert "for series in SeriesCatalog.SERIES" in scouting
+    assert 'series_filter.add_item("All series")' in scouting
+    assert "driver.get_rating_rows()" in scouting
+    assert "_recent_results" in scouting
+    assert 'row.get("driver_id"' in scouting
