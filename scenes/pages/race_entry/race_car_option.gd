@@ -59,7 +59,7 @@ func update_display() -> void:
 		+ "Condition: %d%%\n"
 		+ "Mileage: %s"
 	) % [
-		car.get_total_performance(GameManager.team),
+		car.get_total_performance_points(GameManager.team),
 		car.condition,
 		format_number(car.mileage)
 	]

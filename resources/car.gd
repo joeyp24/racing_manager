@@ -27,19 +27,9 @@ class_name Car
 
 
 func ensure_standard_parts() -> void:
-	var missing_types: Array[String] = []
 	for part_type in CarPart.PART_TYPES:
 		if get_part(part_type) == null:
-			missing_types.append(part_type)
-	# Legacy cars stored one performance value. Distribute it across their factory
-	# parts so old saves retain the same baseline in the part-points model.
-	var existing_base := get_base_performance_points()
-	var remaining := maxi(missing_types.size(), performance - existing_base)
-	for index in missing_types.size():
-		var slots_left := missing_types.size() - index
-		var points := maxi(1, roundi(float(remaining) / float(slots_left)))
-		installed_parts.append(PartCatalog.create_standard_part(missing_types[index], points))
-		remaining -= points
+			installed_parts.append(PartCatalog.create_standard_part(part_type))
 
 
 func get_part(part_type: String) -> CarPart:
@@ -64,20 +54,18 @@ func get_base_performance_points() -> int:
 	var total := 0
 	for part in installed_parts:
 		if part != null:
-			total += part.base_performance_points + part.performance_bonus
+			total += part.base_performance_points
 	return total
 
 
-func get_total_performance(team: Team = null) -> int:
-	var total := 0
+func get_total_performance_points(team: Team = null) -> int:
+	if team != null:
+		return team.calculate_car_performance(self).displayed_points
+	var raw_total := 0.0
 	for part in installed_parts:
-		if part == null:
-			continue
-		if team == null:
-			total += part.get_conditioned_performance_points()
-		else:
-			total += int(team.get_part_performance_breakdown(part).get("total", 0))
-	return total
+		if part != null:
+			raw_total += part.get_condition_adjusted_points()
+	return roundi(raw_total)
 
 
 func get_race_attributes() -> Dictionary:

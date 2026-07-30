@@ -39,7 +39,7 @@ static func get_recommended_car(team: Team, series_id: String = "") -> Car:
 		var car := car_value as Car
 		if car == null or not is_car_eligible(car, series_id):
 			continue
-		var score := car.get_total_performance(team) + car.condition
+		var score := car.get_total_performance_points(team) + car.condition
 		if score > best_score:
 			best_score = score
 			best_car = car
@@ -83,7 +83,7 @@ static func _car_check(team: Team, race: Race, selected_car: Car) -> Dictionary:
 	if car.condition < 70 or worn_parts > 0:
 		var reliability_penalty := maxi(1, roundi(float(70 - mini(car.condition, 70)) * 0.25) + worn_parts * 2)
 		return _check(SUBOPTIMAL, "CAR CONDITION", "%s is at %d%% condition; estimated reliability penalty is %d%%." % [car.name, car.condition, reliability_penalty], "Open Garage", "garage", "%d worn components" % worn_parts)
-	return _check(READY, "ELIGIBLE CAR", "%s is fully equipped and at %d%% condition." % [car.name, car.condition], "", "", "Performance points %d" % car.get_total_performance(team))
+	return _check(READY, "ELIGIBLE CAR", "%s is fully equipped and at %d%% condition." % [car.name, car.condition], "", "", "Performance points %d" % car.get_total_performance_points(team))
 
 
 static func _staff_check(team: Team) -> Dictionary:

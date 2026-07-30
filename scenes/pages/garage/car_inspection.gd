@@ -7,6 +7,7 @@ const REPAIR_VALUE_PERCENTAGE_PER_POINT: float = 0.001
 @onready var car_name_label: Label = %car_name_label
 @onready var details_label: Label = %details_label
 @onready var performance_points_label: Label = %performance_points_label
+@onready var car_modifiers_label: Label = %car_modifiers_label
 @onready var parts_container: VBoxContainer = %parts_container
 @onready var inventory_title_label: Label = %inventory_title_label
 @onready var inventory_container: VBoxContainer = %inventory_container
@@ -39,7 +40,12 @@ func display_car() -> void:
 	if car == null:
 		return
 	car_name_label.text = car.name
-	performance_points_label.text = "%d PERFORMANCE POINTS" % car.get_total_performance(GameManager.team)
+	var car_result := GameManager.team.calculate_car_performance(car)
+	performance_points_label.text = "%d PERFORMANCE POINTS" % car_result.displayed_points
+	var car_modifier_text: Array[String] = []
+	for modifier in car_result.car_modifiers:
+		car_modifier_text.append("%s %s" % [modifier.label, format_raw_points(modifier.raw_points)])
+	car_modifiers_label.text = "Car Modifiers: %s" % ("None" if car_modifier_text.is_empty() else "  •  ".join(car_modifier_text))
 	details_label.text = "%d %s %s  •  Parts base: %d PP  •  Condition: %d%%\nMileage: %s  •  Value: $%s" % [car.year, car.manufacturer, car.model, car.get_base_performance_points(), car.condition, format_number(car.mileage), format_number(car.value)]
 	rename_line_edit.text = car.name
 	sell_button.text = "Sell Car ($%s)" % format_number(car.value)
@@ -54,9 +60,9 @@ func refresh_parts() -> void:
 	var car: Car = GameManager.selected_car
 	for part_type in CarPart.PART_TYPES:
 		var part: CarPart = car.get_part(part_type)
-		var breakdown := GameManager.team.get_part_performance_breakdown(part)
+		var breakdown := GameManager.team.calculate_part_performance(part)
 		var button := Button.new()
-		button.text = "%s   %d PP\n%s\n%s" % [part_type, int(breakdown.total), part.get_summary(), format_performance_breakdown(breakdown)]
+		button.text = "%s   %d PP\n%s\n%s" % [part_type, breakdown.displayed_points, part.get_summary(), format_performance_breakdown(breakdown)]
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.tooltip_text = "Choose a replacement %s" % part_type.to_lower()
 		button.pressed.connect(show_part_inventory.bind(part_type))
@@ -77,8 +83,8 @@ func show_part_inventory(part_type: String) -> void:
 	for part in available_parts:
 		var row := HBoxContainer.new()
 		var label := Label.new()
-		var breakdown := GameManager.team.get_part_performance_breakdown(part)
-		label.text = "%d PP  •  Base %d PP\n%s\n%s  •  Sell $%s" % [int(breakdown.total), int(breakdown.base), part.get_summary(), format_performance_breakdown(breakdown), format_number(part.sale_price)]
+		var breakdown := GameManager.team.calculate_part_performance(part)
+		label.text = "%d PP  •  Base %d PP\n%s\n%s  •  Sell $%s" % [breakdown.displayed_points, breakdown.base_points, part.get_summary(), format_performance_breakdown(breakdown), format_number(part.sale_price)]
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var install_button := Button.new()
 		install_button.text = "Install"
@@ -186,12 +192,16 @@ func clear_container(container: Node) -> void:
 		child.queue_free()
 
 
-func format_performance_breakdown(breakdown: Dictionary) -> String:
-	var details: Array[String] = ["Base %d PP" % int(breakdown.get("base", 0))]
-	for modifier in breakdown.get("modifiers", []):
-		var points := int(modifier.get("points", 0))
-		details.append("%s %s%d PP%s" % [str(modifier.get("label", "Modifier")), "+" if points >= 0 else "", points, " (%s)" % modifier.detail if modifier.has("detail") else ""])
+func format_performance_breakdown(breakdown: PartPerformanceResult) -> String:
+	var details: Array[String] = ["Base %d PP" % breakdown.base_points]
+	for modifier in breakdown.modifiers:
+		var percent_detail := " (+%.1f%%)" % modifier.raw_percent if modifier.raw_percent != 0.0 else ""
+		details.append("%s %s%s" % [modifier.label, format_raw_points(modifier.raw_points), percent_detail])
 	return "  •  ".join(details)
+
+
+func format_raw_points(points: float) -> String:
+	return "%+.2f PP" % points if absf(points) < 1.0 else "%+.1f PP" % points
 
 
 func format_number(number: int) -> String:

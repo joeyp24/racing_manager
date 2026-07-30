@@ -25,11 +25,14 @@ def test_car_performance_uses_part_points_and_explains_modifiers():
     garage = (ROOT / "scenes/pages/garage/garage_bay.gd").read_text()
     assert "base_performance_points" in part
     assert "func get_base_performance_points()" in car
-    assert "func get_part_performance_breakdown" in team
+    assert "func calculate_part_performance" in team
+    assert "func calculate_car_performance" in team
     for source in ("Engineering department", "Engineering staff", "Crew chief", "Wind tunnel", "Secret department"):
         assert source in team
     assert "format_performance_breakdown" in inspection
     assert "PERFORMANCE POINTS" in inspection and "PERFORMANCE POINTS" in garage
+    assert "get_total_performance(" not in car
+    assert "performance_bonus)" not in part
 def test_save_is_versioned_verified_and_atomic():
     text = (ROOT / "scripts/save_manager.gd").read_text()
     assert "CURRENT_SAVE_FORMAT_VERSION" in text; assert "temporary_resource" in text

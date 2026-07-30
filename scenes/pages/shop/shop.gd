@@ -29,20 +29,39 @@ func refresh_shop() -> void:
 		title.text = "%s — %s" % [part.part_type, part.part_name]
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		var details := Label.new()
-		details.text = "%s tier\n%s\nPerformance +%d at %d%% condition" % [part.tier, part.get_effect_text(), part.get_effective_performance_bonus(), part.condition]
+		details.text = "%s tier  •  %s" % [part.tier, part.get_effect_text()]
+		var pp_result := GameManager.team.calculate_part_performance(part)
+		var pp_bubble := PanelContainer.new()
+		var pp_label := Label.new()
+		pp_label.add_theme_font_size_override("font_size", 12)
+		pp_label.text = "%d base PP\n%.1f PP at %d%% condition\n%d effective PP with current team" % [part.base_performance_points, part.get_condition_adjusted_points(), part.condition, pp_result.displayed_points]
+		var installed := find_installed_part(part.part_type)
+		if installed != null:
+			var installed_result := GameManager.team.calculate_part_performance(installed)
+			pp_label.text += "\nInstalled: %d effective PP  •  Change: %+d PP" % [installed_result.displayed_points, pp_result.displayed_points - installed_result.displayed_points]
+		pp_bubble.add_child(pp_label)
 		var buy_button := Button.new()
 		buy_button.text = "Buy — $%s" % format_number(purchase_cost)
 		buy_button.disabled = GameManager.team.money < purchase_cost
-		details.tooltip_text = "Effective bonus already includes condition. Compare the +%d shown here with the same part type installed in your garage." % part.get_effective_performance_bonus()
+		details.tooltip_text = "Part attributes are separate from Performance Points. PP includes condition and current part-level team modifiers."
 		buy_button.tooltip_text = "Disabled: you need $%s more." % format_number(purchase_cost - GameManager.team.money) if buy_button.disabled else "Buy now; install and compare it from Car Inspection."
 		buy_button.pressed.connect(_on_buy_pressed.bind(part))
 		content.add_child(title)
 		content.add_child(details)
+		content.add_child(pp_bubble)
 		content.add_child(buy_button)
 		margin.add_child(content)
 		panel.add_child(margin)
 		offers_container.add_child(panel)
 	inventory_label.text = "Parts Inventory: %d item%s" % [GameManager.team.parts_inventory.size(), "" if GameManager.team.parts_inventory.size() == 1 else "s"]
+
+
+func find_installed_part(part_type: String) -> CarPart:
+	for car_value in GameManager.team.cars:
+		var car := car_value as Car
+		if car != null and car.get_part(part_type) != null:
+			return car.get_part(part_type)
+	return null
 
 
 func _on_buy_pressed(part: CarPart) -> void:

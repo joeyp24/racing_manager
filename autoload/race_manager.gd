@@ -521,7 +521,7 @@ func _populate_decisive_factors(result: RaceResult, simulation: RaceSimulation =
 		+ (float(result.player_driver.aggression) - 50.0) * 0.03
 	)
 	result.car_factor = (
-		(float(result.player_car.get_total_performance(GameManager.team)) - 50.0) * 0.55
+		(float(result.player_car.get_total_performance_points(GameManager.team)) - 50.0) * 0.55
 		+ (float(result.player_car.condition) - 75.0) * 0.08
 	)
 	result.setup_factor = result.setup_bonus
@@ -553,7 +553,7 @@ func calculate_player_score(
 	selected_race: Race = null
 ) -> float:
 	var strategy := get_strategy(selected_strategy)
-	var car_performance := float(player_car.get_total_performance(GameManager.team))
+	var car_performance := float(player_car.get_total_performance_points(GameManager.team))
 	var team := GameManager.team
 	# A stock car should run in the midfield; several meaningful part upgrades
 	# are required before its raw pace matches the established front-runners.

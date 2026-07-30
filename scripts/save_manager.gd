@@ -92,7 +92,10 @@ static func load_game(slot_id: String) -> Team:
 			push_error("Save slot '%s' is corrupt and no valid backup was found." % slot_id)
 			return null
 	var team := loaded as Team
+	var needs_resave := team.save_format_version < Team.CURRENT_SAVE_FORMAT_VERSION
 	_repair_and_migrate(team)
+	if needs_resave:
+		save_game(team, slot_id)
 	return team
 
 
@@ -102,6 +105,8 @@ static func _repair_and_migrate(team: Team) -> void:
 		# V3 and older stored only the local championship in exported fields.
 		team.series_progress.erase("local_short_track")
 		team.current_series_id = "local_short_track"
+	if team.save_format_version < 8:
+		_migrate_performance_points(team)
 	team.ensure_series_progress(team.current_series_id)
 	team.load_series_progress(team.current_series_id)
 	team.ensure_departments()
@@ -114,6 +119,34 @@ static func _repair_and_migrate(team: Team) -> void:
 	team.ensure_race_teams()
 	team.ensure_race_week_progression()
 	team.save_format_version = Team.CURRENT_SAVE_FORMAT_VERSION
+
+
+static func _migrate_performance_points(team: Team) -> void:
+	# V8 makes installed part base PP authoritative. A legacy car's old rating is
+	# used only once to build a deterministic six-part factory profile.
+	for car_value in team.cars:
+		var car := car_value as Car
+		if car == null:
+			continue
+		for part in car.installed_parts:
+			if part != null:
+				part.base_performance_points += part.performance_bonus
+				part.performance_bonus = 0
+		var missing_types: Array[String] = []
+		for part_type in CarPart.PART_TYPES:
+			if car.get_part(part_type) == null:
+				missing_types.append(part_type)
+		var profile_total := maxi(CarPart.PART_TYPES.size(), car.performance)
+		var missing_total := maxi(missing_types.size(), profile_total - car.get_base_performance_points())
+		for index in missing_types.size():
+			var slots_left := missing_types.size() - index
+			var points := maxi(1, floori(float(missing_total) / float(slots_left)))
+			car.installed_parts.append(PartCatalog.create_standard_part(missing_types[index], points))
+			missing_total -= points
+	for part in team.parts_inventory:
+		if part != null:
+			part.base_performance_points += part.performance_bonus
+			part.performance_bonus = 0
 
 
 static func get_save_slots() -> Array[Dictionary]:
