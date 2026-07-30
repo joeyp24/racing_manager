@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Team" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resources/team.gd" id="1"]
+[ext_resource type="Script" path="res://resources/car.gd" id="2"]
+[ext_resource type="Script" path="res://resources/car_part.gd" id="3"]
+
+[sub_resource type="Resource" id="Car_1"]
+script = ExtResource("2")
+name = "Legacy Empty Car"
+performance = 60
+
+[resource]
+script = ExtResource("1")
+save_format_version = 7
+cars = Array([SubResource("Car_1"), null, null, null, null, null])

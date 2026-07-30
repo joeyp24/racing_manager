@@ -33,6 +33,46 @@ def test_car_performance_uses_part_points_and_explains_modifiers():
     assert "PERFORMANCE POINTS" in inspection and "PERFORMANCE POINTS" in garage
     assert "get_total_performance(" not in car
     assert "performance_bonus)" not in part
+
+
+def test_pp_calculator_is_typed_and_shop_previews_whole_car_delta():
+    calculator = (ROOT / "resources/performance_point_calculator.gd").read_text()
+    context = (ROOT / "resources/performance_point_context.gd").read_text()
+    modifier = (ROOT / "resources/performance_point_modifier.gd").read_text()
+    part_result = (ROOT / "resources/part_performance_result.gd").read_text()
+    shop = (ROOT / "scenes/pages/shop/shop.gd").read_text()
+    assert "class_name PerformancePointCalculator" in calculator
+    assert "class_name PerformancePointContext" in context
+    assert "enum Scope" in modifier and "enum Operation" in modifier
+    assert "target_part_types" in modifier and "Duplicate Performance Point modifier" in calculator
+    assert "displayed_points" not in part_result
+    assert "preview_result.displayed_points - current_result.displayed_points" in shop
+    assert "find_installed_part" not in shop
+
+
+def test_live_car_creation_does_not_use_legacy_performance():
+    series = (ROOT / "resources/series_catalog.gd").read_text()
+    dealership = (ROOT / "scenes/pages/dealership/dealership.gd").read_text()
+    car = (ROOT / "resources/car.gd").read_text()
+    assert "create_factory_parts" in series
+    assert ".performance" not in series and ".performance" not in dealership
+    assert "legacy_performance" in car
+
+
+def test_player_pp_consumers_use_the_authoritative_car_result():
+    car = (ROOT / "resources/car.gd").read_text()
+    assert "team.calculate_car_performance(self).displayed_points" in car
+    consumers = [
+        "resources/races/race_readiness.gd",
+        "scenes/pages/race_entry/race_entry.gd",
+        "scenes/pages/race_weekend/race_weekend.gd",
+    ]
+    for relative_path in consumers:
+        assert "get_total_performance_points" in (ROOT / relative_path).read_text(), relative_path
+    inspection = (ROOT / "scenes/pages/garage/car_inspection.gd").read_text()
+    garage = (ROOT / "scenes/pages/garage/garage_bay.gd").read_text()
+    assert "calculate_car_performance(car)" in inspection
+    assert "get_total_performance_points" in garage
 def test_save_is_versioned_verified_and_atomic():
     text = (ROOT / "scripts/save_manager.gd").read_text()
     assert "CURRENT_SAVE_FORMAT_VERSION" in text; assert "temporary_resource" in text

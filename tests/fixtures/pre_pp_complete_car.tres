@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="Team" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://resources/team.gd" id="1"]
+[ext_resource type="Script" path="res://resources/car.gd" id="2"]
+[ext_resource type="Script" path="res://resources/car_part.gd" id="3"]
+
+[sub_resource type="Resource" id="Part_1"]
+script = ExtResource("3")
+part_name = "Legacy Engine"
+part_type = "Engine"
+base_performance_points = 8
+performance_bonus = 2
+
+[sub_resource type="Resource" id="Part_2"]
+script = ExtResource("3")
+part_name = "Legacy Suspension"
+part_type = "Suspension"
+base_performance_points = 8
+performance_bonus = 0
+
+[sub_resource type="Resource" id="Part_3"]
+script = ExtResource("3")
+part_name = "Legacy Brakes"
+part_type = "Brakes"
+base_performance_points = 8
+performance_bonus = 0
+
+[sub_resource type="Resource" id="Part_4"]
+script = ExtResource("3")
+part_name = "Legacy Chassis"
+part_type = "Chassis"
+base_performance_points = 8
+performance_bonus = 0
+
+[sub_resource type="Resource" id="Part_5"]
+script = ExtResource("3")
+part_name = "Legacy Drivetrain"
+part_type = "Drivetrain"
+base_performance_points = 8
+performance_bonus = 0
+
+[sub_resource type="Resource" id="Part_6"]
+script = ExtResource("3")
+part_name = "Legacy Body"
+part_type = "Body"
+base_performance_points = 8
+performance_bonus = 0
+
+[sub_resource type="Resource" id="Car_1"]
+script = ExtResource("2")
+name = "Legacy Complete Car"
+performance = 60
+installed_parts = Array[ExtResource("3")]([SubResource("Part_1"), SubResource("Part_2"), SubResource("Part_3"), SubResource("Part_4"), SubResource("Part_5"), SubResource("Part_6")])
+
+[resource]
+script = ExtResource("1")
+save_format_version = 7
+cars = Array([SubResource("Car_1"), null, null, null, null, null])

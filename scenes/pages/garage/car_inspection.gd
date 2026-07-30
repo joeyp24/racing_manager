@@ -44,7 +44,7 @@ func display_car() -> void:
 	performance_points_label.text = "%d PERFORMANCE POINTS" % car_result.displayed_points
 	var car_modifier_text: Array[String] = []
 	for modifier in car_result.car_modifiers:
-		car_modifier_text.append("%s %s" % [modifier.label, format_raw_points(modifier.raw_points)])
+		car_modifier_text.append("%s %s" % [modifier.label, PerformancePointFormatter.format_modifier_points(modifier)])
 	car_modifiers_label.text = "Car Modifiers: %s" % ("None" if car_modifier_text.is_empty() else "  •  ".join(car_modifier_text))
 	details_label.text = "%d %s %s  •  Parts base: %d PP  •  Condition: %d%%\nMileage: %s  •  Value: $%s" % [car.year, car.manufacturer, car.model, car.get_base_performance_points(), car.condition, format_number(car.mileage), format_number(car.value)]
 	rename_line_edit.text = car.name
@@ -62,9 +62,9 @@ func refresh_parts() -> void:
 		var part: CarPart = car.get_part(part_type)
 		var breakdown := GameManager.team.calculate_part_performance(part)
 		var button := Button.new()
-		button.text = "%s   %d PP\n%s\n%s" % [part_type, breakdown.displayed_points, part.get_summary(), format_performance_breakdown(breakdown)]
+		button.text = "%s   %s\n%s" % [part_type, PerformancePointFormatter.format_part_points(breakdown), part.get_summary()]
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		button.tooltip_text = "Choose a replacement %s" % part_type.to_lower()
+		button.tooltip_text = "%s\nChoose a replacement %s" % [format_performance_breakdown(breakdown), part_type.to_lower()]
 		button.pressed.connect(show_part_inventory.bind(part_type))
 		parts_container.add_child(button)
 
@@ -84,7 +84,7 @@ func show_part_inventory(part_type: String) -> void:
 		var row := HBoxContainer.new()
 		var label := Label.new()
 		var breakdown := GameManager.team.calculate_part_performance(part)
-		label.text = "%d PP  •  Base %d PP\n%s\n%s  •  Sell $%s" % [breakdown.displayed_points, breakdown.base_points, part.get_summary(), format_performance_breakdown(breakdown), format_number(part.sale_price)]
+		label.text = "%s  •  Base %d PP\n%s\n%s  •  Sell $%s" % [PerformancePointFormatter.format_part_points(breakdown), breakdown.base_points, part.get_summary(), format_performance_breakdown(breakdown), format_number(part.sale_price)]
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var install_button := Button.new()
 		install_button.text = "Install"
@@ -195,13 +195,9 @@ func clear_container(container: Node) -> void:
 func format_performance_breakdown(breakdown: PartPerformanceResult) -> String:
 	var details: Array[String] = ["Base %d PP" % breakdown.base_points]
 	for modifier in breakdown.modifiers:
-		var percent_detail := " (+%.1f%%)" % modifier.raw_percent if modifier.raw_percent != 0.0 else ""
-		details.append("%s %s%s" % [modifier.label, format_raw_points(modifier.raw_points), percent_detail])
+		var percent_detail := " (+%.1f%%)" % modifier.value if modifier.operation != PerformancePointModifier.Operation.FLAT_POINTS else ""
+		details.append("%s %s%s" % [modifier.label, PerformancePointFormatter.format_modifier_points(modifier), percent_detail])
 	return "  •  ".join(details)
-
-
-func format_raw_points(points: float) -> String:
-	return "%+.2f PP" % points if absf(points) < 1.0 else "%+.1f PP" % points
 
 
 func format_number(number: int) -> String:
