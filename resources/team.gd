@@ -20,6 +20,7 @@ const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
 const BASE_SCOUTING_HOURS: int = 20
 const SCOUTING_HOURS_PER_LEVEL: int = 10
+const CAREER_EXPANSION_MANAGER_PATH: String = "res://resources/career_expansion_manager.gd"
 const SCOUTING_ACTIONS: Dictionary = {
 	"Current ability": {"hours": 10, "reveal": "ratings"},
 	"Potential": {"hours": 15, "reveal": "potential"},
@@ -142,7 +143,15 @@ func _init() -> void:
 	ensure_race_teams()
 	ensure_car_parts()
 	ensure_staff_market()
-	CareerExpansionManager.ensure_state(self)
+	_call_career_expansion_manager(&"ensure_state", [self])
+
+
+func _call_career_expansion_manager(method: StringName, arguments: Array) -> Variant:
+	var manager_script: Script = load(CAREER_EXPANSION_MANAGER_PATH) as Script
+	if manager_script == null:
+		push_error("Could not load the career expansion manager.")
+		return null
+	return manager_script.callv(method, arguments)
 
 
 func set_career_difficulty(value: String) -> void:
@@ -1559,7 +1568,9 @@ func advance_to_date(target_day: int) -> Array[String]:
 	week_advance_required = false
 	process_driver_availability()
 	ensure_scouting_hours()
-	summaries.append_array(CareerExpansionManager.process_day(self, elapsed_days))
+	var career_summaries: Variant = _call_career_expansion_manager(&"process_day", [self, elapsed_days])
+	if career_summaries is Array:
+		summaries.append_array(career_summaries)
 	emit_changed()
 	return summaries
 
@@ -1580,7 +1591,7 @@ func manufacture_part(engineer: StaffMember, part_type: String) -> CarPart:
 		return null
 	money -= cost
 	var part := PartCatalog.create_manufactured_part(part_type, engineer)
-	CareerExpansionManager.apply_manufacturing_quality(self, part)
+	_call_career_expansion_manager(&"apply_manufacturing_quality", [self, part])
 	parts_inventory.append(part)
 	record_finance("Workshop", -cost, "Manufactured %s" % part.part_name)
 	emit_changed()

@@ -28,6 +28,17 @@ const FACILITIES: Dictionary = {
 const REGIONS: Array[String] = ["North America", "South America", "Europe", "Asia-Pacific", "Africa"]
 const FIRST_NAMES: Array[String] = ["Alex", "Maya", "Jordan", "Emi", "Riley", "Luca", "Noor", "Sam", "Toni", "Kai"]
 const LAST_NAMES: Array[String] = ["Mercer", "Okafor", "Sato", "Varela", "Novak", "Bennett", "Kim", "Dubois", "Costa", "Singh"]
+const CAREER_SERIES_IDS: Array[String] = [
+	"local_short_track",
+	"regional_short_track",
+	"national_short_track",
+	"continental_east_west",
+	"continental_national",
+	"national_truck",
+	"national_grand",
+	"premier_cup"
+]
+const SEASON_END_DAY: int = 334
 
 
 static func defaults() -> Dictionary:
@@ -96,7 +107,7 @@ static func defaults() -> Dictionary:
 	}
 
 
-static func ensure_state(team: Team) -> Dictionary:
+static func ensure_state(team) -> Dictionary:
 	if team.career_state == null:
 		team.career_state = {}
 	_merge_defaults(team.career_state, defaults())
@@ -121,7 +132,7 @@ static func _merge_defaults(target: Dictionary, template: Dictionary) -> void:
 			_merge_defaults(target[key], fallback)
 
 
-static func add_notification(team: Team, category: String, title: String, body: String, urgent: bool = false) -> void:
+static func add_notification(team, category: String, title: String, body: String, urgent: bool = false) -> void:
 	var state := ensure_state(team)
 	var preference_key: String = str({
 		"Contracts":"Contracts", "Driver market":"Contracts", "Medical":"Contracts",
@@ -146,14 +157,14 @@ static func add_notification(team: Team, category: String, title: String, body: 
 		notifications.resize(MAX_NOTIFICATIONS)
 
 
-static func set_notification_preference(team: Team, category: String, enabled: bool) -> void:
+static func set_notification_preference(team, category: String, enabled: bool) -> void:
 	var preferences := ensure_state(team).notification_preferences as Dictionary
 	if preferences.has(category):
 		preferences[category] = enabled
 		team.emit_changed()
 
 
-static func _update_tutorial_progress(team: Team) -> void:
+static func _update_tutorial_progress(team) -> void:
 	var tutorial := team.career_state.get("tutorial", {}) as Dictionary
 	if not bool(tutorial.get("enabled", true)):
 		return
@@ -162,7 +173,7 @@ static func _update_tutorial_progress(team: Team) -> void:
 		completed.append("hire_driver")
 	var has_car := false
 	for car_value in team.cars:
-		if car_value is Car:
+		if car_value != null:
 			has_car = true
 			break
 	if has_car and not completed.has("prepare_car"):
@@ -175,7 +186,7 @@ static func _update_tutorial_progress(team: Team) -> void:
 	tutorial["step"] = completed.size()
 
 
-static func add_inbox_item(team: Team, category: String, subject: String, body: String, choices: Array = []) -> void:
+static func add_inbox_item(team, category: String, subject: String, body: String, choices: Array = []) -> void:
 	var state := ensure_state(team)
 	var inbox := state.inbox as Array
 	inbox.push_front({
@@ -194,7 +205,7 @@ static func add_inbox_item(team: Team, category: String, subject: String, body: 
 	add_notification(team, category, subject, body, not choices.is_empty())
 
 
-static func resolve_inbox(team: Team, item_id: String, choice_index: int) -> bool:
+static func resolve_inbox(team, item_id: String, choice_index: int) -> bool:
 	var state := ensure_state(team)
 	for item_value in state.inbox:
 		var item := item_value as Dictionary
@@ -216,7 +227,7 @@ static func resolve_inbox(team: Team, item_id: String, choice_index: int) -> boo
 	return false
 
 
-static func _apply_effects(team: Team, effects: Dictionary) -> void:
+static func _apply_effects(team, effects: Dictionary) -> void:
 	var state := ensure_state(team)
 	var board := state.board as Dictionary
 	for key in effects:
@@ -245,7 +256,7 @@ static func _apply_effects(team: Team, effects: Dictionary) -> void:
 					rival.intensity = clampi(int(rival.intensity) + amount, 0, 100)
 
 
-static func _ensure_board_targets(team: Team) -> void:
+static func _ensure_board_targets(team) -> void:
 	var board := team.career_state.get("board", {}) as Dictionary
 	var targets := board.get("targets", []) as Array
 	if not targets.is_empty():
@@ -259,7 +270,7 @@ static func _ensure_board_targets(team: Team) -> void:
 	board["targets"] = targets
 
 
-static func process_day(team: Team, elapsed_days: int) -> Array[String]:
+static func process_day(team, elapsed_days: int) -> Array[String]:
 	var state := ensure_state(team)
 	var summaries: Array[String] = []
 	_process_rd(team, elapsed_days, summaries)
@@ -274,7 +285,7 @@ static func process_day(team: Team, elapsed_days: int) -> Array[String]:
 	return summaries
 
 
-static func _process_rd(team: Team, elapsed_days: int, summaries: Array[String]) -> void:
+static func _process_rd(team, elapsed_days: int, summaries: Array[String]) -> void:
 	var rd := team.career_state.rd as Dictionary
 	var projects := rd.projects as Array
 	var finished: Array = []
@@ -296,7 +307,7 @@ static func _process_rd(team: Team, elapsed_days: int, summaries: Array[String])
 		add_inbox_item(team, "Engineering", "R&D programme completed", "%s is ready for the race cars." % node.get("name", node_id))
 
 
-static func start_rd_project(team: Team, node_id: String) -> bool:
+static func start_rd_project(team, node_id: String) -> bool:
 	var state := ensure_state(team)
 	if not RND_NODES.has(node_id):
 		return false
@@ -310,7 +321,7 @@ static func start_rd_project(team: Team, node_id: String) -> bool:
 	var required := str(node.get("requires", ""))
 	if not required.is_empty() and not (rd.completed as Array).has(required):
 		return false
-	var cost := team.get_discounted_cost(int(node.cost))
+	var cost: int = int(team.get_discounted_cost(int(node.cost)))
 	if team.money < cost:
 		return false
 	team.money -= cost
@@ -322,7 +333,7 @@ static func start_rd_project(team: Team, node_id: String) -> bool:
 	return true
 
 
-static func set_car_design(team: Team, philosophy: String, speed: int, handling: int, endurance: int) -> bool:
+static func set_car_design(team, philosophy: String, speed: int, handling: int, endurance: int) -> bool:
 	if speed + handling + endurance != 100 or mini(speed, mini(handling, endurance)) < 10:
 		return false
 	var design := ensure_state(team).car_design as Dictionary
@@ -334,7 +345,7 @@ static func set_car_design(team: Team, philosophy: String, speed: int, handling:
 	return true
 
 
-static func get_car_design_modifiers(team: Team) -> Dictionary:
+static func get_car_design_modifiers(team) -> Dictionary:
 	var design := ensure_state(team).car_design as Dictionary
 	return {
 		"power":(float(design.speed) - 33.0) * 0.06,
@@ -344,7 +355,7 @@ static func get_car_design_modifiers(team: Team) -> Dictionary:
 	}
 
 
-static func apply_manufacturing_quality(team: Team, part: CarPart) -> String:
+static func apply_manufacturing_quality(team, part: CarPart) -> String:
 	var manufacturing := ensure_state(team).manufacturing as Dictionary
 	var quality := clampi(int(manufacturing.quality) + get_facility_level(team, "quality_lab") * 5, 35, 95)
 	var roll := randi_range(1, 100)
@@ -364,7 +375,7 @@ static func apply_manufacturing_quality(team: Team, part: CarPart) -> String:
 	return "Prototype performance gain" if part.is_prototype else "Passed quality control"
 
 
-static func _process_construction(team: Team, elapsed_days: int, summaries: Array[String]) -> void:
+static func _process_construction(team, elapsed_days: int, summaries: Array[String]) -> void:
 	var construction := team.career_state.construction as Array
 	var completed: Array = []
 	for value in construction:
@@ -381,7 +392,7 @@ static func _process_construction(team: Team, elapsed_days: int, summaries: Arra
 		add_inbox_item(team, "Headquarters", "Construction complete", summaries[-1])
 
 
-static func start_facility_upgrade(team: Team, facility_id: String) -> bool:
+static func start_facility_upgrade(team, facility_id: String) -> bool:
 	var state := ensure_state(team)
 	if not FACILITIES.has(facility_id):
 		return false
@@ -402,14 +413,14 @@ static func start_facility_upgrade(team: Team, facility_id: String) -> bool:
 	return true
 
 
-static func get_facility_level(team: Team, facility_id: String) -> int:
+static func get_facility_level(team, facility_id: String) -> int:
 	if team == null or not team.career_state.has("facilities"):
 		return 0
 	var facilities := team.career_state.facilities as Dictionary
 	return int((facilities.get(facility_id, {}) as Dictionary).get("level", 0))
 
 
-static func _apply_upkeep(team: Team, elapsed_days: int, summaries: Array[String]) -> void:
+static func _apply_upkeep(team, elapsed_days: int, summaries: Array[String]) -> void:
 	if elapsed_days <= 0:
 		return
 	var upkeep := 0
@@ -423,14 +434,14 @@ static func _apply_upkeep(team: Team, elapsed_days: int, summaries: Array[String
 		summaries.append("Facility upkeep: $%s" % weekly_cost)
 
 
-static func _ensure_academy_prospects(team: Team) -> void:
+static func _ensure_academy_prospects(team) -> void:
 	var academy := team.career_state.get("academy", {}) as Dictionary
 	var prospects := academy.get("prospects", []) as Array
 	while prospects.size() < 6:
 		prospects.append(_generate_prospect(team, prospects.size()))
 
 
-static func _generate_prospect(team: Team, offset: int) -> Dictionary:
+static func _generate_prospect(team, offset: int) -> Dictionary:
 	var seed_value := hash("%s:%d:%d" % [team.team_name, team.current_season_year, offset])
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
@@ -453,7 +464,7 @@ static func _generate_prospect(team: Team, offset: int) -> Dictionary:
 	}
 
 
-static func recruit_academy_prospect(team: Team, prospect_id: String) -> bool:
+static func recruit_academy_prospect(team, prospect_id: String) -> bool:
 	var academy := ensure_state(team).academy as Dictionary
 	var enrolled := academy.enrolled as Array
 	if enrolled.size() >= int(academy.slots):
@@ -476,7 +487,7 @@ static func recruit_academy_prospect(team: Team, prospect_id: String) -> bool:
 	return false
 
 
-static func _process_academy(team: Team, elapsed_days: int, summaries: Array[String]) -> void:
+static func _process_academy(team, elapsed_days: int, summaries: Array[String]) -> void:
 	if elapsed_days <= 0:
 		return
 	var academy := team.career_state.academy as Dictionary
@@ -490,7 +501,7 @@ static func _process_academy(team: Team, elapsed_days: int, summaries: Array[Str
 			summaries.append("%s improved in the junior programme" % prospect.name)
 
 
-static func _process_scouting_network(team: Team, elapsed_days: int, summaries: Array[String]) -> void:
+static func _process_scouting_network(team, elapsed_days: int, summaries: Array[String]) -> void:
 	if elapsed_days < 7:
 		return
 	var network := team.career_state.scouting_network as Dictionary
@@ -510,10 +521,10 @@ static func _process_scouting_network(team: Team, elapsed_days: int, summaries: 
 	add_inbox_item(team, "Scouting", "Regional discovery", "%s found %s, a young %s prospect with an uncertain ceiling." % [region, prospect.name, prospect.region])
 
 
-static func _generate_paddock_event(team: Team, elapsed_days: int) -> void:
+static func _generate_paddock_event(team, elapsed_days: int) -> void:
 	if elapsed_days < 7 or randf() > 0.22 * float(elapsed_days) / 7.0:
 		return
-	var contracted := team.get_contracted_drivers()
+	var contracted: Array[Driver] = team.get_contracted_drivers()
 	var event_index := randi_range(0, 2)
 	if event_index == 0 and not contracted.is_empty():
 		var driver: Driver = contracted[randi_range(0, contracted.size() - 1)]
@@ -533,7 +544,7 @@ static func _generate_paddock_event(team: Team, elapsed_days: int) -> void:
 		])
 
 
-static func promote_academy_driver(team: Team, prospect_id: String) -> Driver:
+static func promote_academy_driver(team, prospect_id: String) -> Driver:
 	var academy := ensure_state(team).academy as Dictionary
 	for value in academy.enrolled:
 		var prospect := value as Dictionary
@@ -558,7 +569,7 @@ static func promote_academy_driver(team: Team, prospect_id: String) -> Driver:
 	return null
 
 
-static func assign_scouting_region(team: Team, region: String) -> bool:
+static func assign_scouting_region(team, region: String) -> bool:
 	var network := ensure_state(team).scouting_network as Dictionary
 	if not (network.regions as Dictionary).has(region):
 		return false
@@ -569,7 +580,7 @@ static func assign_scouting_region(team: Team, region: String) -> bool:
 	return true
 
 
-static func upgrade_scouting_region(team: Team, region: String) -> bool:
+static func upgrade_scouting_region(team, region: String) -> bool:
 	var network := ensure_state(team).scouting_network as Dictionary
 	var regions := network.regions as Dictionary
 	if not regions.has(region):
@@ -587,7 +598,7 @@ static func upgrade_scouting_region(team: Team, region: String) -> bool:
 	return true
 
 
-static func get_uncertain_prospect_rating(team: Team, prospect: Dictionary) -> Dictionary:
+static func get_uncertain_prospect_rating(team, prospect: Dictionary) -> Dictionary:
 	var accuracy := int((ensure_state(team).scouting_network as Dictionary).accuracy)
 	var uncertainty := maxi(1, roundi(float(100 - accuracy) * 0.16))
 	return {
@@ -598,9 +609,9 @@ static func get_uncertain_prospect_rating(team: Team, prospect: Dictionary) -> D
 	}
 
 
-static func _ensure_relationships(team: Team) -> void:
+static func _ensure_relationships(team) -> void:
 	var relationships := team.career_state.get("relationships", {}) as Dictionary
-	var contracted := team.get_contracted_drivers()
+	var contracted: Array[Driver] = team.get_contracted_drivers()
 	for first_index in contracted.size():
 		for second_index in range(first_index + 1, contracted.size()):
 			var first: Driver = contracted[first_index]
@@ -610,7 +621,7 @@ static func _ensure_relationships(team: Team) -> void:
 				relationships[key] = {"score":55, "type":"Professional", "mentor":"", "incidents":0, "orders":0}
 
 
-static func _ensure_transfer_rivalries(team: Team) -> void:
+static func _ensure_transfer_rivalries(team) -> void:
 	var processed := team.career_state.get("processed_transfers", []) as Array
 	var rivalries := team.career_state.get("rivalries", {}) as Dictionary
 	for transaction_value in team.transfer_history:
@@ -633,7 +644,7 @@ static func _pair_key(first: String, second: String) -> String:
 	return "%s|%s" % [first, second] if first < second else "%s|%s" % [second, first]
 
 
-static func set_mentorship(team: Team, mentor_id: String, prospect_id: String) -> bool:
+static func set_mentorship(team, mentor_id: String, prospect_id: String) -> bool:
 	var relationships := ensure_state(team).relationships as Dictionary
 	var key := _pair_key(mentor_id, prospect_id)
 	if not relationships.has(key):
@@ -646,14 +657,14 @@ static func set_mentorship(team: Team, mentor_id: String, prospect_id: String) -
 	return true
 
 
-static func _process_injuries(team: Team, elapsed_days: int, summaries: Array[String]) -> void:
+static func _process_injuries(team, elapsed_days: int, summaries: Array[String]) -> void:
 	var injuries := team.career_state.injuries as Array
 	var recovered: Array = []
 	var recovery_bonus := get_facility_level(team, "medical_centre")
 	for value in injuries:
 		var injury := value as Dictionary
 		injury["days_remaining"] = maxi(0, int(injury.days_remaining) - elapsed_days - recovery_bonus)
-		var driver := team.get_driver_by_id(str(injury.driver_id))
+		var driver: Driver = team.get_driver_by_id(str(injury.driver_id))
 		if driver != null:
 			driver.unavailable_weeks = ceili(float(injury.days_remaining) / 7.0)
 		if int(injury.days_remaining) <= 0:
@@ -666,7 +677,7 @@ static func _process_injuries(team: Team, elapsed_days: int, summaries: Array[St
 		injuries.erase(injury)
 
 
-static func create_injury(team: Team, driver: Driver, severity: String = "Minor") -> void:
+static func create_injury(team, driver: Driver, severity: String = "Minor") -> void:
 	if driver == null:
 		return
 	var days: int = int({"Minor":7, "Moderate":21, "Serious":42}.get(severity, 7))
@@ -676,7 +687,7 @@ static func create_injury(team: Team, driver: Driver, severity: String = "Minor"
 	add_inbox_item(team, "Medical", "%s injury" % severity, "%s will miss approximately %d week(s). A reserve driver may be required." % [driver.driver_name, driver.unavailable_weeks])
 
 
-static func _ensure_staff_dynamics(team: Team) -> void:
+static func _ensure_staff_dynamics(team) -> void:
 	var dynamics := team.career_state.get("staff_dynamics", {}) as Dictionary
 	for member in team.staff:
 		if member.staff_id.is_empty():
@@ -685,7 +696,7 @@ static func _ensure_staff_dynamics(team: Team) -> void:
 			dynamics[member.staff_id] = {"loyalty":clampi(member.morale, 25, 90), "burnout":0, "conflict":"None", "successor":""}
 
 
-static func _process_staff(team: Team, elapsed_days: int, summaries: Array[String]) -> void:
+static func _process_staff(team, elapsed_days: int, summaries: Array[String]) -> void:
 	_ensure_staff_dynamics(team)
 	var dynamics := team.career_state.staff_dynamics as Dictionary
 	for member in team.staff:
@@ -711,7 +722,7 @@ static func _process_staff(team: Team, elapsed_days: int, summaries: Array[Strin
 			member.rival_interest = "High"
 
 
-static func set_advanced_contract(team: Team, driver: Driver, terms: Dictionary) -> bool:
+static func set_advanced_contract(team, driver: Driver, terms: Dictionary) -> bool:
 	if driver == null:
 		return false
 	driver.performance_bonus = maxi(0, int(terms.get("performance_bonus", driver.performance_bonus)))
@@ -727,7 +738,7 @@ static func set_advanced_contract(team: Team, driver: Driver, terms: Dictionary)
 	return true
 
 
-static func begin_manufacturer_partnership(team: Team, partner: String, support: int, exclusive: bool) -> bool:
+static func begin_manufacturer_partnership(team, partner: String, support: int, exclusive: bool) -> bool:
 	var cost := maxi(0, 8000 - support * 50)
 	if team.money < cost:
 		return false
@@ -743,7 +754,7 @@ static func begin_manufacturer_partnership(team: Team, partner: String, support:
 	return true
 
 
-static func run_preseason_test(team: Team, focus: String) -> Dictionary:
+static func run_preseason_test(team, focus: String) -> Dictionary:
 	var state := ensure_state(team)
 	var cost := 3200
 	if team.money < cost:
@@ -762,7 +773,7 @@ static func run_preseason_test(team: Team, focus: String) -> Dictionary:
 	return result
 
 
-static func process_race(team: Team, result: RaceResult, simulation: RaceSimulation = null) -> void:
+static func process_race(team, result, simulation = null) -> void:
 	var state := ensure_state(team)
 	var board := state.board as Dictionary
 	var finish_target := int(((board.targets as Array)[0] as Dictionary).target) if not (board.targets as Array).is_empty() else 8
@@ -788,7 +799,7 @@ static func process_race(team: Team, result: RaceResult, simulation: RaceSimulat
 	team.emit_changed()
 
 
-static func _update_board_progress(team: Team, result: RaceResult) -> void:
+static func _update_board_progress(team, result) -> void:
 	var targets := (team.career_state.board as Dictionary).targets as Array
 	for target_value in targets:
 		var target := target_value as Dictionary
@@ -804,9 +815,9 @@ static func _update_board_progress(team: Team, result: RaceResult) -> void:
 				target["complete"] = int(target.progress) >= int(target.target)
 
 
-static func _update_records(team: Team, result: RaceResult) -> void:
+static func _update_records(team, result) -> void:
 	var records := team.career_state.records as Dictionary
-	var track_id := result.race.track_name
+	var track_id: String = str(result.race.track_name)
 	var tracks := records.tracks as Dictionary
 	var track := tracks.get(track_id, {"starts":0, "wins":0, "poles":0, "best_finish":999, "best_lap":0.0}) as Dictionary
 	track.starts = int(track.starts) + 1
@@ -823,7 +834,7 @@ static func _update_records(team: Team, result: RaceResult) -> void:
 	series_records[result.race.series_id] = series
 
 
-static func _update_stats(team: Team, result: RaceResult) -> void:
+static func _update_stats(team, result) -> void:
 	var stats := team.career_state.stats as Dictionary
 	(stats.race_finishes as Array).append({"race":result.race.race_name, "finish":result.finishing_position, "start":result.starting_position, "season":team.current_season_year})
 	(stats.cash as Array).append(team.money)
@@ -834,7 +845,7 @@ static func _update_stats(team: Team, result: RaceResult) -> void:
 			rows.pop_front()
 
 
-static func _update_rivalries(team: Team, result: RaceResult) -> void:
+static func _update_rivalries(team, result) -> void:
 	if result.standings.is_empty() or result.finishing_position <= 0:
 		return
 	var nearest_index := clampi(result.finishing_position, 0, result.standings.size() - 1)
@@ -853,7 +864,7 @@ static func _update_rivalries(team: Team, result: RaceResult) -> void:
 	rivalries[rival_id] = data
 
 
-static func _generate_press_conference(team: Team, result: RaceResult) -> void:
+static func _generate_press_conference(team, result) -> void:
 	var subject := "Post-race press conference"
 	var body := "Reporters want your reaction after finishing P%d at %s." % [result.finishing_position, result.race.track_name]
 	add_inbox_item(team, "Media", subject, body, [
@@ -863,7 +874,7 @@ static func _generate_press_conference(team: Team, result: RaceResult) -> void:
 	])
 
 
-static func _generate_story_arc(team: Team, result: RaceResult) -> void:
+static func _generate_story_arc(team, result) -> void:
 	var arcs := team.career_state.story_arcs as Array
 	var kind := ""
 	if result.starting_position - result.finishing_position >= 6:
@@ -880,9 +891,9 @@ static func _generate_story_arc(team: Team, result: RaceResult) -> void:
 	add_notification(team, "Story", kind, "%s is becoming a paddock talking point." % result.player_driver.driver_name)
 
 
-static func _process_sponsor_and_merchandise(team: Team, result: RaceResult) -> void:
+static func _process_sponsor_and_merchandise(team, result) -> void:
 	var merchandise := team.career_state.merchandise as Dictionary
-	var demand := maxi(0, 12 - result.finishing_position) * 3 + result.fans_earned
+	var demand: int = maxi(0, 12 - int(result.finishing_position)) * 3 + int(result.fans_earned)
 	merchandise.popularity = maxi(0, int(merchandise.popularity) + demand)
 	var revenue := mini(int(merchandise.stock), demand) * int(merchandise.price)
 	merchandise.stock = maxi(0, int(merchandise.stock) - demand)
@@ -895,7 +906,7 @@ static func _process_sponsor_and_merchandise(team: Team, result: RaceResult) -> 
 		activations.push_front({"event":"Winner's circle hospitality" if result.finishing_position == 1 else "Fan appearance", "value":250 + demand * 10, "completed":false, "season":team.current_season_year})
 
 
-static func order_merchandise(team: Team, quantity: int) -> bool:
+static func order_merchandise(team, quantity: int) -> bool:
 	if quantity <= 0:
 		return false
 	var cost := quantity * 10
@@ -909,7 +920,7 @@ static func order_merchandise(team: Team, quantity: int) -> bool:
 	return true
 
 
-static func complete_sponsor_activation(team: Team, index: int) -> bool:
+static func complete_sponsor_activation(team, index: int) -> bool:
 	var activations := ensure_state(team).sponsor_activations as Array
 	if index < 0 or index >= activations.size():
 		return false
@@ -926,7 +937,7 @@ static func complete_sponsor_activation(team: Team, index: int) -> bool:
 	return true
 
 
-static func _process_injury_risk(team: Team, result: RaceResult) -> void:
+static func _process_injury_risk(team, result) -> void:
 	if result.player_driver == null:
 		return
 	var retired := false
@@ -937,11 +948,11 @@ static func _process_injury_risk(team: Team, result: RaceResult) -> void:
 		create_injury(team, result.player_driver, "Moderate" if retired else "Minor")
 
 
-static func _process_stewarding(team: Team, result: RaceResult, simulation: RaceSimulation) -> void:
+static func _process_stewarding(team, result, simulation) -> void:
 	var cases := team.career_state.stewarding.cases as Array
 	if simulation == null:
 		return
-	var player := simulation.get_player_entry()
+	var player: RaceEntryState = simulation.get_player_entry()
 	if player == null:
 		return
 	if player.incident_time_loss > 0.0 and randf() < 0.18:
@@ -953,8 +964,8 @@ static func _process_stewarding(team: Team, result: RaceResult, simulation: Race
 		add_inbox_item(team, "Stewarding", "Post-race penalty", "Race control issued a %d-point penalty for avoidable contact. The decision may be appealed." % penalty)
 
 
-static func _process_team_politics(team: Team, result: RaceResult) -> void:
-	var order := result.team_order_summary
+static func _process_team_politics(team, result) -> void:
+	var order: String = str(result.team_order_summary)
 	for race_team in team.race_teams:
 		race_team.team_orders = order
 	var relationships := ensure_state(team).relationships as Dictionary
@@ -974,7 +985,7 @@ static func _process_team_politics(team: Team, result: RaceResult) -> void:
 			driver.morale = maxi(0, driver.morale - 2)
 
 
-static func _process_logistics_damage(team: Team, result: RaceResult) -> void:
+static func _process_logistics_damage(team, result) -> void:
 	var logistics := ensure_state(team).logistics as Dictionary
 	if result.condition_lost >= 8:
 		if int(logistics.spare_cars) > 0:
@@ -985,7 +996,7 @@ static func _process_logistics_damage(team: Team, result: RaceResult) -> void:
 			add_inbox_item(team, "Logistics", "Equipment shortage", "Heavy damage added to the workshop backlog. Travel readiness and cash flow are at risk.")
 
 
-static func appeal_latest_penalty(team: Team) -> bool:
+static func appeal_latest_penalty(team) -> bool:
 	var stewarding := ensure_state(team).stewarding as Dictionary
 	for value in stewarding.cases:
 		var case := value as Dictionary
@@ -1004,7 +1015,7 @@ static func appeal_latest_penalty(team: Team) -> bool:
 	return false
 
 
-static func process_season_end(team: Team, finishing_position: int) -> void:
+static func process_season_end(team, finishing_position: int) -> void:
 	var state := ensure_state(team)
 	if int(state.season_processed) == team.current_season_year:
 		return
@@ -1031,9 +1042,9 @@ static func process_season_end(team: Team, finishing_position: int) -> void:
 	team.emit_changed()
 
 
-static func _generate_awards(team: Team, finishing_position: int) -> void:
+static func _generate_awards(team, finishing_position: int) -> void:
 	var awards := team.career_state.awards as Array
-	var driver := team.get_active_driver()
+	var driver: Driver = team.get_active_driver()
 	var season_awards: Array[String] = []
 	if finishing_position == 1:
 		season_awards.append("Team of the Year")
@@ -1053,7 +1064,7 @@ static func _generate_awards(team: Team, finishing_position: int) -> void:
 			hall.append({"driver_id":driver.driver_id, "name":driver.driver_name, "wins":driver.career_wins, "championships":driver.championships, "retired_number":driver.preferred_number})
 
 
-static func _develop_academy_season(team: Team) -> void:
+static func _develop_academy_season(team) -> void:
 	var academy := team.career_state.academy as Dictionary
 	for value in academy.enrolled:
 		var prospect := value as Dictionary
@@ -1067,7 +1078,7 @@ static func _develop_academy_season(team: Team) -> void:
 	_ensure_academy_prospects(team)
 
 
-static func _generate_regulation(team: Team) -> void:
+static func _generate_regulation(team) -> void:
 	var regulations := team.career_state.regulations as Dictionary
 	if not (regulations.next as Dictionary).is_empty():
 		(regulations.history as Array).push_front(regulations.current.duplicate(true))
@@ -1075,7 +1086,7 @@ static func _generate_regulation(team: Team) -> void:
 		var reset := int(regulations.current.get("performance_reset", 0))
 		var applied := 0
 		for car_value in team.cars:
-			var car := car_value as Car
+			var car: Resource = car_value as Resource
 			if car == null:
 				continue
 			for part in car.installed_parts:
@@ -1094,17 +1105,16 @@ static func _generate_regulation(team: Team) -> void:
 	add_inbox_item(team, "Regulations", "Future regulations published", "%s will emphasize %s and may reset up to %d performance points." % [regulations.next.name, focus, regulations.next.performance_reset])
 
 
-static func _ensure_world_entrants(team: Team) -> void:
+static func _ensure_world_entrants(team) -> void:
 	var entrants := team.career_state.get("world_entrants", []) as Array
 	if not entrants.is_empty():
 		return
-	for series_value in SeriesCatalog.SERIES:
-		var series_id := str((series_value as Dictionary).id)
+	for series_id in CAREER_SERIES_IDS:
 		entrants.append({"id":"independent_%s" % series_id, "name":"Independent Racing %s" % (entrants.size() + 1), "series_id":series_id, "status":"Active", "budget":randi_range(28000, 90000), "performance":randi_range(40, 68), "seasons":1})
 
 
-static func _evolve_world(team: Team) -> void:
-	var state := team.career_state
+static func _evolve_world(team) -> void:
+	var state: Dictionary = team.career_state
 	for entrant_value in state.world_entrants:
 		var entrant := entrant_value as Dictionary
 		entrant.seasons = int(entrant.seasons) + 1
@@ -1122,7 +1132,7 @@ static func _evolve_world(team: Team) -> void:
 	var entrants := state.world_entrants as Array
 	if entrants.size() >= 2:
 		alliances.append({"teams":[(entrants[0] as Dictionary).name, (entrants[1] as Dictionary).name], "manufacturer":"Orion Performance", "focus":"Shared engine technology", "season":team.current_season_year + 1})
-	var ai_team_ids := team.ai_team_career.keys()
+	var ai_team_ids: Array = team.ai_team_career.keys()
 	if ai_team_ids.size() >= 2:
 		var first_team := team.ai_team_career[ai_team_ids[0]] as Dictionary
 		var second_team := team.ai_team_career[ai_team_ids[1]] as Dictionary
@@ -1158,7 +1168,7 @@ static func _evolve_world(team: Team) -> void:
 		markets[region] = data
 
 
-static func launch_international_program(team: Team, region: String, discipline: String) -> bool:
+static func launch_international_program(team, region: String, discipline: String) -> bool:
 	var international := ensure_state(team).international as Dictionary
 	var market := (international.markets as Dictionary).get(region, {"fans":0, "reputation":0, "travel_cost":5000}) as Dictionary
 	var cost := int(market.travel_cost)
@@ -1177,7 +1187,7 @@ static func launch_international_program(team: Team, region: String, discipline:
 	return true
 
 
-static func _generate_manufacturer_offers(team: Team) -> void:
+static func _generate_manufacturer_offers(team) -> void:
 	var manufacturer := team.career_state.manufacturer as Dictionary
 	var offers := manufacturer.offers as Array
 	offers.clear()
@@ -1185,8 +1195,8 @@ static func _generate_manufacturer_offers(team: Team) -> void:
 		offers.append({"partner":["Orion", "Apex", "Vanguard"][index], "support":45 + index * 15, "exclusivity":index == 2, "cost":maxi(1000, 7500 - team.reputation * 12 - index * 900)})
 
 
-static func update_finance_forecast(team: Team) -> Dictionary:
-	var state := team.career_state
+static func update_finance_forecast(team) -> Dictionary:
+	var state: Dictionary = team.career_state
 	var weekly_salary := 0
 	for driver in team.get_contracted_drivers():
 		weekly_salary += driver.salary
@@ -1198,7 +1208,7 @@ static func update_finance_forecast(team: Team) -> Dictionary:
 		upkeep += int(FACILITIES[facility_id].upkeep) * get_facility_level(team, facility_id)
 	var projected_income := maxi(0, team.get_effective_sponsor_value(4000)) + roundi(float(team.fans) * 0.4)
 	var projected_costs := weekly_salary + upkeep + maxi(0, int((state.logistics as Dictionary).damaged_inventory) * 600)
-	var weeks_remaining := maxi(0, CalendarCatalog.SEASON_END_DAY - team.current_season_day) / 7
+	var weeks_remaining := maxi(0, SEASON_END_DAY - team.current_season_day) / 7
 	var forecast := {
 		"cash":team.money,
 		"weekly_income":projected_income,
@@ -1212,7 +1222,7 @@ static func update_finance_forecast(team: Team) -> Dictionary:
 	return forecast
 
 
-static func configure_race_weekend(team: Team, race: Race) -> Dictionary:
+static func configure_race_weekend(team, race: Race) -> Dictionary:
 	var state := ensure_state(team)
 	var seed_value := hash("%s:%s:%d" % [race.race_id, team.current_season_year, team.current_race_week])
 	var rng := RandomNumberGenerator.new()
@@ -1227,7 +1237,7 @@ static func configure_race_weekend(team: Team, race: Race) -> Dictionary:
 	return state.race_weekend
 
 
-static func get_race_modifiers(team: Team) -> Dictionary:
+static func get_race_modifiers(team) -> Dictionary:
 	var state := ensure_state(team)
 	var rd_effects := state.rd.effects as Dictionary
 	var design := get_car_design_modifiers(team)
@@ -1248,14 +1258,14 @@ static func get_race_modifiers(team: Team) -> Dictionary:
 	}
 
 
-static func set_branding(team: Team, branding: Dictionary) -> void:
+static func set_branding(team, branding: Dictionary) -> void:
 	var target := ensure_state(team).branding as Dictionary
 	for key in branding:
 		target[key] = branding[key]
 	team.emit_changed()
 
 
-static func set_accessibility(team: Team, values: Dictionary) -> void:
+static func set_accessibility(team, values: Dictionary) -> void:
 	var target := ensure_state(team).accessibility as Dictionary
 	for key in values:
 		target[key] = values[key]
@@ -1265,7 +1275,7 @@ static func set_accessibility(team: Team, values: Dictionary) -> void:
 	team.emit_changed()
 
 
-static func apply_accessibility(team: Team) -> void:
+static func apply_accessibility(team) -> void:
 	var accessibility := ensure_state(team).accessibility as Dictionary
 	var root := Engine.get_main_loop() as SceneTree
 	if root == null:
@@ -1273,7 +1283,7 @@ static func apply_accessibility(team: Team) -> void:
 	root.root.content_scale_factor = clampf(float(accessibility.ui_scale), 0.8, 1.5)
 
 
-static func get_unread_count(team: Team) -> int:
+static func get_unread_count(team) -> int:
 	var total := 0
 	var state := ensure_state(team)
 	for value in state.inbox:
@@ -1285,7 +1295,7 @@ static func get_unread_count(team: Team) -> int:
 	return total
 
 
-static func mark_all_read(team: Team) -> void:
+static func mark_all_read(team) -> void:
 	var state := ensure_state(team)
 	for value in state.inbox:
 		(value as Dictionary)["read"] = true

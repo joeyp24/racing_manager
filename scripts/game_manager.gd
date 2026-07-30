@@ -1,5 +1,7 @@
 extends Node
 
+const CAREER_EXPANSION_MANAGER_PATH: String = "res://resources/career_expansion_manager.gd"
+
 signal team_money_changed(new_amount: int)
 signal team_loaded(team: Team)
 signal fullscreen_changed(is_now_fullscreen: bool)
@@ -37,9 +39,17 @@ func is_fullscreen() -> bool:
 	return DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
 
 
+func _call_career_expansion_manager(method: StringName, arguments: Array) -> Variant:
+	var manager_script: Script = load(CAREER_EXPANSION_MANAGER_PATH) as Script
+	if manager_script == null:
+		push_error("Could not load the career expansion manager.")
+		return null
+	return manager_script.callv(method, arguments)
+
+
 func new_game(slot_id: String = "") -> void:
 	team = Team.new()
-	CareerExpansionManager.apply_accessibility(team)
+	_call_career_expansion_manager(&"apply_accessibility", [team])
 	active_save_id = slot_id if not slot_id.is_empty() else SaveManager.make_slot_id(team.team_name)
 	clear_selected_data()
 	refresh_team_money()
@@ -73,8 +83,8 @@ func load_game(slot_id: String) -> bool:
 	team.ensure_car_parts()
 	team.ensure_staff_market()
 	team.ensure_race_teams()
-	CareerExpansionManager.ensure_state(team)
-	CareerExpansionManager.apply_accessibility(team)
+	_call_career_expansion_manager(&"ensure_state", [team])
+	_call_career_expansion_manager(&"apply_accessibility", [team])
 	clear_selected_data()
 	refresh_team_money()
 	team_loaded.emit(team)

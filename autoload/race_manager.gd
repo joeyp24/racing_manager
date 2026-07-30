@@ -27,6 +27,7 @@ const SEASON_PRIZES: Array[int] = [
 ]
 
 const DEFAULT_STRATEGY := "balanced"
+const CAREER_EXPANSION_MANAGER_PATH: String = "res://resources/career_expansion_manager.gd"
 const RACE_RESOURCE_PATHS: Dictionary = {
 	"spring_100": "res://resources/races/spring_speedway_100.tres",
 	"riverside_200": "res://resources/races/riverside_200.tres",
@@ -132,6 +133,14 @@ func _ready() -> void:
 	random_number_generator.randomize()
 
 
+func _call_career_expansion_manager(method: StringName, arguments: Array) -> Variant:
+	var manager_script: Script = load(CAREER_EXPANSION_MANAGER_PATH) as Script
+	if manager_script == null:
+		push_error("Could not load the career expansion manager.")
+		return null
+	return manager_script.callv(method, arguments)
+
+
 func get_race_by_id(race_id: String) -> Race:
 	var path := str(RACE_RESOURCE_PATHS.get(race_id, ""))
 	if path.is_empty():
@@ -159,7 +168,7 @@ func get_calendar_for_series(series_id: String) -> Array[Race]:
 		race.first_place_prize = roundi(race.first_place_prize * multiplier); race.second_place_prize = roundi(race.second_place_prize * multiplier); race.third_place_prize = roundi(race.third_place_prize * multiplier)
 		calendar.append(race)
 	if GameManager.team != null:
-		var expansion := CareerExpansionManager.ensure_state(GameManager.team)
+		var expansion := _call_career_expansion_manager(&"ensure_state", [GameManager.team]) as Dictionary
 		var variation := (expansion.calendar_variations as Dictionary).get(str(GameManager.team.current_season_year), {}) as Dictionary
 		if not variation.is_empty() and not calendar.is_empty():
 			var rotating_index := absi(hash(series_id + str(GameManager.team.current_season_year))) % calendar.size()
@@ -202,7 +211,7 @@ func _get_effective_ai_roster(series_id: String) -> Array[Dictionary]:
 	if GameManager.team == null:
 		return roster
 	var static_teams := TeamCatalog.get_teams(series_id)
-	var career_teams := GameManager.team.get_ai_team_states_for_series(series_id)
+	var career_teams: Array[Dictionary] = GameManager.team.get_ai_team_states_for_series(series_id)
 	if career_teams.is_empty():
 		return roster
 	var slot_states := {}
@@ -226,7 +235,7 @@ func _get_effective_ai_roster(series_id: String) -> Array[Dictionary]:
 		var lineup := lineups.get(str(state.team_id), []) as Array
 		var lineup_index := clampi(int(driver.get("team_car_number", 1)) - 1, 0, maxi(0, lineup.size() - 1))
 		var driver_state := lineup[lineup_index] as Dictionary if not lineup.is_empty() else {}
-		var career_driver := GameManager.team.get_driver_by_id(str(driver_state.get("driver_id", "")))
+		var career_driver: Driver = GameManager.team.get_driver_by_id(str(driver_state.get("driver_id", "")))
 		if career_driver != null:
 			driver["driver_id"] = career_driver.driver_id
 			driver["driver_name"] = career_driver.driver_name
@@ -303,7 +312,7 @@ func create_live_simulation(
 		compound = "Wet"
 		fuel_fraction = 0.60
 	var player_race_attributes := player_car.get_race_attributes()
-	var expansion_modifiers := CareerExpansionManager.get_race_modifiers(GameManager.team)
+	var expansion_modifiers := _call_career_expansion_manager(&"get_race_modifiers", [GameManager.team]) as Dictionary
 	player_race_attributes["reliability"] = clampf(float(player_race_attributes.get("reliability", 75.0)) + float(expansion_modifiers.reliability), 1.0, 100.0)
 	player_race_attributes["fuel"] = clampf(float(player_race_attributes.get("fuel", 50.0)) + float(expansion_modifiers.fuel), 1.0, 100.0)
 	player_race_attributes["tyres"] = clampf(float(player_race_attributes.get("tyres", 50.0)) + float(expansion_modifiers.tyres), 1.0, 100.0)
@@ -331,7 +340,8 @@ func create_live_simulation(
 	)
 	var weekend_environment := weekend_data.get("forecast", {}) as Dictionary
 	if weekend_environment.is_empty():
-		weekend_environment = (CareerExpansionManager.configure_race_weekend(GameManager.team, selected_race).get("forecast", {}) as Dictionary)
+		var configured_weekend := _call_career_expansion_manager(&"configure_race_weekend", [GameManager.team, selected_race]) as Dictionary
+		weekend_environment = configured_weekend.get("forecast", {}) as Dictionary
 	simulation.configure_environment(weekend_environment)
 	var team_order := str(weekend_data.get("team_order", "Race freely"))
 	simulation.set_team_order(team_order, GameManager.team.team_name)
@@ -358,7 +368,7 @@ func _get_weekend_driver_payroll(weekend_data: Dictionary, fallback_driver: Driv
 		var driver_id := str(entry.get("driver_id", ""))
 		if driver_id.is_empty() or paid_driver_ids.has(driver_id):
 			continue
-		var driver := GameManager.team.get_driver_by_id(driver_id)
+		var driver: Driver = GameManager.team.get_driver_by_id(driver_id)
 		if driver != null:
 			total += GameManager.team.get_effective_salary(driver.salary)
 			paid_driver_ids[driver_id] = true
@@ -447,7 +457,7 @@ func finalize_live_race(
 	result.net_earnings -= result.crew_chief_salary + result.engineering_payroll
 	player_driver.record_race({"race_id":selected_race.race_id, "race_name":selected_race.race_name, "start":result.starting_position, "finish":result.finishing_position, "positions_gained":result.positions_gained, "qualifying":result.starting_position, "points":result.championship_points_earned, "track_type":selected_race.track_type, "weather":selected_race.weather, "status":str((result.standings[result.finishing_position - 1] as Dictionary).get("status", "Finished")), "incident":false})
 	GameManager.team.process_driver_race_contracts(weekend_data)
-	CareerExpansionManager.process_race(GameManager.team, result, simulation)
+	_call_career_expansion_manager(&"process_race", [GameManager.team, result, simulation])
 	apply_race_effects(result)
 	complete_race(selected_race)
 	last_result = result
@@ -646,7 +656,7 @@ func _record_ai_race_histories(selected_race: Race, standings: Array[Dictionary]
 		var driver_id := str(row.get("driver_id", ""))
 		if driver_id.is_empty():
 			continue
-		var state := GameManager.team.get_ai_driver_state(driver_id)
+		var state: Dictionary = GameManager.team.get_ai_driver_state(driver_id)
 		var team_id := str(row.get("team_id", state.get("current_team_id", "")))
 		GameManager.team.record_ai_driver_result(
 			driver_id,
@@ -747,7 +757,7 @@ func calculate_player_score(
 	var spotter_restart_bonus: float = team.get_restart_performance_boost() if team != null else 0.0
 	var expansion_bonus := 0.0
 	if team != null:
-		var expansion_modifiers := CareerExpansionManager.get_race_modifiers(team)
+		var expansion_modifiers := _call_career_expansion_manager(&"get_race_modifiers", [team]) as Dictionary
 		var track_bias := selected_race.power_demand * float(expansion_modifiers.power) + selected_race.handling_demand * float(expansion_modifiers.grip) if selected_race != null else float(expansion_modifiers.power) + float(expansion_modifiers.grip)
 		expansion_bonus = track_bias * 0.32
 
@@ -1515,7 +1525,7 @@ func finish_season_if_complete() -> void:
 		GameManager.team.add_reputation_xp(100)
 	GameManager.add_team_money(prize_money)
 	GameManager.team.record_finance("Championship", prize_money, "Season prize")
-	CareerExpansionManager.process_season_end(GameManager.team, player_position)
+	_call_career_expansion_manager(&"process_season_end", [GameManager.team, player_position])
 	GameManager.team.emit_changed()
 
 
@@ -1535,7 +1545,7 @@ func prepare_offseason(target_series_id: String = "") -> bool:
 		return false
 	if not GameManager.team.is_series_season_complete():
 		return false
-	var existing := GameManager.team.offseason_data
+	var existing: Dictionary = GameManager.team.offseason_data
 	if (
 		str(existing.get("status", "")) == "Prepared"
 		and int(existing.get("season_year", 0)) == GameManager.team.current_season_year
@@ -1547,7 +1557,7 @@ func prepare_offseason(target_series_id: String = "") -> bool:
 	GameManager.team.record_driver_season_results()
 	apply_driver_development()
 	GameManager.team.process_staff_season()
-	var ai_summaries := GameManager.team.process_ai_team_season()
+	var ai_summaries: Array[String] = GameManager.team.process_ai_team_season()
 	OffseasonManager.prepare(GameManager.team, target_series_id, ai_summaries)
 	GameManager.save_game()
 	return true
@@ -1556,8 +1566,8 @@ func prepare_offseason(target_series_id: String = "") -> bool:
 func complete_offseason() -> bool:
 	if GameManager.team == null or not OffseasonManager.complete(GameManager.team):
 		return false
-	var team := GameManager.team
-	var source_series_id := team.current_series_id
+	var team: Team = GameManager.team
+	var source_series_id: String = team.current_series_id
 	var target_series_id := str(team.offseason_data.get("target_series_id", source_series_id))
 	if target_series_id != source_series_id:
 		if not team.enter_series(target_series_id):
@@ -1575,15 +1585,16 @@ func complete_offseason() -> bool:
 	GameManager.team.engineering_projects.clear()
 	GameManager.team.driver_training_programs.clear()
 	GameManager.team.contract_offers.clear()
-	CareerExpansionManager.ensure_state(team).preseason = {"completed":false, "runs":[], "reliability_known":false}
+	var expansion := _call_career_expansion_manager(&"ensure_state", [team]) as Dictionary
+	expansion.preseason = {"completed":false, "runs":[], "reliability_known":false}
 	for contracted_driver in GameManager.team.get_contracted_drivers():
 		contracted_driver.series_id = team.current_series_id
 		contracted_driver.team_name = team.team_name
-		var state := team.ensure_ai_driver_state(contracted_driver)
+		var state: Dictionary = team.ensure_ai_driver_state(contracted_driver)
 		state["current_team_id"] = "player_team"
 		state["current_series_id"] = team.current_series_id
 		team.ai_driver_career[contracted_driver.driver_id] = state
-	var active_driver := team.get_active_driver()
+	var active_driver: Driver = team.get_active_driver()
 	if active_driver == null and not team.get_contracted_drivers().is_empty():
 		active_driver = team.get_contracted_drivers()[0]
 		active_driver.is_player_driver = true
