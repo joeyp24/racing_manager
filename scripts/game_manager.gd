@@ -65,6 +65,7 @@ func load_game(slot_id: String) -> bool:
 	team.ensure_default_player_driver()
 	team.ensure_driver_market()
 	team.ensure_series_rosters()
+	team.ensure_world_series_data()
 	team.ensure_car_parts()
 	team.ensure_staff_market()
 	team.ensure_race_teams()
