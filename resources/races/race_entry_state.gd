@@ -43,6 +43,10 @@ var overtakes: int = 0
 var overtaken: int = 0
 var strategy_skill: float = 50.0
 var difficulty_scale: float = 1.0
+var fuel_target_mode: String = "Balanced"
+var racecraft_command: String = "Race"
+var team_order: String = "Race freely"
+var defend_target_id: String = ""
 
 var pace_mode: String = "Balanced"
 var pending_pace_mode: String = "Balanced"

@@ -2,7 +2,7 @@ class_name PracticeRunSimulator
 extends RefCounted
 
 const RUN_LIMIT := 3
-const DEFAULT_TYRE_SETS := {"Soft": 2, "Medium": 2, "Hard": 2}
+const DEFAULT_TYRE_SETS := {"Soft": 2, "Medium": 2, "Hard": 2, "Intermediate": 1, "Wet": 1}
 const DEFAULT_SETUP := {
 	"aero_balance": 0,
 	"suspension": 0,
@@ -63,8 +63,15 @@ static func simulate_run(
 		if error > largest_error:
 			largest_error = error
 			largest_axis = axis
-	var compound_delta: float = float({"Soft": -0.34, "Medium": 0.0, "Hard": 0.26}.get(compound, 0.0))
-	var compound_wear: float = float({"Soft": 8.5, "Medium": 5.5, "Hard": 3.5}.get(compound, 5.5))
+	var compound_delta: float = float({"Soft": -0.34, "Medium": 0.0, "Hard": 0.26, "Intermediate":0.18, "Wet":0.36}.get(compound, 0.0))
+	var compound_wear: float = float({"Soft": 8.5, "Medium": 5.5, "Hard": 3.5, "Intermediate":4.5, "Wet":3.8}.get(compound, 5.5))
+	var wet_tyre := compound in ["Intermediate", "Wet"]
+	if race.weather == "Wet":
+		compound_delta += (-0.85 if compound == "Wet" else (-0.45 if compound == "Intermediate" else 1.55))
+	elif race.weather == "Mixed":
+		compound_delta += (-0.55 if compound == "Intermediate" else (0.20 if compound == "Wet" else 0.45))
+	elif wet_tyre:
+		compound_delta += 1.25 if compound == "Intermediate" else 2.10
 	var driver_pace := float(driver.race_pace + driver.qualifying_pace) * 0.5
 	var base_lap := 35.5 + float(race.difficulty) * 0.035 - (driver_pace - 50.0) * 0.025
 	var feedback_quality := clampf(

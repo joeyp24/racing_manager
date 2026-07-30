@@ -121,6 +121,7 @@ static func _repair_and_migrate(team: Team) -> void:
 	team.ensure_staff_market()
 	team.ensure_race_teams()
 	team.ensure_race_week_progression()
+	CareerExpansionManager.ensure_state(team)
 	team.save_format_version = Team.CURRENT_SAVE_FORMAT_VERSION
 
 

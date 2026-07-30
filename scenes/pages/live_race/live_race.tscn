@@ -274,6 +274,39 @@ custom_minimum_size = Vector2(86, 0)
 layout_mode = 2
 text = "Adjust Bias"
 
+[node name="FuelCommandRow" type="HBoxContainer" parent="Root/Main/PitWall/ControlsCard/Controls"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="fuel_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/FuelCommandRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="racecraft_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/FuelCommandRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="apply_command_button" type="Button" parent="Root/Main/PitWall/ControlsCard/Controls/FuelCommandRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Radio"
+
+[node name="TeamOrderRow" type="HBoxContainer" parent="Root/Main/PitWall/ControlsCard/Controls"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="team_order_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/TeamOrderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="apply_team_order_button" type="Button" parent="Root/Main/PitWall/ControlsCard/Controls/TeamOrderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Team Order"
+
 [node name="Rule" type="HSeparator" parent="Root/Main/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 

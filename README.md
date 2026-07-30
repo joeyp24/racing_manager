@@ -407,6 +407,13 @@ python tools/run_godot_checks.py
 - Three-run practice programmes with setup trade-offs, limited tyre sets, uncertain driver feedback, progressive engineering guidance, and a setup carried into qualifying and the race.
 - Difficulty-aware career finances covering purses, weekend fees, payroll, repairs, sponsorships, car and part costs, and progression investment.
 - Persistent AI organizations with budgets, equipment development, staff and strategy quality, driver turnover, form, multi-season trends, and promotion or relegation.
+- Career HQ with a decision inbox, board confidence and job security, press conferences, persistent rivalries, career story arcs, season awards, records, retired numbers, and a Hall of Fame.
+- Driver academy and junior results, regional scouting uncertainty, teammate chemistry and mentorship, injuries and reserves, staff loyalty and burnout, and contracts with bonuses, options, clauses, role promises, and performance targets.
+- A branching R&D tree, selectable car design philosophies, variable manufacturing quality and prototypes, technical regulation resets, manufacturer support, and preseason testing.
+- Dynamic forecasts and changing rain, drying lines, rubber and grip; dry, intermediate and wet tyres; multiple qualifying formats; live fuel, tyre, aggression, defense and team-order commands; stewarding, appeals, and lap-by-lap race replays.
+- Expanded headquarters, logistics and spare equipment, multi-car resource politics, sponsor activations, merchandise and regional fan growth, and cash-flow forecasting.
+- Evolving venues and invitation events, historical track and series records, independent entrant changes, AI manufacturer alliances, and international racing programmes.
+- Livery and team-branding choices, guided contextual tutorials, advanced form and trend statistics, configurable notifications, interface scaling, colour modes, reduced-motion preferences, and simulation-speed controls.
 - Versioned, verified atomic career saves with automatic backup recovery and collection repair.
 
 ## Implemented but needs balancing
@@ -417,18 +424,18 @@ python tools/run_godot_checks.py
 
 ## Prototype / experimental
 
-- The team news feed and AI driver-transfer presentation are foundations for deeper authored content.
-- Department manufacturing and multi-team race entries may need additional usability passes.
+- Generated inbox stories, press questions, regulatory changes, world entrants and international programmes are systemic; additional authored event variety will improve long careers.
+- Department manufacturing, multi-car politics and the expanded Career HQ may need additional usability passes after player testing.
 
 ## Next milestone
 
-- Add event eligibility, invitationals, schedule choices, offseason rules, transfers, rivalries, and richer historical commentary.
-- Grow deterministic headless coverage from simulation contracts into complete career journeys.
+- Balance long-term board pressure, academy growth, facility upkeep, regulation resets, weather strategy and AI alliances over multi-decade saves.
+- Add more authored paddock events and grow deterministic headless coverage into complete career journeys.
 
 ## Known limitations
 
-- Mechanical setup is locked once the race begins; brake bias is the only live chassis adjustment.
-- Weather and injuries are not yet simulated, and the core calendar remains a fixed twelve-event schedule.
+- Mechanical setup is locked once the race begins; live control focuses on brake bias, pace, fuel, racecraft, tyres, pit calls and team orders.
+- Calendar evolution rotates existing championship slots so save progression remains compatible; invitation races are recorded as world events rather than extra championship rounds.
 - Static race definitions still require manual balancing and visual track maps are not yet available.
 
 ---

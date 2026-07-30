@@ -6,6 +6,7 @@ extends Control
 @onready var summary_label: Label = %summary_label
 @onready var car_effects_label: Label = %car_effects_label
 @onready var decisive_factors_label: Label = %decisive_factors_label
+@onready var replay_label: Label = %replay_label
 @onready var continue_button: Button = %continue_button
 
 
@@ -39,6 +40,29 @@ func show_race_result() -> void:
 	summary_label.text = create_financial_summary(result)
 	car_effects_label.text = create_car_effects_text(result)
 	decisive_factors_label.text = create_decisive_factors_text(result)
+	replay_label.text = create_replay_text(result)
+
+
+func create_replay_text(result: RaceResult) -> String:
+	var lines: Array[String] = [
+		"RACE REPLAY & TIMELINE",
+		"%s · %s · %s" % [result.qualifying_format, result.weather_summary, result.track_evolution_summary],
+		"Team order: %s" % result.team_order_summary
+	]
+	for snapshot_value in result.replay_timeline:
+		var snapshot := snapshot_value as Dictionary
+		var player_position := 0
+		for position_value in snapshot.get("positions", []):
+			var position := position_value as Dictionary
+			if str(position.get("driver_id", "")) == result.player_driver.driver_id:
+				player_position = int(position.get("position", 0))
+		lines.append("Lap %d · %s · %s · grip %d%% · player P%d" % [int(snapshot.get("lap", 0)), snapshot.get("flag", "Green"), snapshot.get("weather", "Dry"), roundi(float(snapshot.get("grip", 1.0)) * 100.0), player_position])
+	if result.penalties.is_empty():
+		lines.append("Stewarding: No post-race penalties.")
+	else:
+		for penalty in result.penalties:
+			lines.append("Stewarding: %s · %s" % [penalty.get("reason", "Investigation"), penalty.get("penalty", "Penalty")])
+	return "\n".join(lines)
 
 
 func create_decisive_factors_text(result: RaceResult) -> String:
@@ -251,6 +275,7 @@ func show_missing_result() -> void:
 	)
 	car_effects_label.text = ""
 	decisive_factors_label.text = ""
+	replay_label.text = ""
 
 
 func _on_continue_button_pressed() -> void:
