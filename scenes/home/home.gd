@@ -8,6 +8,7 @@ extends Control
 @onready var driver_market_button: Button = %driver_market_button
 @onready var race_teams_button: Button = %race_teams_button
 @onready var championship_button: Button = %championship_button
+@onready var world_series_button: Button = %world_series_button
 @onready var staff_button: Button = %staff_button
 @onready var finances_button: Button = %finances_button
 @onready var race_calendar_button: Button = %race_calendar_button
@@ -34,7 +35,7 @@ var navigation_buttons: Array[Button] = []
 
 func _ready() -> void:
 	GameManager.page_container = page_container
-	navigation_buttons = [home_button, race_calendar_button, championship_button,
+	navigation_buttons = [home_button, race_calendar_button, championship_button, world_series_button,
 		garage_button, race_teams_button, drivers_button, engineering_button, staff_button, driver_market_button, shop_button,
 		dealership_button, sponsors_button, finances_button, hq_button, identity_button,
 		scouting_button]
@@ -57,6 +58,7 @@ func _ready() -> void:
 	championship_button.pressed.connect(
 		_on_championship_button_pressed
 	)
+	world_series_button.pressed.connect(_on_world_series_button_pressed)
 	staff_button.pressed.connect(_on_staff_button_pressed)
 	finances_button.pressed.connect(_on_finances_button_pressed)
 
@@ -204,6 +206,11 @@ func _on_championship_button_pressed() -> void:
 	GameManager.load_page(
 		"res://scenes/pages/championship/championship.tscn"
 	)
+
+
+func _on_world_series_button_pressed() -> void:
+	set_active_navigation(world_series_button)
+	GameManager.load_page("res://scenes/pages/world_series/world_series.tscn")
 
 
 func _on_staff_button_pressed() -> void:

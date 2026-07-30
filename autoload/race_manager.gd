@@ -1142,10 +1142,68 @@ func complete_race(
 	):
 		GameManager.team.complete_race_for_series(completed_race.series_id, completed_race.race_id)
 	GameManager.team.save_series_progress()
+	simulate_other_series_through_round(GameManager.team.get_completed_races().size())
 	GameManager.team.week_advance_required = true
 
 	GameManager.team.emit_changed()
 	finish_season_if_complete()
+
+
+func simulate_other_series_through_round(target_round: int) -> void:
+	if GameManager.team == null:
+		return
+	GameManager.team.ensure_world_series_data()
+	for series in SeriesCatalog.SERIES:
+		var series_id := str(series.id)
+		if series_id == GameManager.team.current_series_id:
+			continue
+		var calendar := get_calendar_for_series(series_id)
+		var series_data := GameManager.team.get_world_series_data(series_id)
+		var completed_rounds := int(series_data.get("completed_rounds", 0))
+		var last_round := mini(target_round, calendar.size())
+		while completed_rounds < last_round:
+			_simulate_world_series_race(series_id, calendar[completed_rounds], series_data)
+			completed_rounds += 1
+			series_data["completed_rounds"] = completed_rounds
+		GameManager.team.set_world_series_data(series_id, series_data)
+
+
+func _simulate_world_series_race(series_id: String, race: Race, series_data: Dictionary) -> void:
+	var field: Array[Dictionary] = []
+	for driver in AIRosterCatalog.get_roster(series_id):
+		field.append({
+			"driver_id": str(driver.driver_id),
+			"driver_name": str(driver.driver_name),
+			"team_name": str(driver.team_name),
+			"score": calculate_ai_score(race, driver)
+		})
+	field.sort_custom(func(first: Dictionary, second: Dictionary) -> bool: return float(first.score) > float(second.score))
+	var standings: Array[Dictionary] = series_data.get("standings", [])
+	if standings.is_empty():
+		for driver in AIRosterCatalog.get_roster(series_id):
+			standings.append({"driver_id":str(driver.driver_id), "driver_name":str(driver.driver_name), "team_name":str(driver.team_name), "points":0, "wins":0, "podiums":0, "starts":0, "best_finish":999, "average_finish_total":0})
+	var result_rows: Array[Dictionary] = []
+	for index in field.size():
+		var race_entry := field[index]
+		var position := index + 1
+		result_rows.append({"position":position, "driver_id":race_entry.driver_id, "driver_name":race_entry.driver_name, "team_name":race_entry.team_name})
+		for championship_entry in standings:
+			if str(championship_entry.driver_id) != str(race_entry.driver_id):
+				continue
+			championship_entry["points"] = int(championship_entry.points) + calculate_championship_points(series_id, {"position":position})
+			championship_entry["starts"] = int(championship_entry.starts) + 1
+			championship_entry["average_finish_total"] = int(championship_entry.average_finish_total) + position
+			championship_entry["best_finish"] = mini(int(championship_entry.best_finish), position)
+			if position == 1: championship_entry["wins"] = int(championship_entry.wins) + 1
+			if position <= 3: championship_entry["podiums"] = int(championship_entry.podiums) + 1
+			break
+	standings.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+		if int(first.points) == int(second.points): return int(first.best_finish) < int(second.best_finish)
+		return int(first.points) > int(second.points))
+	var results: Array = series_data.get("results", [])
+	results.append({"race_id":race.race_id, "race_name":race.race_name, "track_name":race.track_name, "round":race.season_round, "rows":result_rows})
+	series_data["results"] = results
+	series_data["standings"] = standings
 
 
 func finish_season_if_complete() -> void:

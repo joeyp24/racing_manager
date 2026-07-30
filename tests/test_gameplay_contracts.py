@@ -104,3 +104,19 @@ def test_points_calendars_and_promotion_are_series_driven():
     assert "season_round" in calendar and "LOCAL_IDS" in calendar
     assert "Three-race reserve" in championship and "ConfirmationDialog" in championship
     assert "Repeat current series" in championship
+
+
+def test_other_series_are_simulated_saved_and_browsable():
+    team = (ROOT / "resources/team.gd").read_text()
+    manager = (ROOT / "autoload/race_manager.gd").read_text()
+    world_page = (ROOT / "scenes/pages/world_series/world_series.gd").read_text()
+    home = (ROOT / "scenes/home/home.gd").read_text()
+    assert "@export var world_series_data" in team
+    assert "func ensure_world_series_data()" in team
+    assert "simulate_other_series_through_round" in manager
+    assert "calculate_championship_points(series_id" in manager
+    for statistic in ('"points"', '"wins"', '"podiums"', '"starts"', '"best_finish"', '"average_finish_total"'):
+        assert statistic in manager
+    assert "SeriesCatalog.SERIES" in world_page
+    assert 'data.get("results"' in world_page
+    assert "world_series/world_series.tscn" in home

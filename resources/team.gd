@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 4
+const CURRENT_SAVE_FORMAT_VERSION: int = 5
 
 @export var team_name: String = "My Team"
 @export var hometown: String = "Charlotte, NC"
@@ -64,6 +64,7 @@ const CURRENT_SAVE_FORMAT_VERSION: int = 4
 
 @export var championship_standings: Array[Dictionary] = []
 @export var series_progress: Dictionary = {}
+@export var world_series_data: Dictionary = {}
 @export var drivers: Array[Driver] = []
 @export var contracted_driver_ids: Array[String] = []
 @export var race_teams: Array[RaceTeam] = []
@@ -90,6 +91,7 @@ const DIFFICULTY_SETTINGS: Dictionary = {
 
 func _init() -> void:
 	ensure_series_progress()
+	ensure_world_series_data()
 	ensure_departments()
 	ensure_default_player_driver()
 	ensure_driver_market()
@@ -202,6 +204,29 @@ func ensure_series_progress(series_id: String = current_series_id) -> void:
 	var first_race := "spring_100" if series_id == "local_short_track" else "%s_round_01" % series_id
 	var is_legacy_season := series_id == "local_short_track"
 	series_progress[series_id] = {"completed_races":completed_races.duplicate() if is_legacy_season else [], "unlocked_races":unlocked_races.duplicate() if is_legacy_season else [first_race], "standings":championship_standings.duplicate(true) if is_legacy_season else [], "season_number":season_number if is_legacy_season else 1, "season_complete":season_complete if is_legacy_season else false}
+
+
+func ensure_world_series_data() -> void:
+	for series in SeriesCatalog.SERIES:
+		var series_id := str(series.id)
+		if not world_series_data.has(series_id):
+			world_series_data[series_id] = {
+				"completed_rounds": 0,
+				"results": [],
+				"standings": [],
+				"season_number": season_number
+			}
+
+
+func get_world_series_data(series_id: String) -> Dictionary:
+	ensure_world_series_data()
+	return world_series_data.get(series_id, {}) as Dictionary
+
+
+func set_world_series_data(series_id: String, data: Dictionary) -> void:
+	ensure_world_series_data()
+	world_series_data[series_id] = data.duplicate(true)
+	emit_changed()
 
 
 func save_series_progress() -> void:
