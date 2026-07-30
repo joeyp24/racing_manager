@@ -56,7 +56,7 @@ func display_car(current_car: Car) -> void:
 	car_details_label.text = (
 		"%d PERFORMANCE POINTS\n%d %s %s\nCondition: %d%%"
 		% [
-			current_car.get_total_performance(GameManager.team),
+			current_car.get_total_performance_points(GameManager.team),
 			current_car.year,
 			current_car.manufacturer,
 			current_car.model,

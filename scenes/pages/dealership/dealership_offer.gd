@@ -30,13 +30,13 @@ func update_offer_display() -> void:
 			car_template.manufacturer,
 			car_template.model,
 			SeriesCatalog.get_series(car_template.series_id).get("name", "Unknown series"),
-			car_template.get_total_performance(GameManager.team),
+			car_template.get_total_performance_points(GameManager.team),
 			car_template.condition,
 			car_template.mileage
 		]
 	)
 	var current_car: Car = GameManager.team.get_car(GameManager.selected_bay) if GameManager.team != null and GameManager.selected_bay >= 0 else null
-	car_details_label.tooltip_text = "Compared with selected bay: Performance points %+d  •  Condition %+d%%  •  Value %s$%s" % [car_template.get_total_performance(GameManager.team) - current_car.get_total_performance(GameManager.team), car_template.condition - current_car.condition, "+" if car_template.value >= current_car.value else "−", format_number(absi(car_template.value - current_car.value))] if current_car != null else "Performance points include installed parts and team modifiers; condition affects usable pace."
+	car_details_label.tooltip_text = "Compared with selected bay: Performance points %+d  •  Condition %+d%%  •  Value %s$%s" % [car_template.get_total_performance_points(GameManager.team) - current_car.get_total_performance_points(GameManager.team), car_template.condition - current_car.condition, "+" if car_template.value >= current_car.value else "−", format_number(absi(car_template.value - current_car.value))] if current_car != null else "Performance points include installed parts and team modifiers; condition affects usable pace."
 
 	price_label.text = (
 		"Price: $%s"

@@ -34,11 +34,27 @@ theme_override_font_sizes/font_size = 24
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="performance_points_label" type="Label" parent="margin/layout"]
+[node name="performance_points_panel" type="PanelContainer" parent="margin/layout"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+
+[node name="performance_points_label" type="Label" parent="margin/layout/performance_points_panel"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "0 PP"
+theme_override_colors/font_color = Color(0.95, 0.7, 0.2, 1)
+theme_override_font_sizes/font_size = 18
+text = "0 PERFORMANCE POINTS"
+horizontal_alignment = 1
+vertical_alignment = 1
+tooltip_text = "Final car PP after condition, part modifiers, and car modifiers."
+
+[node name="car_modifiers_label" type="Label" parent="margin/layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+theme_override_font_sizes/font_size = 12
+text = "Car Modifiers: None"
+horizontal_alignment = 1
 
 [node name="separator" type="HSeparator" parent="margin/layout"]
 layout_mode = 2

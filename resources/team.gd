@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 7
+const CURRENT_SAVE_FORMAT_VERSION: int = 8
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -882,31 +882,75 @@ func get_engineering_performance_boost() -> float:
 	return get_average_role_attribute("Engineer", true) * 0.035
 
 
-func get_part_performance_breakdown(part: CarPart) -> Dictionary:
+func calculate_part_performance(part: CarPart, calculation_team: Team = null) -> PartPerformanceResult:
+	var result := PartPerformanceResult.new()
 	if part == null:
-		return {"base": 0, "total": 0, "modifiers": []}
-	var base := part.base_performance_points + part.performance_bonus
-	var conditioned := part.get_conditioned_performance_points()
-	var modifiers: Array[Dictionary] = []
-	if conditioned != base:
-		modifiers.append({"label": "Condition (%d%%)" % part.condition, "points": conditioned - base})
-	var percentage_modifiers: Array[Dictionary] = [
-		{"label": "Engineering department", "percent": get_department_bonus("engineering")},
-		{"label": "Engineering staff", "percent": get_engineering_performance_boost()},
-		{"label": "Crew chief", "percent": get_crew_chief_performance_boost()},
-		{"label": "Secret department", "percent": get_department_bonus("cheating")}
+		return result
+	if calculation_team == null:
+		calculation_team = self
+	result.base_points = part.base_performance_points
+	result.condition_points = part.get_condition_adjusted_points()
+	if not is_equal_approx(result.condition_points, float(result.base_points)):
+		result.modifiers.append(PerformancePointModifier.create(
+			"part_condition", "Condition (%d%%)" % part.condition, "condition", 0.0,
+			result.condition_points - float(result.base_points)))
+	var percentages: Array[Dictionary] = [
+		{"id":"engineering_department", "label":"Engineering department", "percent":calculation_team.get_department_bonus("engineering")},
+		{"id":"engineering_staff", "label":"Engineering staff", "percent":calculation_team.get_engineering_performance_boost()}
 	]
 	if part.part_type == "Body":
-		percentage_modifiers.append({"label": "Wind tunnel", "percent": get_department_bonus("wind_tunnel")})
-	var total := conditioned
-	for modifier in percentage_modifiers:
-		var percent := float(modifier.percent)
-		if percent <= 0.0:
+		percentages.append({"id":"wind_tunnel_body", "label":"Wind tunnel", "percent":calculation_team.get_department_bonus("wind_tunnel")})
+	var specialty_by_part := {"Engine":"Engines", "Suspension":"Suspension", "Body":"Aerodynamics"}
+	if specialty_by_part.has(part.part_type):
+		for engineer in calculation_team.get_engineers():
+			if engineer.specialty == specialty_by_part[part.part_type]:
+				percentages.append({"id":"engineer_specialty_%s" % engineer.staff_id, "label":"%s specialty" % engineer.staff_name, "percent":float(engineer.rating) * 0.015})
+	var applied_ids: Dictionary = {}
+	var percent_total := 0.0
+	for data in percentages:
+		var modifier_id := str(data.id)
+		var percent := float(data.percent)
+		if percent <= 0.0 or applied_ids.has(modifier_id):
 			continue
-		var points := roundi(float(conditioned) * percent / 100.0)
-		modifiers.append({"label": str(modifier.label), "points": points, "detail": "+%.1f%%" % percent})
-		total += points
-	return {"base": base, "conditioned": conditioned, "total": total, "modifiers": modifiers}
+		applied_ids[modifier_id] = true
+		var points := result.condition_points * percent / 100.0
+		result.modifiers.append(PerformancePointModifier.create(modifier_id, str(data.label), "part", percent, points))
+		percent_total += percent
+	# Part percentages stack additively. No part is rounded here.
+	result.effective_points = result.condition_points * (1.0 + percent_total / 100.0)
+	result.displayed_points = roundi(result.effective_points)
+	return result
+
+
+func calculate_car_performance(car: Car) -> CarPerformanceResult:
+	var result := CarPerformanceResult.new()
+	if car == null:
+		return result
+	for part in car.installed_parts:
+		if part == null:
+			continue
+		var part_result := calculate_part_performance(part, self)
+		result.part_results.append(part_result)
+		result.raw_part_points += part_result.effective_points
+	var car_percentages: Array[Dictionary] = [
+		{"id":"crew_chief_setup", "label":"Crew chief setup", "percent":get_crew_chief_performance_boost()},
+		{"id":"secret_department_car", "label":"Secret department", "percent":get_department_bonus("cheating")}
+	]
+	var applied_ids: Dictionary = {}
+	var car_percent_total := 0.0
+	for data in car_percentages:
+		var modifier_id := str(data.id)
+		var percent := float(data.percent)
+		if percent <= 0.0 or applied_ids.has(modifier_id):
+			continue
+		applied_ids[modifier_id] = true
+		var points := result.raw_part_points * percent / 100.0
+		result.car_modifiers.append(PerformancePointModifier.create(modifier_id, str(data.label), "car", percent, points))
+		car_percent_total += percent
+	result.effective_points = result.raw_part_points * (1.0 + car_percent_total / 100.0)
+	# This is the sole gameplay rounding boundary for Performance Points.
+	result.displayed_points = roundi(result.effective_points)
+	return result
 
 
 func get_reliability_boost() -> float:
