@@ -171,6 +171,9 @@ Implemented:
 - 12-race seasons
 - Position-based season prize money
 - Repeatable seasons
+- Dedicated offseason hub with player renewals, competing offers, and free-agent signings
+- Persistent AI driver transfers, rookies, retirements, morale, team fit, and career records
+- Transfer rumors, confirmed moves, and season recaps spanning the full racing world
 - Eight-tier career series ladder with entry fees and Team HQ promotion requirements
 - Series-specific dealership inventories and fictional driver fields sized to real-world grids
 

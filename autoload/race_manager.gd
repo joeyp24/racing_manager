@@ -199,6 +199,10 @@ func _get_effective_ai_roster(series_id: String) -> Array[Dictionary]:
 	for index in mini(static_teams.size(), career_teams.size()):
 		slot_states[str(static_teams[index].team_id)] = career_teams[index]
 	var strategy_scale := float(GameManager.team.get_difficulty_setting("ai_strategy_modifier", 1.0))
+	var lineups := {}
+	for state_value in career_teams:
+		var career_state := state_value as Dictionary
+		lineups[str(career_state.team_id)] = GameManager.team.get_ai_lineup_for_team(str(career_state.team_id))
 	for index in roster.size():
 		var driver := roster[index]
 		var state := slot_states.get(str(driver.team_id), {}) as Dictionary
@@ -209,14 +213,26 @@ func _get_effective_ai_roster(series_id: String) -> Array[Dictionary]:
 		var form := int(state.get("driver_form", 0))
 		driver["team_id"] = str(state.team_id)
 		driver["team_name"] = str(state.team_name)
-		driver["skill"] = clampi(int(driver.skill) + form, 1, 100)
-		driver["consistency"] = clampi(int(driver.consistency) + roundi(float(state.staff_quality - 50) * 0.04), 1, 100)
+		var lineup := lineups.get(str(state.team_id), []) as Array
+		var lineup_index := clampi(int(driver.get("team_car_number", 1)) - 1, 0, maxi(0, lineup.size() - 1))
+		var driver_state := lineup[lineup_index] as Dictionary if not lineup.is_empty() else {}
+		var career_driver := GameManager.team.get_driver_by_id(str(driver_state.get("driver_id", "")))
+		if career_driver != null:
+			driver["driver_id"] = career_driver.driver_id
+			driver["driver_name"] = career_driver.driver_name
+			driver["skill"] = clampi(career_driver.skill + form, 1, 100)
+			driver["consistency"] = clampi(career_driver.consistency + roundi(float(state.staff_quality - 50) * 0.04), 1, 100)
+			driver["aggression"] = career_driver.aggression
+			driver["attributes"] = career_driver.get_attribute_dictionary()
+		else:
+			driver["skill"] = clampi(int(driver.skill) + form, 1, 100)
+			driver["consistency"] = clampi(int(driver.consistency) + roundi(float(state.staff_quality - 50) * 0.04), 1, 100)
 		driver["car_performance"] = clampi(int(driver.car_performance) + equipment_delta + roundi(float(state.trend)), 1, 100)
 		driver["strategy_rating"] = clampf(float(state.strategy_rating) * strategy_scale, 20.0, 100.0)
 		driver["reliability"] = clampf(float(state.equipment_rating) * 0.62 + float(state.staff_quality) * 0.38, 25.0, 99.0)
 		driver["fuel_efficiency"] = clampf(float(state.engineering_rating) * 0.75 + 12.0, 25.0, 99.0)
 		driver["tyre_preservation"] = clampf(float(state.staff_quality) * 0.70 + float(state.strategy_rating) * 0.30, 25.0, 99.0)
-		if int(state.get("driver_generation", 0)) > 0:
+		if career_driver == null and int(state.get("driver_generation", 0)) > 0:
 			var name_seed := absi(hash(str(state.team_id))) + int(state.driver_generation) * 31 + int(driver.team_car_number) * 7
 			driver["driver_name"] = "%s %s" % [
 				AIRosterCatalog.FIRST_NAMES[name_seed % AIRosterCatalog.FIRST_NAMES.size()],
@@ -381,6 +397,7 @@ func finalize_live_race(
 		result.weekend_summary.append(str(summary))
 	result.weekend_summary.append("Live timing completed over %d laps." % selected_race.lap_count)
 	result.standings = simulation.as_final_standings()
+	_record_ai_race_histories(selected_race, result.standings)
 	result.field_size = result.standings.size()
 	result.finishing_position = find_player_position(result.standings)
 	result.positions_gained = result.starting_position - result.finishing_position
@@ -398,6 +415,7 @@ func finalize_live_race(
 		result.expired_staff_names.append(str(expired_name))
 	result.net_earnings -= result.crew_chief_salary + result.engineering_payroll
 	player_driver.record_race({"race_id":selected_race.race_id, "race_name":selected_race.race_name, "start":result.starting_position, "finish":result.finishing_position, "positions_gained":result.positions_gained, "qualifying":result.starting_position, "points":result.championship_points_earned, "track_type":selected_race.track_type, "weather":selected_race.weather, "status":str((result.standings[result.finishing_position - 1] as Dictionary).get("status", "Finished")), "incident":false})
+	GameManager.team.process_driver_race_contracts(weekend_data)
 	apply_race_effects(result)
 	complete_race(selected_race)
 	last_result = result
@@ -498,6 +516,7 @@ func run_race(
 					"Unknown Team"
 				)
 			),
+			"team_id": str(ai_driver.get("team_id", "")),
 			"score": calculate_ai_score(
 				selected_race,
 				ai_driver
@@ -534,6 +553,7 @@ func run_race(
 	)
 
 	result.standings = race_standings
+	_record_ai_race_histories(selected_race, result.standings)
 	result.field_size = race_standings.size()
 
 	result.finishing_position = (
@@ -572,6 +592,7 @@ func run_race(
 	for expired_name in staff_payroll.get("expired_names", []):
 		result.expired_staff_names.append(str(expired_name))
 	result.net_earnings -= result.crew_chief_salary + result.engineering_payroll
+	GameManager.team.process_driver_race_contracts(weekend_data)
 
 	apply_race_effects(result)
 	complete_race(selected_race)
@@ -581,6 +602,37 @@ func run_race(
 	GameManager.save_game()
 
 	return result
+
+
+func _record_ai_race_histories(selected_race: Race, standings: Array[Dictionary]) -> void:
+	if selected_race == null or GameManager.team == null:
+		return
+	for index in standings.size():
+		var row := standings[index]
+		if bool(row.get("is_player", false)):
+			continue
+		var driver_id := str(row.get("driver_id", ""))
+		if driver_id.is_empty():
+			continue
+		var state := GameManager.team.get_ai_driver_state(driver_id)
+		var team_id := str(row.get("team_id", state.get("current_team_id", "")))
+		GameManager.team.record_ai_driver_result(
+			driver_id,
+			team_id,
+			selected_race.series_id,
+			{
+				"race_id": selected_race.race_id,
+				"race_name": selected_race.race_name,
+				"start": int(row.get("starting_position", index + 1)),
+				"finish": index + 1,
+				"position": index + 1,
+				"positions_gained": int(row.get("starting_position", index + 1)) - (index + 1),
+				"track_type": selected_race.track_type,
+				"weather": selected_race.weather,
+				"status": str(row.get("status", "Finished")),
+				"incident": str(row.get("status", "Finished")) != "Finished"
+			}
+		)
 
 
 func _populate_decisive_factors(result: RaceResult, simulation: RaceSimulation = null) -> void:
@@ -1348,6 +1400,23 @@ func _simulate_world_series_race(series_id: String, race: Race, series_data: Dic
 		var race_entry := field[index]
 		var position := index + 1
 		result_rows.append({"position":position, "driver_id":race_entry.driver_id, "driver_name":race_entry.driver_name, "team_id":race_entry.team_id, "team_name":race_entry.team_name})
+		GameManager.team.record_ai_driver_result(
+			str(race_entry.driver_id),
+			str(race_entry.team_id),
+			series_id,
+			{
+				"race_id": race.race_id,
+				"race_name": race.race_name,
+				"start": position,
+				"finish": position,
+				"position": position,
+				"positions_gained": 0,
+				"track_type": race.track_type,
+				"weather": race.weather,
+				"status": "Finished",
+				"incident": false
+			}
+		)
 		for championship_entry in standings:
 			if str(championship_entry.driver_id) != str(race_entry.driver_id):
 				continue
@@ -1422,46 +1491,85 @@ func calculate_season_prize(finishing_position: int, series_id: String = "local_
 	return roundi(float(payouts[finishing_position - 1]) * multiplier)
 
 
-func start_new_season() -> bool:
+func prepare_offseason(target_series_id: String = "") -> bool:
 	if GameManager.team == null:
 		return false
-
 	if not GameManager.team.is_series_season_complete():
 		return false
-
+	var existing := GameManager.team.offseason_data
+	if (
+		str(existing.get("status", "")) == "Prepared"
+		and int(existing.get("season_year", 0)) == GameManager.team.current_season_year
+	):
+		if not target_series_id.is_empty():
+			OffseasonManager.retarget(GameManager.team, target_series_id)
+			GameManager.save_game()
+		return true
+	GameManager.team.record_driver_season_results()
 	apply_driver_development()
 	GameManager.team.process_staff_season()
 	var ai_summaries := GameManager.team.process_ai_team_season()
-	for summary in ai_summaries:
-		GameManager.team.last_development_summary.append("AI paddock: %s" % summary)
+	OffseasonManager.prepare(GameManager.team, target_series_id, ai_summaries)
+	GameManager.save_game()
+	return true
 
-	GameManager.team.last_season_position = 0
-	GameManager.team.last_season_prize = 0
-	var calendar := get_calendar_for_series(GameManager.team.current_series_id)
-	GameManager.team.reset_series_season(GameManager.team.current_series_id, calendar[0].race_id if not calendar.is_empty() else "")
+
+func complete_offseason() -> bool:
+	if GameManager.team == null or not OffseasonManager.complete(GameManager.team):
+		return false
+	var team := GameManager.team
+	var source_series_id := team.current_series_id
+	var target_series_id := str(team.offseason_data.get("target_series_id", source_series_id))
+	if target_series_id != source_series_id:
+		if not team.enter_series(target_series_id):
+			return false
+	else:
+		var calendar := get_calendar_for_series(source_series_id)
+		team.reset_series_season(source_series_id, calendar[0].race_id if not calendar.is_empty() else "")
+	var target_calendar := get_calendar_for_series(team.current_series_id)
+	team.current_season_year += 1
 	GameManager.team.championship_points = 0
-	GameManager.team.driver_hired_for_season = false
+	GameManager.team.driver_hired_for_season = not team.contracted_driver_ids.is_empty()
 	GameManager.team.current_race_week = 1
-	GameManager.team.current_season_year += 1
-	GameManager.team.current_season_day = calendar[0].schedule_day if not calendar.is_empty() else CalendarCatalog.SEASON_START_DAY
+	GameManager.team.current_season_day = target_calendar[0].schedule_day if not target_calendar.is_empty() else CalendarCatalog.SEASON_START_DAY
 	GameManager.team.week_advance_required = false
 	GameManager.team.engineering_projects.clear()
+	GameManager.team.driver_training_programs.clear()
+	GameManager.team.contract_offers.clear()
 	for contracted_driver in GameManager.team.get_contracted_drivers():
-		contracted_driver.is_player_driver = false
-		contracted_driver.team_name = "Free Agent"
-	GameManager.team.contracted_driver_ids.clear()
+		contracted_driver.series_id = team.current_series_id
+		contracted_driver.team_name = team.team_name
+		var state := team.ensure_ai_driver_state(contracted_driver)
+		state["current_team_id"] = "player_team"
+		state["current_series_id"] = team.current_series_id
+		team.ai_driver_career[contracted_driver.driver_id] = state
+	var active_driver := team.get_active_driver()
+	if active_driver == null and not team.get_contracted_drivers().is_empty():
+		active_driver = team.get_contracted_drivers()[0]
+		active_driver.is_player_driver = true
 	for race_team in GameManager.team.race_teams:
 		if race_team != null:
-			race_team.driver_id = ""
+			if not team.contracted_driver_ids.has(race_team.driver_id):
+				race_team.driver_id = ""
 	GameManager.team.active_sponsor_id = ""
 	GameManager.team.sponsor_races_remaining = 0
 	GameManager.team.sponsor_objective_progress = 0
 	GameManager.team.sponsor_objective_completed = false
+	GameManager.team.last_season_position = 0
+	GameManager.team.last_season_prize = 0
+	GameManager.team.offseason_data = {}
 	clear_last_result()
 	GameManager.clear_selected_data()
 	GameManager.team.emit_changed()
 	GameManager.save_game()
 	return true
+
+
+func start_new_season() -> bool:
+	if not prepare_offseason(GameManager.team.current_series_id if GameManager.team != null else ""):
+		return false
+	var readiness := OffseasonManager.can_complete(GameManager.team)
+	return complete_offseason() if bool(readiness.get("ready", false)) else false
 
 
 func apply_driver_development() -> void:

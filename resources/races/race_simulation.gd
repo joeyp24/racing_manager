@@ -45,6 +45,7 @@ func setup(
 		var entry := RaceEntryState.new()
 		entry.driver_id = str(data.get("driver_id", ""))
 		entry.driver_name = str(data.get("driver_name", "Unknown Driver"))
+		entry.team_id = str(data.get("team_id", ""))
 		entry.team_name = str(data.get("team_name", "Unknown Team"))
 		entry.consistency = int(data.get("consistency", 50))
 		entry.aggression = int(data.get("aggression", 50))
@@ -481,7 +482,9 @@ func as_final_standings() -> Array[Dictionary]:
 		standings.append({
 			"driver_id": entry.driver_id,
 			"driver_name": entry.driver_name,
+			"team_id": entry.team_id,
 			"team_name": entry.team_name,
+			"starting_position": entry.starting_position,
 			"score": -entry.elapsed_time,
 			"status": entry.status,
 			"incident_time_loss": entry.incident_time_loss,

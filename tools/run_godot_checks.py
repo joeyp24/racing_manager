@@ -21,6 +21,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_simulation_depth.gd"),
     ),
     (
+        "offseason and driver transfer tests",
+        ("--headless", "--path", ".", "--script", "tests/test_offseason.gd"),
+    ),
+    (
         "UI scene smoke tests",
         ("--headless", "--path", ".", "--script", "tests/test_ui_scenes.gd"),
     ),

@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 9
+const CURRENT_SAVE_FORMAT_VERSION: int = 10
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -83,6 +83,10 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var series_progress: Dictionary = {}
 @export var world_series_data: Dictionary = {}
 @export var ai_team_career: Dictionary = {}
+@export var ai_driver_career: Dictionary = {}
+@export var offseason_data: Dictionary = {}
+@export var transfer_history: Array[Dictionary] = []
+@export var season_history: Array[Dictionary] = []
 @export var drivers: Array[Driver] = []
 @export var contracted_driver_ids: Array[String] = []
 @export var race_teams: Array[RaceTeam] = []
@@ -128,11 +132,12 @@ const DIFFICULTY_SETTINGS: Dictionary = {
 func _init() -> void:
 	ensure_series_progress()
 	ensure_world_series_data()
-	ensure_ai_team_career()
 	ensure_departments()
 	ensure_default_player_driver()
 	ensure_driver_market()
 	ensure_series_rosters()
+	ensure_ai_team_career()
+	ensure_ai_driver_career()
 	ensure_race_teams()
 	ensure_car_parts()
 	ensure_staff_market()
@@ -328,15 +333,17 @@ func set_world_series_data(series_id: String, data: Dictionary) -> void:
 
 
 func ensure_ai_team_career() -> void:
+	if not ai_team_career.is_empty() and save_format_version >= 10:
+		var sample := ai_team_career.values()[0] as Dictionary
+		if sample.has("career_championships") and sample.has("season_results"):
+			return
 	for series in SeriesCatalog.SERIES:
 		var series_id := str(series.id)
 		for organization in TeamCatalog.get_teams(series_id):
 			var team_id := str(organization.team_id)
-			if ai_team_career.has(team_id):
-				continue
 			var car_price := int(series.car_price)
 			var operating_budget := int(series.estimated_race_cost) * int(series.season_length)
-			ai_team_career[team_id] = {
+			var defaults := {
 				"team_id": team_id,
 				"base_team_id": team_id,
 				"team_name": str(organization.team_name),
@@ -353,8 +360,13 @@ func ensure_ai_team_career() -> void:
 				"driver_changes": 0,
 				"driver_generation": 0,
 				"driver_form": 0,
+				"career_championships": int(organization.championships),
+				"season_results": [],
 				"movement": ""
 			}
+			var state := ai_team_career.get(team_id, {}) as Dictionary
+			defaults.merge(state, true)
+			ai_team_career[team_id] = defaults
 
 
 func get_ai_team_state(team_id: String) -> Dictionary:
@@ -407,6 +419,7 @@ func get_ai_organizations_for_series(series_id: String) -> Array[Dictionary]:
 			organization["financial_status"] = str(state.financial_status)
 			organization["movement"] = str(state.movement)
 			organization["driver_changes"] = int(state.driver_changes)
+			organization["championships"] = int(state.get("career_championships", organization.championships))
 		organizations.append(organization)
 	return organizations
 
@@ -417,6 +430,231 @@ func _get_ai_base_organization(team_id: String) -> Dictionary:
 		if not organization.is_empty():
 			return organization
 	return {}
+
+
+func ensure_ai_driver_career() -> void:
+	ensure_series_rosters()
+	for series in SeriesCatalog.SERIES:
+		var series_id := str(series.id)
+		var roster := AIRosterCatalog.get_roster(series_id)
+		for index in roster.size():
+			var roster_entry := roster[index]
+			var driver_id := "%s_driver_%02d" % [series_id, index + 1]
+			var driver := get_driver_by_id(driver_id)
+			if driver == null:
+				continue
+			var defaults := {
+				"driver_id": driver_id,
+				"driver_name": driver.driver_name,
+				"current_team_id": str(roster_entry.team_id),
+				"current_series_id": series_id,
+				"car_number": int(roster_entry.team_car_number),
+				"age": driver.age,
+				"potential": driver.get_potential_overall(),
+				"salary": driver.salary,
+				"contract_seasons": 1 + index % 3,
+				"morale": driver.morale,
+				"team_fit": roundi(float(driver.loyalty + driver.teamwork + driver.morale) / 3.0),
+				"career_goal": _get_driver_career_goal(driver),
+				"retired": false,
+				"rookie": false,
+				"starts": driver.career_starts,
+				"wins": driver.career_wins,
+				"podiums": driver.career_podiums,
+				"championships": driver.championships,
+				"best_championship_finish": driver.best_championship_finish,
+				"history": driver.race_history.duplicate(true),
+				"season_results": [],
+				"team_history": [{"season":current_season_year, "team_id":str(roster_entry.team_id), "series_id":series_id}]
+			}
+			var state := ai_driver_career.get(driver_id, {}) as Dictionary
+			defaults.merge(state, true)
+			if contracted_driver_ids.has(driver_id):
+				defaults["current_team_id"] = "player_team"
+			ai_driver_career[driver_id] = defaults
+	for driver in drivers:
+		if driver != null:
+			ensure_ai_driver_state(driver)
+
+
+func ensure_ai_driver_state(driver: Driver) -> Dictionary:
+	if driver == null:
+		return {}
+	var state := ai_driver_career.get(driver.driver_id, {}) as Dictionary
+	if state.is_empty():
+		state = {
+			"driver_id": driver.driver_id,
+			"driver_name": driver.driver_name,
+			"current_team_id": "player_team" if contracted_driver_ids.has(driver.driver_id) else "",
+			"current_series_id": driver.series_id,
+			"car_number": driver.preferred_number,
+			"age": driver.age,
+			"potential": driver.get_potential_overall(),
+			"salary": driver.salary,
+			"contract_seasons": 1,
+			"morale": driver.morale,
+			"team_fit": roundi(float(driver.loyalty + driver.teamwork + driver.morale) / 3.0),
+			"career_goal": _get_driver_career_goal(driver),
+			"retired": false,
+			"rookie": driver.career_starts == 0,
+			"starts": driver.career_starts,
+			"wins": driver.career_wins,
+			"podiums": driver.career_podiums,
+			"championships": driver.championships,
+			"best_championship_finish": driver.best_championship_finish,
+			"history": driver.race_history.duplicate(true),
+			"season_results": [],
+			"team_history": []
+		}
+		ai_driver_career[driver.driver_id] = state
+	return state
+
+
+func get_ai_driver_state(driver_id: String) -> Dictionary:
+	if not ai_driver_career.has(driver_id):
+		ensure_ai_driver_career()
+	return ai_driver_career.get(driver_id, {}) as Dictionary
+
+
+func get_ai_lineup_for_team(team_id: String) -> Array[Dictionary]:
+	if ai_driver_career.is_empty():
+		ensure_ai_driver_career()
+	var lineup: Array[Dictionary] = []
+	for state_value in ai_driver_career.values():
+		var state := state_value as Dictionary
+		if str(state.get("current_team_id", "")) == team_id and not bool(state.get("retired", false)):
+			lineup.append(state)
+	lineup.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+		var first_driver := get_driver_by_id(str(first.driver_id))
+		var second_driver := get_driver_by_id(str(second.driver_id))
+		var first_rating := first_driver.get_overall_rating() if first_driver != null else 0
+		var second_rating := second_driver.get_overall_rating() if second_driver != null else 0
+		if first_rating == second_rating:
+			return str(first.driver_id) < str(second.driver_id)
+		return first_rating > second_rating
+	)
+	return lineup
+
+
+func get_ai_team_slot_count(team_id: String, series_id: String) -> int:
+	for organization in get_ai_organizations_for_series(series_id):
+		if str(organization.team_id) == team_id:
+			return int(organization.driver_count)
+	return 1
+
+
+func get_ai_team_name(team_id: String) -> String:
+	var state := get_ai_team_state(team_id)
+	return str(state.get("team_name", "Free Agent")) if not state.is_empty() else "Free Agent"
+
+
+func record_ai_driver_result(driver_id: String, team_id: String, series_id: String, result: Dictionary) -> void:
+	var driver := get_driver_by_id(driver_id)
+	var state := ensure_ai_driver_state(driver)
+	if state.is_empty() or contracted_driver_ids.has(driver_id):
+		return
+	state["current_team_id"] = team_id
+	state["current_series_id"] = series_id
+	state["starts"] = int(state.get("starts", 0)) + 1
+	var position := int(result.get("position", 0))
+	if position == 1:
+		state["wins"] = int(state.get("wins", 0)) + 1
+	if position > 0 and position <= 3:
+		state["podiums"] = int(state.get("podiums", 0)) + 1
+	var history := state.get("history", []) as Array
+	history.push_front(result.duplicate(true))
+	if history.size() > 60:
+		history.resize(60)
+	state["history"] = history
+	ai_driver_career[driver_id] = state
+	if driver != null:
+		driver.career_starts = int(state.starts)
+		driver.career_wins = int(state.wins)
+		driver.career_podiums = int(state.podiums)
+		driver.record_race(result)
+
+
+func record_driver_season_results() -> void:
+	ensure_ai_driver_career()
+	for series in SeriesCatalog.SERIES:
+		var series_id := str(series.id)
+		var standings: Array[Dictionary] = []
+		if series_id == current_series_id:
+			standings = get_sorted_championship_standings()
+		else:
+			standings = _dictionary_array((get_world_series_data(series_id) as Dictionary).get("standings", []))
+		for index in standings.size():
+			var row := standings[index]
+			var driver_id := str(row.get("driver_id", ""))
+			var driver := get_driver_by_id(driver_id)
+			if driver == null:
+				continue
+			var state := ensure_ai_driver_state(driver)
+			var position := index + 1
+			state["best_championship_finish"] = position if int(state.get("best_championship_finish", 0)) <= 0 else mini(int(state.best_championship_finish), position)
+			if position == 1:
+				state["championships"] = int(state.get("championships", 0)) + 1
+			var season_results := state.get("season_results", []) as Array
+			season_results.push_front({
+				"season": current_season_year,
+				"series_id": series_id,
+				"team_id": str(row.get("team_id", state.get("current_team_id", ""))),
+				"position": position,
+				"points": int(row.get("points", 0)),
+				"wins": int(row.get("wins", 0)),
+				"podiums": int(row.get("podiums", 0))
+			})
+			if season_results.size() > 20:
+				season_results.resize(20)
+			state["season_results"] = season_results
+			ai_driver_career[driver_id] = state
+			driver.championships = int(state.championships)
+			driver.best_championship_finish = int(state.best_championship_finish)
+
+
+func get_offseason_free_agents() -> Array[Driver]:
+	var available: Array[Driver] = []
+	var ids := offseason_data.get("free_agent_ids", []) as Array
+	for driver_id in ids:
+		var driver := get_driver_by_id(str(driver_id))
+		if driver != null and not contracted_driver_ids.has(driver.driver_id):
+			available.append(driver)
+	available.sort_custom(func(first: Driver, second: Driver) -> bool:
+		if first.get_overall_rating() == second.get_overall_rating():
+			return first.salary < second.salary
+		return first.get_overall_rating() > second.get_overall_rating()
+	)
+	return available
+
+
+func process_driver_race_contracts(weekend_data: Dictionary) -> void:
+	var processed := {}
+	for entry_value in weekend_data.get("entries", []):
+		var entry := entry_value as Dictionary
+		var driver_id := str(entry.get("driver_id", ""))
+		if driver_id.is_empty() or processed.has(driver_id):
+			continue
+		var driver := get_driver_by_id(driver_id)
+		if driver != null and contracted_driver_ids.has(driver_id):
+			driver.contract_races_remaining = maxi(0, driver.contract_races_remaining - 1)
+			processed[driver_id] = true
+	var active_driver := get_active_driver()
+	if active_driver != null and contracted_driver_ids.has(active_driver.driver_id) and not processed.has(active_driver.driver_id):
+		active_driver.contract_races_remaining = maxi(0, active_driver.contract_races_remaining - 1)
+
+
+func _get_driver_career_goal(driver: Driver) -> String:
+	if driver == null:
+		return "Secure a competitive seat"
+	if driver.ambition >= 72:
+		return "Fight for championships"
+	if driver.loyalty >= 72:
+		return "Build a long-term home"
+	if driver.marketability >= 72:
+		return "Join a high-profile team"
+	if driver.age <= 23:
+		return "Earn a promotion"
+	return "Secure a competitive seat"
 
 
 func process_ai_team_season() -> Array[String]:
@@ -465,6 +703,20 @@ func process_ai_team_season() -> Array[String]:
 			state["trend"] = clampf(float(state.trend) * 0.55 + float(int(state.equipment_rating) - old_equipment), -5.0, 5.0)
 			state["last_position"] = position
 			state["seasons"] = int(state.seasons) + 1
+			if position == 1:
+				state["career_championships"] = int(state.get("career_championships", 0)) + 1
+			var season_results := state.get("season_results", []) as Array
+			season_results.push_front({
+				"season": current_season_year,
+				"series_id": series_id,
+				"position": position,
+				"points": int(team_points.get(str(state.team_id), 0)),
+				"budget": int(state.budget),
+				"equipment_rating": int(state.equipment_rating)
+			})
+			if season_results.size() > 20:
+				season_results.resize(20)
+			state["season_results"] = season_results
 			state["movement"] = ""
 			var change_trigger := position > roundi(float(states.size()) * 0.70) or int(state.budget) < 0
 			if change_trigger and (season_number + position + str(state.team_id).length()) % 3 == 0:
@@ -1502,13 +1754,12 @@ func ensure_series_rosters() -> void:
 	for series_index in SeriesCatalog.SERIES.size():
 		var series: Dictionary = SeriesCatalog.SERIES[series_index]
 		var target_size := int(series.roster_size)
-		var existing_count := 0
-		for driver in drivers:
-			if driver != null and driver.series_id == series.id:
-				existing_count += 1
-		for roster_index in range(existing_count, target_size):
+		for roster_index in target_size:
+			var driver_id := "%s_driver_%02d" % [series.id, roster_index + 1]
+			if get_driver_by_id(driver_id) != null:
+				continue
 			var driver := Driver.new()
-			driver.driver_id = "%s_driver_%02d" % [series.id, roster_index + 1]
+			driver.driver_id = driver_id
 			driver.driver_name = "%s %s" % [first_names[(roster_index + series_index) % first_names.size()], last_names[(roster_index * 3 + series_index) % last_names.size()]]
 			driver.series_id = str(series.id)
 			driver.age = 18 + ((roster_index * 5 + series_index) % 25)
@@ -1579,7 +1830,13 @@ func hire_driver(driver: Driver) -> bool:
 	money -= signing_cost
 	driver.is_player_driver = get_active_driver() == null
 	driver.team_name = team_name
+	driver.contract_races_remaining = maxi(driver.contract_length, int(SeriesCatalog.get_series(current_series_id).get("season_length", 12)))
+	driver.series_id = current_series_id
 	contracted_driver_ids.append(driver.driver_id)
+	var ai_state := ensure_ai_driver_state(driver)
+	ai_state["current_team_id"] = "player_team"
+	ai_state["current_series_id"] = current_series_id
+	ai_driver_career[driver.driver_id] = ai_state
 	driver_hired_for_season = true
 	record_finance("Driver", -signing_cost, "Signed %s" % driver.driver_name)
 	emit_changed()

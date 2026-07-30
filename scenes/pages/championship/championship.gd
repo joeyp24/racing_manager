@@ -31,7 +31,7 @@ func _ready() -> void:
 func _build_promotion_controls() -> void:
 	var team := GameManager.team
 	if team == null or not team.is_series_season_complete(): return
-	new_season_button.text = "Repeat current series"
+	new_season_button.text = "Open Offseason Hub"
 	var next_index := SeriesCatalog.get_index(team.current_series_id) + 1
 	if next_index >= SeriesCatalog.SERIES.size(): return
 	var next: Dictionary = SeriesCatalog.SERIES[next_index]
@@ -46,15 +46,14 @@ func _build_promotion_controls() -> void:
 
 func _confirm_promotion(series_id: String) -> void:
 	var dialog := ConfirmationDialog.new()
-	dialog.title = "Confirm championship promotion"
-	dialog.dialog_text = "Enter %s? Series progress is initialized only after confirmation." % SeriesCatalog.get_series(series_id).name
-	dialog.confirmed.connect(_promote.bind(series_id)); add_child(dialog); dialog.popup_centered()
+	dialog.title = "Plan championship promotion"
+	dialog.dialog_text = "Plan the offseason around promotion to %s? The entry fee is charged when you start the next season." % SeriesCatalog.get_series(series_id).name
+	dialog.confirmed.connect(_open_offseason.bind(series_id)); add_child(dialog); dialog.popup_centered()
 
 
-func _promote(series_id: String) -> void:
-	if not GameManager.team.enter_series(series_id): return
-	GameManager.save_game()
-	GameManager.load_page("res://scenes/pages/dashboard/dashboard.tscn" if GameManager.team.owns_car_for_series(series_id) else "res://scenes/pages/dealership/dealership.tscn")
+func _open_offseason(series_id: String) -> void:
+	if RaceManager.prepare_offseason(series_id):
+		GameManager.load_page("res://scenes/pages/offseason/offseason.tscn")
 
 
 func display_championship_standings() -> void:
@@ -135,10 +134,8 @@ func update_season_controls() -> void:
 
 
 func _on_new_season_button_pressed() -> void:
-	if RaceManager.start_new_season():
-		GameManager.load_page(
-			"res://scenes/pages/driver_market/driver_market.tscn"
-		)
+	var target_series_id := str(GameManager.team.offseason_data.get("target_series_id", GameManager.team.current_series_id))
+	_open_offseason(target_series_id)
 
 
 func format_number(number: int) -> String:

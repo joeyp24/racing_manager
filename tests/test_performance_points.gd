@@ -50,6 +50,7 @@ func _test_typed_calculator_behavior() -> void:
 	context.part_modifiers = [_modifier("engineering_department", 2.5), _modifier("engineering_staff", 2.5)]
 	var part_result := PerformancePointCalculator.calculate_part(car.get_part("Engine"), context)
 	assert(is_equal_approx(part_result.effective_points, 8.4))
+	assert(part_result.displayed_points == roundi(part_result.effective_points))
 	assert(part_result.modifiers.size() == 2)
 	assert(part_result.modifiers.filter(func(modifier): return modifier.id == "engineering_department").size() == 1)
 	var car_result := PerformancePointCalculator.calculate_car(car, context)

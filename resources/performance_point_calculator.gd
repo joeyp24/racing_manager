@@ -47,6 +47,7 @@ static func calculate_part(part: CarPart, context: PerformancePointContext) -> P
 				flat_points += modifier.value
 		result.modifiers.append(modifier)
 	result.effective_points = result.condition_points * (1.0 + additive_percent / 100.0) * multiplier + flat_points
+	result.displayed_points = roundi(result.effective_points)
 	return result
 
 
