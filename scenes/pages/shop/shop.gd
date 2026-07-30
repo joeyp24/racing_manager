@@ -43,6 +43,23 @@ func populate_comparison_cars() -> void:
 		comparison_car_selector.select(1)
 
 
+func populate_comparison_cars() -> void:
+	comparison_car_selector.clear()
+	comparison_car_selector.add_item("No car comparison")
+	comparison_car_selector.set_item_metadata(0, -1)
+	var preferred_bay := GameManager.selected_bay
+	for bay in GameManager.team.cars.size():
+		var car := GameManager.team.get_car(bay)
+		if car == null:
+			continue
+		comparison_car_selector.add_item("Bay %d — %s" % [bay + 1, car.name])
+		comparison_car_selector.set_item_metadata(comparison_car_selector.item_count - 1, bay)
+		if car == GameManager.selected_car or (GameManager.selected_car == null and bay == preferred_bay):
+			comparison_car_selector.select(comparison_car_selector.item_count - 1)
+	if comparison_car_selector.selected == 0 and comparison_car_selector.item_count > 1:
+		comparison_car_selector.select(1)
+
+
 func refresh_shop() -> void:
 	for child in offers_container.get_children():
 		child.queue_free()
@@ -66,7 +83,7 @@ func refresh_shop() -> void:
 		var pp_bubble := PanelContainer.new()
 		var pp_label := Label.new()
 		pp_label.add_theme_font_size_override("font_size", 12)
-		pp_label.text = "PART PERFORMANCE\n%d base PP  •  %.1f at %d%% condition\n%s with current team" % [part.base_performance_points, part.get_condition_adjusted_points(), part.condition, PerformancePointFormatter.format_part_points(pp_result)]
+		pp_label.text = "%d base PP\n%.1f PP at %d%% condition\n%s with current team" % [part.base_performance_points, part.get_condition_adjusted_points(), part.condition, PerformancePointFormatter.format_part_points(pp_result)]
 		var comparison := get_comparison_car()
 		if comparison != null and comparison.get_part(part.part_type) != null:
 			var installed := comparison.get_part(part.part_type)
@@ -75,9 +92,7 @@ func refresh_shop() -> void:
 			var preview := comparison.duplicate(true) as Car
 			preview.install_part(part.duplicate(true) as CarPart)
 			var preview_result := GameManager.team.calculate_car_performance(preview)
-			var displayed_delta := preview_result.displayed_points - current_result.displayed_points
-			pp_label.text += "\n\nWHOLE-CAR PREVIEW\n%s\n%d → %d PP   (%+d)\nPart change: %+.1f raw PP" % [get_comparison_car_label(), current_result.displayed_points, preview_result.displayed_points, displayed_delta, pp_result.effective_points - installed_result.effective_points]
-			pp_label.add_theme_color_override("font_color", Color("59df94") if displayed_delta > 0 else (Color("ff615b") if displayed_delta < 0 else Color("d9dee8")))
+			pp_label.text += "\nCompared with %s\nInstalled: %s  •  Candidate: %s\nChange: %+.1f raw PP / %+d displayed car PP" % [get_comparison_car_label(), PerformancePointFormatter.format_part_points(installed_result), PerformancePointFormatter.format_part_points(pp_result), pp_result.effective_points - installed_result.effective_points, preview_result.displayed_points - current_result.displayed_points]
 		pp_bubble.add_child(pp_label)
 		var buy_button := Button.new()
 		buy_button.text = "Buy — $%s" % format_number(purchase_cost)

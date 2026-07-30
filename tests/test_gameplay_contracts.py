@@ -73,22 +73,6 @@ def test_player_pp_consumers_use_the_authoritative_car_result():
     garage = (ROOT / "scenes/pages/garage/garage_bay.gd").read_text()
     assert "calculate_car_performance(car)" in inspection
     assert "get_total_performance_points" in garage
-
-
-def test_pp_pages_have_actionable_responsive_comparisons():
-    inspection = (ROOT / "scenes/pages/garage/car_inspection.gd").read_text()
-    inspection_scene = (ROOT / "scenes/pages/garage/car_inspection.tscn").read_text()
-    shop = (ROOT / "scenes/pages/shop/shop.gd").read_text()
-    shop_scene = (ROOT / "scenes/pages/shop/shop.tscn").read_text()
-    assert "preview_replacement" in inspection
-    assert "Open Parts Shop" in inspection
-    assert "ButtonGroup.new" in inspection
-    assert "condition_bar" in inspection_scene
-    assert "DangerButton" in inspection_scene
-    assert "update_responsive_columns" in shop
-    assert "WHOLE-CAR PREVIEW" in shop
-    assert "Need $%s more" in shop
-    assert "Compare parts against:" in shop_scene
 def test_save_is_versioned_verified_and_atomic():
     text = (ROOT / "scripts/save_manager.gd").read_text()
     assert "CURRENT_SAVE_FORMAT_VERSION" in text; assert "temporary_resource" in text

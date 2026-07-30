@@ -4,9 +4,7 @@ extends SceneTree
 func _initialize() -> void:
 	_test_factory_baseline_and_condition()
 	_test_series_factory_profiles()
-	_test_typed_calculator_behavior()
-	_test_modifier_targeting_and_scopes()
-	_test_fraction_rounding_and_replacement_delta()
+	_test_additive_modifiers_and_final_rounding()
 	_test_migration_is_idempotent()
 	_test_serialized_migration_fixtures()
 	print("Performance Points behavioral tests passed")

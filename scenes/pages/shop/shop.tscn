@@ -40,18 +40,9 @@ text = "Build your inventory with specialized upgrades for every area of the car
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="comparison_row" type="HBoxContainer" parent="margin/layout"]
-layout_mode = 2
-
-[node name="comparison_label" type="Label" parent="margin/layout/comparison_row"]
-layout_mode = 2
-text = "Compare parts against:"
-vertical_alignment = 1
-
-[node name="comparison_car_selector" type="OptionButton" parent="margin/layout/comparison_row"]
+[node name="comparison_car_selector" type="OptionButton" parent="margin/layout"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
 tooltip_text = "Select the garage car used for authoritative whole-car PP comparisons."
 
 [node name="scroll" type="ScrollContainer" parent="margin/layout"]
