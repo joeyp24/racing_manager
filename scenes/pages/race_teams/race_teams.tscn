@@ -26,48 +26,79 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="Eyebrow" type="Label" parent="Margin/Layout"]
+layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
-text = "TEAM  /  RACE OPERATIONS"
+text = "PADDOCK  /  ORGANIZATIONS"
 
 [node name="Header" type="HBoxContainer" parent="Margin/Layout"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="Title" type="Label" parent="Margin/Layout/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"PageTitle"
-text = "Race Teams"
+text = "Teams"
 
-[node name="add_button" type="Button" parent="Margin/Layout/Header"]
+[node name="directory_button" type="Button" parent="Margin/Layout/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"PrimaryButton"
-text = "+ Add race team"
+toggle_mode = true
+text = "Team Directory"
 
-[node name="count_label" type="Label" parent="Margin/Layout"]
+[node name="operations_button" type="Button" parent="Margin/Layout/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"BodyStrong"
+toggle_mode = true
+text = "My Race Operations"
 
-[node name="Description" type="Label" parent="Margin/Layout"]
+[node name="series_select" type="OptionButton" parent="Margin/Layout/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+
+[node name="summary_label" type="Label" parent="Margin/Layout"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
-text = "Build multiple entries for the same series. Assign a unique contracted driver and garage car to every team."
-autowrap_mode = 2
 
-[node name="Scroll" type="ScrollContainer" parent="Margin/Layout"]
+[node name="Content" type="HSplitContainer" parent="Margin/Layout"]
 layout_mode = 2
 size_flags_vertical = 3
+split_offset = 290
+
+[node name="TeamListPanel" type="PanelContainer" parent="Margin/Layout/Content"]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="TeamListScroll" type="ScrollContainer" parent="Margin/Layout/Content/TeamListPanel"]
+layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="teams_container" type="VBoxContainer" parent="Margin/Layout/Scroll"]
+[node name="teams_container" type="VBoxContainer" parent="Margin/Layout/Content/TeamListPanel/TeamListScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="DetailPanel" type="PanelContainer" parent="Margin/Layout/Content"]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="DetailMargin" type="MarginContainer" parent="Margin/Layout/Content/DetailPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="DetailScroll" type="ScrollContainer" parent="Margin/Layout/Content/DetailPanel/DetailMargin"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="detail_container" type="VBoxContainer" parent="Margin/Layout/Content/DetailPanel/DetailMargin/DetailScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
-
-[node name="status_label" type="Label" parent="Margin/Layout"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"MutedLabel"
-text = "Changes are saved automatically."
