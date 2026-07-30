@@ -88,11 +88,11 @@ max_length = 64
 layout_mode = 2
 [node name="DifficultyLabel" type="Label" parent="PageScroll/Center/Panel/Content/setup_form"]
 layout_mode = 2
-text = "CAREER DIFFICULTY  ·  Rookie $75k / Club $50k / Pro $35k"
+text = "CAREER DIFFICULTY  ·  Rookie $75k / Club $50k / Pro $42k"
 [node name="difficulty_option" type="OptionButton" parent="PageScroll/Center/Panel/Content/setup_form"]
 unique_name_in_owner = true
 layout_mode = 2
-tooltip_text = "Difficulty also changes sponsor generosity, rival growth, and repair costs."
+tooltip_text = "Difficulty changes rival pace and strategy, incident exposure, prizes, sponsors, weekend costs, salaries, repairs, and market prices."
 [node name="badge_option" type="OptionButton" parent="PageScroll/Center/Panel/Content/setup_form/Style"]
 unique_name_in_owner = true
 layout_mode = 2

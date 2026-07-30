@@ -14,13 +14,21 @@ var phase: int = 0
 var decision_index: int = 0
 var weekend_data: Dictionary = {}
 
-const PRACTICE_FOCUSES: Array[Dictionary] = [
-	{"id": "race_pace", "name": "Race pace", "description": "Improves long-run speed."},
-	{"id": "qualifying", "name": "Qualifying pace", "description": "Improves your qualifying lap."},
-	{"id": "tyres", "name": "Tyre preservation", "description": "Reduces race wear."},
-	{"id": "reliability", "name": "Reliability", "description": "Protects the car during the race."},
-	{"id": "confidence", "name": "Driver confidence", "description": "Improves consistency in qualifying and the race."}
+const PRACTICE_ADJUSTMENTS: Array[Dictionary] = [
+	{"axis": "", "delta": 0, "name": "Baseline run", "description": "Gather clean reference data without changing the car."},
+	{"axis": "aero_balance", "delta": 1, "name": "More aero balance", "description": "Adds cornering stability but can cost straight-line speed."},
+	{"axis": "aero_balance", "delta": -1, "name": "Less aero balance", "description": "Reduces drag but makes the car less settled in corners."},
+	{"axis": "suspension", "delta": 1, "name": "Softer suspension", "description": "Improves compliance and tyre life but slows direction changes."},
+	{"axis": "suspension", "delta": -1, "name": "Stiffer suspension", "description": "Sharpens response but can overwork the tyres."},
+	{"axis": "gearing", "delta": 1, "name": "Shorter gearing", "description": "Improves acceleration but limits maximum speed."},
+	{"axis": "gearing", "delta": -1, "name": "Longer gearing", "description": "Adds top speed but weakens acceleration."},
+	{"axis": "tyre_pressure", "delta": 1, "name": "Raise tyre pressure", "description": "Improves response while narrowing the temperature window."},
+	{"axis": "tyre_pressure", "delta": -1, "name": "Lower tyre pressure", "description": "Adds grip and tyre life but increases rolling resistance."},
+	{"axis": "brake_bias", "delta": 1, "name": "Move brake bias forward", "description": "Adds braking stability but can lock the front tyres."},
+	{"axis": "brake_bias", "delta": -1, "name": "Move brake bias rearward", "description": "Helps rotation but makes braking less forgiving."}
 ]
+
+const PRACTICE_COMPOUNDS: Array[String] = ["Soft", "Medium", "Hard"]
 
 const DECISIONS: Array[Dictionary] = [
 	{"title": "CAUTION — Pit window opens", "text": "The field has slowed under caution. Pit now for fresh tyres or protect track position?", "choices": ["Pit now", "Stay out"]},
@@ -37,49 +45,69 @@ func _ready() -> void:
 		show_invalid_weekend()
 		return
 	weekend_data = GameManager.active_race_weekend.duplicate(true)
-	show_practice()
+	if (weekend_data.get("practice_runs", []) as Array).size() >= PracticeRunSimulator.RUN_LIMIT:
+		show_qualifying()
+	else:
+		show_practice()
 
 
 func show_practice() -> void:
 	phase = 0
+	_ensure_practice_data()
+	var run_number := (weekend_data["practice_runs"] as Array).size() + 1
 	phase_label.text = "PRACTICE"
-	progress_label.text = "Race weekend • Stage 1 of 4"
-	briefing_label.text = "Choose where the team spends its limited practice time. Better staff, driver feedback, car condition, and HQ facilities produce a stronger setup."
-	choice_label.text = "Practice focus"
-	fill_selector(choice_selector, PRACTICE_FOCUSES, "name")
-	secondary_label.visible = false
-	secondary_selector.visible = false
-	outcome_label.text = ""
-	action_button.text = "Complete Practice"
+	progress_label.text = "Race weekend • Practice run %d of %d" % [run_number, PracticeRunSimulator.RUN_LIMIT]
+	briefing_label.text = "Use three timed runs to find the setup window. Feedback becomes clearer with each run, but the driver can still misread the car."
+	choice_label.text = "Setup adjustment"
+	fill_selector(choice_selector, PRACTICE_ADJUSTMENTS, "name")
+	secondary_label.text = "Tyre set"
+	secondary_label.visible = true
+	secondary_selector.visible = true
+	set_string_items(secondary_selector, PRACTICE_COMPOUNDS)
+	var tyre_sets := weekend_data["practice_tyre_sets"] as Dictionary
+	for index in range(PRACTICE_COMPOUNDS.size()):
+		var compound := PRACTICE_COMPOUNDS[index]
+		secondary_selector.set_item_text(index, "%s (%d sets)" % [compound, int(tyre_sets.get(compound, 0))])
+		secondary_selector.set_item_disabled(index, int(tyre_sets.get(compound, 0)) <= 0)
+	_select_available_compound()
+	action_button.text = "Run Timed Practice"
 	_update_choice_preview()
 
 
 func complete_practice() -> void:
-	var focus: Dictionary = PRACTICE_FOCUSES[choice_selector.selected]
-	var team := GameManager.team
+	var adjustment: Dictionary = PRACTICE_ADJUSTMENTS[choice_selector.selected]
+	var compound := PRACTICE_COMPOUNDS[secondary_selector.selected]
+	var tyre_sets := weekend_data["practice_tyre_sets"] as Dictionary
+	if int(tyre_sets.get(compound, 0)) <= 0:
+		return
+	var setup := weekend_data["practice_setup"] as Dictionary
+	setup = PracticeRunSimulator.apply_adjustment(setup, str(adjustment["axis"]), int(adjustment["delta"]))
+	tyre_sets[compound] = int(tyre_sets[compound]) - 1
 	var driver := _get_primary_driver()
-	var staff_rating := 0.0
-	var staff_count := 0
-	for member in team.staff:
-		if member != null and member.hired:
-			staff_rating += member.rating
-			staff_count += 1
-	if staff_count > 0:
-		staff_rating /= float(staff_count)
-	else:
-		staff_rating = 35.0
-	var information_quality := (
-		float(GameManager.selected_car.condition) * 0.025
-		+ float(driver.car_feedback + driver.consistency) * 0.015
-		+ staff_rating * 0.025
-		+ team.get_department_bonus("engineering") * 0.08
+	var runs := weekend_data["practice_runs"] as Array
+	var result := PracticeRunSimulator.simulate_run(
+		GameManager.selected_race,
+		driver,
+		_practice_staff_quality(),
+		setup,
+		compound,
+		runs.size() + 1,
+		RaceManager.random_number_generator.randi()
 	)
-	weekend_data["practice_focus"] = focus["id"]
-	weekend_data["practice_focus_name"] = focus["name"]
-	weekend_data["practice_quality"] = information_quality
-	weekend_data["setup_bonus"] = information_quality * (1.25 if focus["id"] == "race_pace" else 0.65)
-	weekend_data["wear_modifier"] = 0.88 if focus["id"] in ["tyres", "reliability"] else 1.0
-	show_qualifying()
+	result["adjustment"] = str(adjustment["name"])
+	runs.append(result)
+	weekend_data["practice_setup"] = setup
+	weekend_data["practice_tyre_sets"] = tyre_sets
+	weekend_data["practice_runs"] = runs
+	GameManager.active_race_weekend = weekend_data.duplicate(true)
+	GameManager.save_game()
+	if runs.size() < PracticeRunSimulator.RUN_LIMIT:
+		show_practice()
+	else:
+		_finalize_practice()
+		GameManager.active_race_weekend = weekend_data.duplicate(true)
+		GameManager.save_game()
+		show_qualifying()
 
 
 func show_qualifying() -> void:
@@ -94,7 +122,10 @@ func show_qualifying() -> void:
 	secondary_label.visible = true
 	secondary_selector.visible = true
 	set_string_items(secondary_selector, ["Cornering balance", "Straight-line speed", "Race stability"])
-	outcome_label.text = "Practice complete: %.1f setup points collected." % float(weekend_data["practice_quality"])
+	outcome_label.text = "Practice complete: %.0f%% setup confidence • Best lap %.3fs" % [
+		float(weekend_data["practice_quality"]),
+		float(weekend_data["practice_best_lap"])
+	]
 	action_button.text = "Run Qualifying"
 	_update_choice_preview()
 
@@ -103,15 +134,15 @@ func complete_qualifying() -> void:
 	var driver := _get_primary_driver()
 	var approach_modifiers: Array[float] = [-1.0, 1.0, 3.0]
 	var variance: float = float([1.5, 3.0, 6.0][choice_selector.selected])
-	var focus_bonus: float = 3.0 if weekend_data["practice_focus"] == "qualifying" else 0.0
-	var confidence_bonus: float = 1.5 if weekend_data["practice_focus"] == "confidence" else 0.0
+	var setup_bonus := float(weekend_data.get("setup_bonus", 0.0))
+	var practice_quality := float(weekend_data.get("practice_quality", 35.0))
 	var qualifying_score: float = (
 		float(GameManager.selected_car.get_total_performance_points(GameManager.team)) * 0.55
 		+ float(driver.qualifying_pace) * 0.30
 		+ float(driver.consistency) * 0.15
-		+ float(weekend_data["practice_quality"]) * 0.45
+		+ practice_quality * 0.12
+		+ setup_bonus * 0.80
 		+ approach_modifiers[choice_selector.selected]
-		+ focus_bonus + confidence_bonus
 		+ RaceManager.random_number_generator.randf_range(-variance, variance)
 	)
 	var rival_scores: Array[float] = []
@@ -140,7 +171,7 @@ func show_strategy() -> void:
 	secondary_label.text = "Tyre and fuel plan"
 	secondary_label.visible = true
 	secondary_selector.visible = true
-	set_string_items(secondary_selector, ["Hard tyres / long first stint", "Medium tyres / flexible window", "Soft tyres / early stop"])
+	set_string_items(secondary_selector, ["Hard tyres / 68% fuel / long stint", "Medium tyres / 56% fuel / flexible", "Soft tyres / 42% fuel / early stop"])
 	secondary_selector.select(1)
 	outcome_label.text = "Grid: P%d • Setup: %s" % [int(weekend_data["starting_position"]), weekend_data["setup_emphasis"]]
 	action_button.text = "Start Race"
@@ -254,7 +285,11 @@ func _on_choice_changed(_index: int) -> void:
 
 func _update_choice_preview() -> void:
 	if phase == 0 and choice_selector.item_count > 0:
-		outcome_label.text = str(PRACTICE_FOCUSES[choice_selector.selected]["description"])
+		var preview := str(PRACTICE_ADJUSTMENTS[choice_selector.selected]["description"])
+		var runs := weekend_data.get("practice_runs", []) as Array
+		if not runs.is_empty():
+			preview += "\n\n" + _practice_summary(runs.back() as Dictionary)
+		outcome_label.text = preview
 	elif phase == 1:
 		outcome_label.text = ["Safe and consistent, but gives away pace.", "A representative lap with moderate risk.", "Maximum pace with much greater variance."][choice_selector.selected]
 	elif phase == 2:
@@ -304,3 +339,61 @@ func _get_primary_driver() -> Driver:
 		if driver != null:
 			return driver
 	return GameManager.team.get_active_driver()
+
+
+func _ensure_practice_data() -> void:
+	if not weekend_data.has("practice_setup"):
+		weekend_data["practice_setup"] = PracticeRunSimulator.DEFAULT_SETUP.duplicate(true)
+	if not weekend_data.has("practice_runs"):
+		weekend_data["practice_runs"] = []
+	if not weekend_data.has("practice_tyre_sets"):
+		weekend_data["practice_tyre_sets"] = PracticeRunSimulator.DEFAULT_TYRE_SETS.duplicate(true)
+
+
+func _select_available_compound() -> void:
+	for index in range(secondary_selector.item_count):
+		if not secondary_selector.is_item_disabled(index):
+			secondary_selector.select(index)
+			return
+
+
+func _practice_staff_quality() -> float:
+	var total := 0.0
+	var count := 0
+	for member in GameManager.team.staff:
+		if member != null and member.hired and member.role in ["Crew Chief", "Engineer"]:
+			total += (float(member.primary_rating) + float(member.secondary_rating)) * 0.5
+			count += 1
+	var average := total / float(count) if count > 0 else 35.0
+	return clampf(average + GameManager.team.get_department_bonus("engineering") * 0.8, 20.0, 100.0)
+
+
+func _practice_summary(run: Dictionary) -> String:
+	return "Run %d • %s • %.3fs • %.1f%% tyre wear\n%s\n%s" % [
+		int(run["run"]),
+		str(run["compound"]),
+		float(run["lap_time"]),
+		float(run["tyre_wear"]),
+		str(run["feedback"]),
+		str(run["guidance"])
+	]
+
+
+func _finalize_practice() -> void:
+	var runs := weekend_data["practice_runs"] as Array
+	var quality_total := 0.0
+	var best_lap := INF
+	for run in runs:
+		var result := run as Dictionary
+		quality_total += float(result["feedback_quality"])
+		best_lap = minf(best_lap, float(result["lap_time"]))
+	var practice_quality := quality_total / float(maxi(1, runs.size()))
+	var setup_score := PracticeRunSimulator.setup_score(GameManager.selected_race, weekend_data["practice_setup"])
+	weekend_data["practice_focus"] = "multi_run_setup"
+	weekend_data["practice_focus_name"] = "Three-run setup programme"
+	weekend_data["practice_quality"] = practice_quality
+	weekend_data["practice_best_lap"] = best_lap
+	weekend_data["practice_setup_score"] = setup_score
+	weekend_data["setup_bonus"] = setup_score * 0.045 + practice_quality * 0.015
+	weekend_data["wear_modifier"] = lerpf(1.04, 0.92, setup_score / 100.0)
+	weekend_data["practice_guidance"] = str((runs.back() as Dictionary)["guidance"])

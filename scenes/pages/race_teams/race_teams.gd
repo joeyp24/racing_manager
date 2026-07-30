@@ -33,9 +33,9 @@ func show_directory() -> void:
 
 func refresh_directory() -> void:
 	clear_container(teams_container)
-	var organizations := TeamCatalog.get_teams(selected_series_id)
-	summary_label.text = "%d organizations · %d cars · Ratings %d–%d" % [organizations.size(), AIRosterCatalog.get_roster(selected_series_id).size(), minimum_rating(organizations), maximum_rating(organizations)]
-	if selected_team_id.is_empty() or TeamCatalog.get_team(selected_series_id, selected_team_id).is_empty():
+	var organizations := GameManager.team.get_ai_organizations_for_series(selected_series_id)
+	summary_label.text = "%d organizations · %d cars · Ratings %d–%d" % [organizations.size(), RaceManager.get_ai_roster_for_series(selected_series_id).size(), minimum_rating(organizations), maximum_rating(organizations)]
+	if selected_team_id.is_empty() or _get_organization(selected_team_id).is_empty():
 		selected_team_id = str(organizations[0].team_id) if not organizations.is_empty() else ""
 	for organization in organizations:
 		var button := Button.new()
@@ -51,12 +51,13 @@ func refresh_directory() -> void:
 
 func show_team_detail() -> void:
 	clear_container(detail_container)
-	var organization := TeamCatalog.get_team(selected_series_id, selected_team_id)
+	var organization := _get_organization(selected_team_id)
 	if organization.is_empty():
 		return
 	var series := SeriesCatalog.get_series(selected_series_id)
 	detail_container.add_child(heading(str(organization.team_name), "OVR %d" % int(organization.overall_rating)))
 	add_muted("%s  ·  Founded %d  ·  %d championships" % [organization.hometown, organization.founded, organization.championships])
+	add_muted("TREND %+.1f  ·  FINANCES %s%s" % [float(organization.get("trend", 0.0)), str(organization.get("financial_status", "Stable")).to_upper(), "  ·  " + str(organization.movement).to_upper() if not str(organization.get("movement", "")).is_empty() else ""])
 	add_section("TEAM RATINGS")
 	var ratings := GridContainer.new()
 	ratings.columns = 2
@@ -66,7 +67,7 @@ func show_team_detail() -> void:
 	add_section("HISTORY")
 	add_body(str(organization.history))
 	add_section("DRIVERS")
-	var roster := AIRosterCatalog.get_roster(selected_series_id)
+	var roster := RaceManager.get_ai_roster_for_series(selected_series_id)
 	for driver in roster:
 		if str(driver.team_id) != selected_team_id:
 			continue
@@ -88,6 +89,13 @@ func show_team_detail() -> void:
 		for result in stats.results:
 			add_body("%s  ·  Best: P%d  ·  %s" % [result.race_name, result.best_finish, result.finishes])
 	add_muted("Competing in %s" % str(series.name))
+
+
+func _get_organization(team_id: String) -> Dictionary:
+	for organization in GameManager.team.get_ai_organizations_for_series(selected_series_id):
+		if str(organization.team_id) == team_id:
+			return organization
+	return {}
 
 
 func get_team_stats(series_id: String, team_id: String, team_name: String) -> Dictionary:
