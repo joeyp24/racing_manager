@@ -62,7 +62,7 @@ func refresh_parts() -> void:
 		var part: CarPart = car.get_part(part_type)
 		var breakdown := GameManager.team.calculate_part_performance(part)
 		var button := Button.new()
-		button.text = "%s   %s\n%s" % [part_type, PerformancePointFormatter.format_part_points(breakdown), part.get_summary()]
+		button.text = "%s   %d PP\n%s" % [part_type, breakdown.displayed_points, part.get_summary()]
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.tooltip_text = "%s\nChoose a replacement %s" % [format_performance_breakdown(breakdown), part_type.to_lower()]
 		button.pressed.connect(show_part_inventory.bind(part_type))
