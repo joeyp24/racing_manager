@@ -95,11 +95,11 @@ func update_week_action(team: Team) -> void:
 		advance_race_button.text = "VIEW FINAL STANDINGS  →"
 		week_status_label.text = "Season complete"
 	elif team.week_advance_required:
-		advance_race_button.text = "ADVANCE TO NEXT RACE WEEK  →"
-		week_status_label.text = "Race week %d complete • Advance when your team is ready" % team.current_race_week
+		advance_race_button.text = "ADVANCE TO NEXT RACE  →"
+		week_status_label.text = "%s complete • Advance when your team is ready" % CalendarCatalog.format_day(team.current_season_day)
 	else:
 		advance_race_button.text = "PREPARE FOR RACE  →"
-		week_status_label.text = "Race week %d • Engineering deadlines: next race week" % team.current_race_week
+		week_status_label.text = "%s • Engineering deadlines: next race" % CalendarCatalog.format_day(team.current_season_day)
 
 
 func update_sponsor_summary(team: Team) -> void:
@@ -136,7 +136,10 @@ func update_next_race() -> void:
 		return
 
 	var race := RaceManager.get_next_race(GameManager.team)
-	next_race_label.text = "Next Race: %s" % (race.race_name if race != null else "No event available")
+	if race == null:
+		next_race_label.text = "Next Race: No event available"
+		return
+	next_race_label.text = "Next Race: %s • %s" % [race.race_name, race.race_date]
 
 
 func update_championship_summary() -> void:
@@ -264,8 +267,13 @@ func _on_prepare_race_pressed() -> void:
 		GameManager.load_page("res://scenes/pages/championship/championship.tscn")
 		return
 	if GameManager.team.week_advance_required:
-		var completed := GameManager.team.advance_to_next_race_week()
-		week_status_label.text = "Race week %d started" % GameManager.team.current_race_week
+		var next_race := RaceManager.get_next_race(GameManager.team)
+		var next_day := next_race.schedule_day if next_race != null else CalendarCatalog.SEASON_END_DAY
+		var simulated := RaceManager.simulate_other_series_through_date(next_day)
+		var completed := GameManager.team.advance_to_next_race_week(next_day)
+		week_status_label.text = "%s • Next race window opened" % CalendarCatalog.format_day(next_day)
+		if not simulated.is_empty():
+			week_status_label.text += " • %d other series updated" % simulated.size()
 		if not completed.is_empty():
 			for summary in completed:
 				week_status_label.text += " • " + summary

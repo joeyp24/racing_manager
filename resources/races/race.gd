@@ -7,6 +7,7 @@ extends Resource
 @export var race_name: String = "Unnamed Race"
 @export var track_name: String = "Unnamed Track"
 @export var race_date: String = "March 1"
+@export var schedule_day: int = 32
 @export var travel_region: String = "Southeast"
 
 @export_range(1, 500, 1)

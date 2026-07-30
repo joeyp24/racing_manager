@@ -57,6 +57,7 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var department_levels: Dictionary = {}
 @export var driver_development_progress: float = 0.0
 @export var current_race_week: int = 1
+@export var current_season_day: int = CalendarCatalog.SEASON_START_DAY
 @export var week_advance_required: bool = false
 @export var engineering_projects: Array[Dictionary] = []
 @export var scouting_assignments: Array[Dictionary] = []
@@ -143,6 +144,12 @@ func ensure_departments() -> void:
 func ensure_race_week_progression() -> void:
 	# Saves created before race weeks existed derive their position from season progress.
 	current_race_week = maxi(current_race_week, get_completed_races().size() + (0 if week_advance_required else 1))
+	if current_season_day < CalendarCatalog.SEASON_START_DAY or current_season_day > CalendarCatalog.SEASON_END_DAY:
+		current_season_day = CalendarCatalog.SEASON_START_DAY
+	var completed_count := get_completed_races().size()
+	if completed_count > 0 and current_season_day == CalendarCatalog.SEASON_START_DAY:
+		var events := CalendarCatalog.get_events(current_series_id)
+		current_season_day = int(events[mini(completed_count - 1, events.size() - 1)].schedule_day)
 
 
 func get_department_level(department_id: String) -> int:
@@ -946,10 +953,11 @@ func complete_engineering_projects() -> Array[String]:
 	return completed
 
 
-func advance_to_next_race_week() -> Array[String]:
+func advance_to_next_race_week(next_race_day: int = current_season_day) -> Array[String]:
 	if not week_advance_required or is_series_season_complete():
 		return []
 	current_race_week += 1
+	current_season_day = clampi(next_race_day, CalendarCatalog.SEASON_START_DAY, CalendarCatalog.SEASON_END_DAY)
 	week_advance_required = false
 	var completed := complete_engineering_projects()
 	advance_driver_programs()
