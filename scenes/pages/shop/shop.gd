@@ -13,6 +13,34 @@ func _ready() -> void:
 	comparison_car_selector.item_selected.connect(func(_index: int) -> void: refresh_shop())
 	populate_comparison_cars()
 	refresh_shop()
+	update_responsive_columns()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and is_node_ready():
+		update_responsive_columns()
+
+
+func update_responsive_columns() -> void:
+	var width := size.x
+	offers_container.columns = 1 if width < 620.0 else (2 if width < 920.0 else 3)
+
+
+func populate_comparison_cars() -> void:
+	comparison_car_selector.clear()
+	comparison_car_selector.add_item("No car comparison")
+	comparison_car_selector.set_item_metadata(0, -1)
+	var preferred_bay := GameManager.selected_bay
+	for bay in GameManager.team.cars.size():
+		var car := GameManager.team.get_car(bay)
+		if car == null:
+			continue
+		comparison_car_selector.add_item("Bay %d — %s" % [bay + 1, car.name])
+		comparison_car_selector.set_item_metadata(comparison_car_selector.item_count - 1, bay)
+		if car == GameManager.selected_car or (GameManager.selected_car == null and bay == preferred_bay):
+			comparison_car_selector.select(comparison_car_selector.item_count - 1)
+	if comparison_car_selector.selected == 0 and comparison_car_selector.item_count > 1:
+		comparison_car_selector.select(1)
 
 
 func populate_comparison_cars() -> void:
@@ -38,7 +66,8 @@ func refresh_shop() -> void:
 	for part in store_inventory:
 		var purchase_cost := GameManager.team.get_discounted_cost(part.purchase_price)
 		var panel := PanelContainer.new()
-		panel.custom_minimum_size = Vector2(225, 145)
+		panel.custom_minimum_size = Vector2(250, 220)
+		panel.theme_type_variation = &"CardPanel"
 		var margin := MarginContainer.new()
 		margin.add_theme_constant_override("margin_left", 10)
 		margin.add_theme_constant_override("margin_top", 8)
@@ -67,6 +96,7 @@ func refresh_shop() -> void:
 		pp_bubble.add_child(pp_label)
 		var buy_button := Button.new()
 		buy_button.text = "Buy — $%s" % format_number(purchase_cost)
+		buy_button.theme_type_variation = &"PrimaryButton"
 		buy_button.disabled = GameManager.team.money < purchase_cost
 		details.tooltip_text = "Part attributes are separate from Performance Points. PP includes condition and current part-level team modifiers."
 		buy_button.tooltip_text = "Disabled: you need $%s more." % format_number(purchase_cost - GameManager.team.money) if buy_button.disabled else "Buy now; install and compare it from Car Inspection."
@@ -74,6 +104,11 @@ func refresh_shop() -> void:
 		content.add_child(title)
 		content.add_child(details)
 		content.add_child(pp_bubble)
+		if buy_button.disabled:
+			var affordability := Label.new()
+			affordability.text = "Need $%s more" % format_number(purchase_cost - GameManager.team.money)
+			affordability.theme_type_variation = &"DangerLabel"
+			content.add_child(affordability)
 		content.add_child(buy_button)
 		margin.add_child(content)
 		panel.add_child(margin)
