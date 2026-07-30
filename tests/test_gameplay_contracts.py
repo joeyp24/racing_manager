@@ -114,6 +114,8 @@ def test_other_series_are_simulated_saved_and_browsable():
     assert "@export var world_series_data" in team
     assert "func ensure_world_series_data()" in team
     assert "simulate_other_series_through_round" in manager
+    assert 'var standings := _as_dictionary_array(series_data.get("standings", []))' in manager
+    assert "func _as_dictionary_array(value: Variant) -> Array[Dictionary]:" in manager
     assert "calculate_championship_points(series_id" in manager
     for statistic in ('"points"', '"wins"', '"podiums"', '"starts"', '"best_finish"', '"average_finish_total"'):
         assert statistic in manager
