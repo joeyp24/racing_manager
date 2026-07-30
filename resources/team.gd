@@ -14,7 +14,9 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 6
+const CURRENT_SAVE_FORMAT_VERSION: int = 7
+const ENGINEERING_PROJECT_DAYS: int = 14
+const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
 const BASE_SCOUTING_HOURS: int = 20
 const SCOUTING_HOURS_PER_LEVEL: int = 10
@@ -48,6 +50,7 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var entered_series_ids: Array[String] = ["local_short_track"]
 @export var championship_points: int = 0
 @export var season_number: int = 1
+@export var current_season_year: int = 2026
 @export var season_complete: bool = false
 @export var driver_hired_for_season: bool = false
 @export var last_season_position: int = 0
@@ -150,6 +153,23 @@ func ensure_race_week_progression() -> void:
 	if completed_count > 0 and current_season_day == CalendarCatalog.SEASON_START_DAY:
 		var events := CalendarCatalog.get_events(current_series_id)
 		current_season_day = int(events[mini(completed_count - 1, events.size() - 1)].schedule_day)
+	_migrate_date_driven_projects()
+
+
+func _migrate_date_driven_projects() -> void:
+	# Old saves only knew the race week in which work began. Preserve active work,
+	# but give it a fair calendar duration from the date at which the save resumes.
+	for project in engineering_projects:
+		if not project.has("start_day"):
+			project["start_day"] = current_season_day
+		if not project.has("completion_day"):
+			project["completion_day"] = mini(CalendarCatalog.SEASON_END_DAY, current_season_day + ENGINEERING_PROJECT_DAYS)
+	for driver_id in driver_training_programs:
+		var program := driver_training_programs[driver_id] as Dictionary
+		if not program.has("start_day"):
+			program["start_day"] = current_season_day
+		if not program.has("completion_day"):
+			program["completion_day"] = mini(CalendarCatalog.SEASON_END_DAY, current_season_day + DRIVER_TRAINING_DAYS)
 
 
 func get_department_level(department_id: String) -> int:
@@ -449,7 +469,10 @@ func advance_driver_programs() -> void:
 func set_driver_training(driver: Driver, focus: String) -> bool:
 	var programs := {"Race pace":"race_pace", "Qualifying":"qualifying_pace", "Tyre conservation":"tyre_management", "Racecraft":"racecraft", "Wet-weather training":"wet_weather", "Fitness":"fitness", "Simulator work":"consistency", "Technical feedback":"car_feedback", "Mental coaching":"composure"}
 	if driver == null or not contracted_driver_ids.has(driver.driver_id) or not programs.has(focus): return false
-	driver.development_focus = focus; driver_training_programs[driver.driver_id] = {"attribute":programs[focus], "cost":350, "fatigue":8 if focus == "Fitness" else 4}; return true
+	driver.development_focus = focus
+	driver_training_programs[driver.driver_id] = {"attribute":programs[focus], "cost":350, "fatigue":8 if focus == "Fitness" else 4, "focus":focus, "start_day":current_season_day, "completion_day":mini(CalendarCatalog.SEASON_END_DAY, current_season_day + DRIVER_TRAINING_DAYS)}
+	emit_changed()
+	return true
 
 
 func process_driver_availability() -> void:
@@ -932,16 +955,21 @@ func queue_part_project(engineer: StaffMember, part_type: String) -> bool:
 		"engineer_id": engineer.staff_id,
 		"engineer_name": engineer.staff_name,
 		"part_type": part_type,
-		"started_week": current_race_week
+		"start_day": current_season_day,
+		"completion_day": mini(CalendarCatalog.SEASON_END_DAY, current_season_day + ENGINEERING_PROJECT_DAYS)
 	})
 	record_finance("Workshop", -cost, "Started %s development" % part_type)
 	emit_changed()
 	return true
 
 
-func complete_engineering_projects() -> Array[String]:
+func complete_engineering_projects(through_day: int = CalendarCatalog.SEASON_END_DAY) -> Array[String]:
 	var completed: Array[String] = []
+	var remaining: Array[Dictionary] = []
 	for project in engineering_projects:
+		if int(project.get("completion_day", current_season_day)) > through_day:
+			remaining.append(project)
+			continue
 		var engineer := get_staff_by_id(str(project.get("engineer_id", "")))
 		if engineer == null:
 			continue
@@ -949,21 +977,60 @@ func complete_engineering_projects() -> Array[String]:
 		var part := PartCatalog.create_manufactured_part(part_type, engineer)
 		parts_inventory.append(part)
 		completed.append("%s completed %s" % [engineer.staff_name, part.part_name])
-	engineering_projects.clear()
+	engineering_projects = remaining
 	return completed
+
+
+func get_date_events(target_day: int) -> Array[Dictionary]:
+	_migrate_date_driven_projects()
+	var events: Array[Dictionary] = []
+	for project in engineering_projects:
+		var day := int(project.get("completion_day", target_day))
+		if day > current_season_day and day <= target_day:
+			events.append({"day":day, "type":"engineering", "title":"%s development completes" % project.get("part_type", "Part")})
+	for driver_id in driver_training_programs:
+		var program := driver_training_programs[driver_id] as Dictionary
+		var day := int(program.get("completion_day", target_day))
+		while day > current_season_day and day <= target_day:
+			var driver := get_driver_by_id(str(driver_id))
+			events.append({"day":day, "type":"training", "title":"%s training milestone" % (driver.driver_name if driver != null else "Driver")})
+			day += DRIVER_TRAINING_DAYS
+	for assignment in scouting_assignments:
+		var day := int(assignment.get("completion_day", target_day + 1))
+		if day > current_season_day and day <= target_day:
+			events.append({"day":day, "type":"scouting", "title":"Scouting assignment completes"})
+	return events
+
+
+func advance_to_date(target_day: int) -> Array[String]:
+	var clamped_target := clampi(target_day, current_season_day, CalendarCatalog.SEASON_END_DAY)
+	if clamped_target == current_season_day:
+		return []
+	var summaries := complete_engineering_projects(clamped_target)
+	for driver_id in driver_training_programs.keys():
+		var program := driver_training_programs[driver_id] as Dictionary
+		while int(program.get("completion_day", clamped_target + 1)) <= clamped_target:
+			var driver := get_driver_by_id(str(driver_id))
+			if driver != null and money >= int(program.get("cost", 0)):
+				money -= int(program.get("cost", 0))
+				driver.development_points += 1
+				driver.fatigue = mini(100, driver.fatigue + int(program.get("fatigue", 5)))
+				summaries.append("%s completed %s training" % [driver.driver_name, program.get("focus", "driver")])
+			program["start_day"] = int(program.get("completion_day", clamped_target))
+			program["completion_day"] = int(program.start_day) + DRIVER_TRAINING_DAYS
+	current_season_day = clamped_target
+	current_race_week = maxi(current_race_week, get_completed_races().size() + 1)
+	week_advance_required = false
+	process_driver_availability()
+	ensure_scouting_hours()
+	emit_changed()
+	return summaries
 
 
 func advance_to_next_race_week(next_race_day: int = current_season_day) -> Array[String]:
 	if not week_advance_required or is_series_season_complete():
 		return []
-	current_race_week += 1
-	current_season_day = clampi(next_race_day, CalendarCatalog.SEASON_START_DAY, CalendarCatalog.SEASON_END_DAY)
-	week_advance_required = false
-	var completed := complete_engineering_projects()
-	advance_driver_programs()
-	ensure_scouting_hours()
-	emit_changed()
-	return completed
+	return advance_to_date(next_race_day)
 
 
 func manufacture_part(engineer: StaffMember, part_type: String) -> CarPart:

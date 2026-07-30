@@ -1149,6 +1149,9 @@ func complete_race(
 		GameManager.team.complete_race_for_series(completed_race.series_id, completed_race.race_id)
 	GameManager.team.save_series_progress()
 	GameManager.team.week_advance_required = true
+	# Resolve championships sharing this date as one world-calendar group rather
+	# than waiting for the dashboard to process them in series order.
+	simulate_other_series_through_date(completed_race.schedule_day)
 
 	GameManager.team.emit_changed()
 	finish_season_if_complete()
@@ -1178,6 +1181,75 @@ func simulate_other_series_through_date(target_day: int) -> Array[String]:
 		if simulated_count > 0:
 			summaries.append("%s: %d race%s" % [str(series.name), simulated_count, "" if simulated_count == 1 else "s"])
 	return summaries
+
+
+func build_event_queue(target_day: int) -> Array[Dictionary]:
+	var queue: Array[Dictionary] = []
+	if GameManager.team == null:
+		return queue
+	var start_day := GameManager.team.current_season_day
+	var end_day := clampi(target_day, start_day, CalendarCatalog.SEASON_END_DAY)
+	for series in SeriesCatalog.SERIES:
+		var series_id := str(series.id)
+		for race in get_calendar_for_series(series_id):
+			if race.schedule_day <= start_day or race.schedule_day > end_day:
+				continue
+			if series_id == GameManager.team.current_series_id and GameManager.team.get_completed_races().has(race.race_id):
+				continue
+			queue.append({"day":race.schedule_day, "type":"player_race" if series_id == GameManager.team.current_series_id else "other_race", "title":"%s — Round %d" % [str(series.name), race.season_round], "series_id":series_id, "race_id":race.race_id})
+	# Race-based agreements are represented on their actual calendar date. They
+	# remain player-race events, but are no longer invisible to the time preview.
+	var future_player_races: Array[Race] = []
+	for race in get_calendar_for_series(GameManager.team.current_series_id):
+		if race.schedule_day > start_day and race.schedule_day <= end_day and not GameManager.team.get_completed_races().has(race.race_id):
+			future_player_races.append(race)
+	if GameManager.team.sponsor_races_remaining > 0 and GameManager.team.sponsor_races_remaining <= future_player_races.size():
+		var sponsor_race := future_player_races[GameManager.team.sponsor_races_remaining - 1]
+		queue.append({"day":sponsor_race.schedule_day, "type":"sponsor_deadline", "title":"Sponsor objective deadline"})
+	for member in GameManager.team.staff:
+		if member != null and member.hired and member.contract_races_remaining > 0 and member.contract_races_remaining <= future_player_races.size():
+			var contract_race := future_player_races[member.contract_races_remaining - 1]
+			queue.append({"day":contract_race.schedule_day, "type":"contract_expiry", "title":"%s contract expires" % member.staff_name})
+	queue.append_array(GameManager.team.get_date_events(end_day))
+	if start_day < CalendarCatalog.SEASON_END_DAY and end_day == CalendarCatalog.SEASON_END_DAY:
+		queue.append({"day":CalendarCatalog.SEASON_END_DAY, "type":"season_end", "title":"End-of-season review"})
+	queue.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+		if int(first.day) == int(second.day):
+			return str(first.type) < str(second.type)
+		return int(first.day) < int(second.day)
+	)
+	return queue
+
+
+func group_events_by_date(events: Array[Dictionary]) -> Dictionary:
+	var grouped := {}
+	for event in events:
+		var day := int(event.get("day", 0))
+		if not grouped.has(day):
+			grouped[day] = []
+		(grouped[day] as Array).append(event)
+	return grouped
+
+
+func get_advance_preview(target_day: int) -> Dictionary:
+	var events := build_event_queue(target_day)
+	var other_races := 0
+	var other_series := {}
+	for event in events:
+		if event.type == "other_race":
+			other_races += 1
+			other_series[event.series_id] = true
+	return {"from_day":GameManager.team.current_season_day, "target_day":target_day, "days":maxi(0, target_day - GameManager.team.current_season_day), "events":events, "events_by_date":group_events_by_date(events), "other_races":other_races, "other_series":other_series.size()}
+
+
+func advance_to_date(target_day: int) -> Dictionary:
+	if GameManager.team == null:
+		return {"days_advanced":0, "summaries":[]}
+	var from_day := GameManager.team.current_season_day
+	var queue := build_event_queue(target_day)
+	var summaries := simulate_other_series_through_date(target_day)
+	summaries.append_array(GameManager.team.advance_to_date(target_day))
+	return {"from_day":from_day, "target_day":GameManager.team.current_season_day, "days_advanced":GameManager.team.current_season_day - from_day, "events":queue, "summaries":summaries}
 
 
 func _simulate_world_series_race(series_id: String, race: Race, series_data: Dictionary) -> void:
@@ -1298,6 +1370,7 @@ func start_new_season() -> bool:
 	GameManager.team.championship_points = 0
 	GameManager.team.driver_hired_for_season = false
 	GameManager.team.current_race_week = 1
+	GameManager.team.current_season_year += 1
 	GameManager.team.current_season_day = calendar[0].schedule_day if not calendar.is_empty() else CalendarCatalog.SEASON_START_DAY
 	GameManager.team.week_advance_required = false
 	GameManager.team.engineering_projects.clear()

@@ -15,10 +15,10 @@ func refresh() -> void:
 	clear(engineer_rows)
 	var team: Team = GameManager.team
 	if team.engineering_projects.is_empty():
-		add_text(project_rows, "No active projects. Assign an engineer below; the part will arrive at the beginning of the next race week.")
+		add_text(project_rows, "No active projects. Assign an engineer below; development takes %d calendar days." % Team.ENGINEERING_PROJECT_DAYS)
 	else:
 		for project in team.engineering_projects:
-			add_text(project_rows, "%s  •  %s development  •  Ready next race week" % [project.get("engineer_name", "Engineer"), project.get("part_type", "Part")])
+			add_text(project_rows, "%s  •  %s development  •  Ready %s" % [project.get("engineer_name", "Engineer"), project.get("part_type", "Part"), CalendarCatalog.format_day(int(project.get("completion_day", team.current_season_day)))])
 	var engineers := team.get_engineers()
 	if engineers.is_empty():
 		add_text(engineer_rows, "No engineers employed. Hire one from the Staff Market in Employees.")
@@ -38,7 +38,7 @@ func refresh() -> void:
 func start_project(engineer: StaffMember) -> void:
 	var selected_type := part_type.get_item_text(part_type.selected)
 	if GameManager.team.queue_part_project(engineer, selected_type):
-		status_label.text = "%s started. Delivery: beginning of next race week." % selected_type
+		status_label.text = "%s started. Delivery: %s." % [selected_type, CalendarCatalog.format_day(GameManager.team.current_season_day + Team.ENGINEERING_PROJECT_DAYS)]
 		GameManager.refresh_team_money()
 		GameManager.save_game()
 	else:

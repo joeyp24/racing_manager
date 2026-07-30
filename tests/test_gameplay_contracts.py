@@ -21,15 +21,18 @@ def test_save_is_versioned_verified_and_atomic():
     assert "rename_absolute" in text; assert "BACKUP_EXTENSION" in text
 
 
-def test_race_week_progression_is_dashboard_owned():
+def test_date_progression_is_centralized_and_previewed():
     team = (ROOT / "resources/team.gd").read_text()
     dashboard = (ROOT / "scenes/pages/dashboard/dashboard.gd").read_text()
     race_manager = (ROOT / "autoload/race_manager.gd").read_text()
-    assert "@export var current_race_week" in team
-    assert "func advance_to_next_race_week(" in team
+    assert "@export var current_season_year" in team
+    assert "func advance_to_date(" in team
+    assert "func build_event_queue(" in race_manager
+    assert "func group_events_by_date(" in race_manager
     assert "GameManager.team.week_advance_required = true" in race_manager
     assert "ADVANCE TO NEXT RACE" in dashboard
-    assert "advance_to_next_race_week(next_day)" in dashboard
+    assert "RaceManager.advance_to_date(target_day)" in dashboard
+    assert "Advance Preview" in (ROOT / "scenes/pages/dashboard/dashboard.tscn").read_text()
 
 
 def test_yearly_calendar_advances_by_date_and_catches_up_world_series():
@@ -44,7 +47,16 @@ def test_yearly_calendar_advances_by_date_and_catches_up_world_series():
     assert "@export var schedule_day" in race
     assert "@export var current_season_day" in team
     assert "while completed_rounds < calendar.size() and calendar[completed_rounds].schedule_day <= target_day" in manager
-    assert "simulate_other_series_through_date(next_day)" in dashboard
+    assert "simulate_other_series_through_date(target_day)" in manager
+
+
+def test_development_uses_elapsed_calendar_days():
+    team = (ROOT / "resources/team.gd").read_text()
+    engineering = (ROOT / "scenes/pages/engineering/engineering.gd").read_text()
+    assert '"start_day": current_season_day' in team
+    assert '"completion_day": mini(' in team
+    assert '"started_week"' not in team
+    assert "CalendarCatalog.format_day" in engineering
 
 
 def test_engineering_and_roster_have_dedicated_pages():

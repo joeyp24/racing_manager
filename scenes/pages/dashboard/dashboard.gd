@@ -12,6 +12,7 @@ extends Control
 @onready var readiness_summary_label: Label = %readiness_summary_label
 @onready var advance_race_button: Button = %advance_race_button
 @onready var week_status_label: Label = %week_status_label
+@onready var advance_preview: ConfirmationDialog = %advance_preview
 
 const READINESS_ROW_SCENE: PackedScene = preload("res://ui/components/readiness_row.tscn")
 
@@ -30,6 +31,9 @@ func _ready() -> void:
 		GameManager.team.changed.connect(
 			_on_team_changed
 		)
+	advance_preview.confirmed.connect(_confirm_date_advance)
+	advance_preview.custom_action.connect(_on_advance_preview_action)
+	advance_preview.add_button("View Calendar", false, "calendar")
 
 	update_dashboard()
 
@@ -96,10 +100,10 @@ func update_week_action(team: Team) -> void:
 		week_status_label.text = "Season complete"
 	elif team.week_advance_required:
 		advance_race_button.text = "ADVANCE TO NEXT RACE  →"
-		week_status_label.text = "%s complete • Advance when your team is ready" % CalendarCatalog.format_day(team.current_season_day)
+		week_status_label.text = "%s • Advance the calendar when your team is ready" % CalendarCatalog.format_day(team.current_season_day)
 	else:
 		advance_race_button.text = "PREPARE FOR RACE  →"
-		week_status_label.text = "%s • Engineering deadlines: next race" % CalendarCatalog.format_day(team.current_season_day)
+		week_status_label.text = "%s • Development uses calendar-day deadlines" % CalendarCatalog.format_day(team.current_season_day)
 
 
 func update_sponsor_summary(team: Team) -> void:
@@ -269,16 +273,7 @@ func _on_prepare_race_pressed() -> void:
 	if GameManager.team.week_advance_required:
 		var next_race := RaceManager.get_next_race(GameManager.team)
 		var next_day := next_race.schedule_day if next_race != null else CalendarCatalog.SEASON_END_DAY
-		var simulated := RaceManager.simulate_other_series_through_date(next_day)
-		var completed := GameManager.team.advance_to_next_race_week(next_day)
-		week_status_label.text = "%s • Next race window opened" % CalendarCatalog.format_day(next_day)
-		if not simulated.is_empty():
-			week_status_label.text += " • %d other series updated" % simulated.size()
-		if not completed.is_empty():
-			for summary in completed:
-				week_status_label.text += " • " + summary
-		GameManager.save_game()
-		update_dashboard()
+		_show_advance_preview(next_day)
 		return
 	GameManager.selected_race = RaceManager.get_next_race(GameManager.team)
 	GameManager.selected_car = null
@@ -286,6 +281,42 @@ func _on_prepare_race_pressed() -> void:
 		GameManager.load_page("res://scenes/pages/race_calendar/race_calendar.tscn")
 		return
 	GameManager.load_page("res://scenes/pages/race_entry/race_entry.tscn")
+
+
+func _show_advance_preview(target_day: int) -> void:
+	var preview := RaceManager.get_advance_preview(target_day)
+	var lines: Array[String] = ["Advance from %s to %s?" % [CalendarCatalog.format_day(int(preview.from_day)), CalendarCatalog.format_day(target_day)], "", "During these %d days:" % int(preview.days)]
+	if int(preview.other_races) > 0:
+		lines.append("• %d races will run across %d other series" % [preview.other_races, preview.other_series])
+	var grouped := preview.events_by_date as Dictionary
+	var days := grouped.keys()
+	days.sort()
+	for day in days:
+		var noteworthy: Array[String] = []
+		for event in grouped[day]:
+			if event.type != "other_race":
+				noteworthy.append(str(event.title))
+		if not noteworthy.is_empty():
+			lines.append("• %s — %s" % [CalendarCatalog.format_day(int(day)), ", ".join(noteworthy)])
+	if preview.events.is_empty():
+		lines.append("• No scheduled events")
+	advance_preview.dialog_text = "\n".join(lines)
+	advance_preview.set_meta("target_day", target_day)
+	advance_preview.popup_centered(Vector2i(620, 430))
+
+
+func _confirm_date_advance() -> void:
+	var target_day := int(advance_preview.get_meta("target_day", GameManager.team.current_season_day))
+	var result := RaceManager.advance_to_date(target_day)
+	week_status_label.text = "%s • %d days advanced" % [CalendarCatalog.format_day(target_day), int(result.days_advanced)]
+	GameManager.save_game()
+	update_dashboard()
+
+
+func _on_advance_preview_action(action: StringName) -> void:
+	if action == &"calendar":
+		advance_preview.hide()
+		GameManager.load_page("res://scenes/pages/race_calendar/race_calendar.tscn")
 
 
 func _on_readiness_action_requested(action: String) -> void:
