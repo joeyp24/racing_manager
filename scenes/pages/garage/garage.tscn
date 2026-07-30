@@ -17,16 +17,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=661415440]
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=260653347]
 layout_mode = 2
+theme_type_variation = &"PageTitle"
 
 [node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=1737619062]
 layout_mode = 2
@@ -39,8 +41,8 @@ horizontal_scroll_mode = 0
 [node name="garage_content" type="GridContainer" parent="MarginContainer/VBoxContainer/GarageScroll" unique_id=1116993650]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/h_separation = 20
-theme_override_constants/v_separation = 20
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 columns = 2
 
 [node name="bay_1" parent="MarginContainer/VBoxContainer/GarageScroll/garage_content" unique_id=628205770 instance=ExtResource("1_ejesk")]

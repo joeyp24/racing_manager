@@ -31,16 +31,16 @@ grow_vertical = 2
 theme_override_constants/separation = 0
 
 [node name="Sidebar" type="PanelContainer" parent="Layout"]
-custom_minimum_size = Vector2(198, 0)
+custom_minimum_size = Vector2(184, 0)
 layout_mode = 2
 theme_type_variation = &"SidebarPanel"
 
 [node name="Margin" type="MarginContainer" parent="Layout/Sidebar"]
 layout_mode = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
 [node name="Scroll" type="ScrollContainer" parent="Layout/Sidebar/Margin"]
 layout_mode = 2
@@ -49,17 +49,17 @@ horizontal_scroll_mode = 0
 [node name="Content" type="VBoxContainer" parent="Layout/Sidebar/Margin/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 5
+theme_override_constants/separation = 4
 
 [node name="TeamHeader" type="HBoxContainer" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="Badge" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content/TeamHeader"]
-custom_minimum_size = Vector2(42, 42)
+custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.32, 1, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 20
 text = "RM"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -276,23 +276,23 @@ theme_override_constants/separation = 0
 [node name="OuterMargin" type="MarginContainer" parent="Layout/RightSide"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
 
 [node name="Stack" type="VBoxContainer" parent="Layout/RightSide/OuterMargin"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="TopBar" type="PanelContainer" parent="Layout/RightSide/OuterMargin/Stack"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 theme_type_variation = &"TopbarPanel"
 
 [node name="Status" type="HBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 10
 
 [node name="MoneyBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
 layout_mode = 2

@@ -49,15 +49,16 @@ func refresh_shop() -> void:
 	for part in store_inventory:
 		var purchase_cost := GameManager.team.get_discounted_cost(part.purchase_price)
 		var panel := PanelContainer.new()
-		panel.custom_minimum_size = Vector2(250, 220)
+		panel.custom_minimum_size = Vector2(235, 188)
 		panel.theme_type_variation = &"CardPanel"
 		var margin := MarginContainer.new()
-		margin.add_theme_constant_override("margin_left", 10)
-		margin.add_theme_constant_override("margin_top", 8)
-		margin.add_theme_constant_override("margin_right", 10)
-		margin.add_theme_constant_override("margin_bottom", 8)
+		margin.add_theme_constant_override("margin_left", UITokens.CARD_PADDING_HORIZONTAL)
+		margin.add_theme_constant_override("margin_top", UITokens.CARD_PADDING_VERTICAL)
+		margin.add_theme_constant_override("margin_right", UITokens.CARD_PADDING_HORIZONTAL)
+		margin.add_theme_constant_override("margin_bottom", UITokens.CARD_PADDING_VERTICAL)
 		var content := VBoxContainer.new()
 		var title := Label.new()
+		title.theme_type_variation = &"CardTitle"
 		title.text = "%s — %s" % [part.part_type, part.part_name]
 		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		var details := Label.new()
@@ -65,7 +66,7 @@ func refresh_shop() -> void:
 		var pp_result := GameManager.team.calculate_part_performance(part)
 		var pp_bubble := PanelContainer.new()
 		var pp_label := Label.new()
-		pp_label.add_theme_font_size_override("font_size", 12)
+		pp_label.theme_type_variation = &"MutedLabel"
 		pp_label.text = "%d base PP\n%.1f PP at %d%% condition\n%s with current team" % [part.base_performance_points, part.get_condition_adjusted_points(), part.condition, PerformancePointFormatter.format_part_points(pp_result)]
 		var comparison := get_comparison_car()
 		if comparison != null and comparison.get_part(part.part_type) != null:

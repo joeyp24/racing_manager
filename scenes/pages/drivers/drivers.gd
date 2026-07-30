@@ -27,16 +27,16 @@ func create_driver_profile(driver: Driver) -> Control:
 	var card := PanelContainer.new()
 	card.theme_type_variation = &"CardPanel"
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 22)
-	margin.add_theme_constant_override("margin_top", 18)
-	margin.add_theme_constant_override("margin_right", 22)
-	margin.add_theme_constant_override("margin_bottom", 18)
+	margin.add_theme_constant_override("margin_left", UITokens.CARD_PADDING_HORIZONTAL)
+	margin.add_theme_constant_override("margin_top", UITokens.CARD_PADDING_VERTICAL)
+	margin.add_theme_constant_override("margin_right", UITokens.CARD_PADDING_HORIZONTAL)
+	margin.add_theme_constant_override("margin_bottom", UITokens.CARD_PADDING_VERTICAL)
 	var profile := VBoxContainer.new()
-	profile.add_theme_constant_override("separation", 14)
+	profile.add_theme_constant_override("separation", UITokens.SPACE_MD)
 	profile.add_child(_create_header(driver))
 	profile.add_child(HSeparator.new())
 	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 28)
+	columns.add_theme_constant_override("separation", UITokens.SPACE_LG)
 	columns.add_child(_create_personal_column(driver))
 	columns.add_child(_create_ratings_column(driver, driver.get_rating_rows().slice(0, 5), "PACE & RACECRAFT"))
 	columns.add_child(_create_ratings_column(driver, driver.get_rating_rows().slice(5, 10), "CONTROL & TECHNICAL"))
@@ -50,12 +50,12 @@ func create_driver_profile(driver: Driver) -> Control:
 
 func _create_header(driver: Driver) -> Control:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 18)
+	row.add_theme_constant_override("separation", UITokens.SPACE_LG)
 	var badge := Label.new()
 	badge.text = str(driver.get_overall_rating())
 	badge.tooltip_text = "Overall is the rounded average of all ten performance ratings."
-	badge.add_theme_font_size_override("font_size", 38)
-	badge.custom_minimum_size = Vector2(76, 62)
+	badge.add_theme_font_size_override("font_size", UITokens.FONT_PAGE_TITLE)
+	badge.custom_minimum_size = Vector2(54, 44)
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var identity := VBoxContainer.new()
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -73,7 +73,7 @@ func _create_header(driver: Driver) -> Control:
 	potential_title.theme_type_variation = &"MutedLabel"
 	var potential_value := Label.new()
 	potential_value.text = str(driver.get_potential_overall())
-	potential_value.add_theme_font_size_override("font_size", 28)
+	potential_value.add_theme_font_size_override("font_size", UITokens.FONT_METRIC)
 	potential_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ceiling.add_child(potential_title)
 	ceiling.add_child(potential_value)
@@ -85,7 +85,7 @@ func _create_header(driver: Driver) -> Control:
 
 func _create_personal_column(driver: Driver) -> Control:
 	var column := VBoxContainer.new()
-	column.custom_minimum_size = Vector2(320, 0)
+	column.custom_minimum_size = Vector2(260, 0)
 	var title := Label.new()
 	title.text = "DRIVER PROFILE"
 	title.theme_type_variation = &"BodyStrong"
@@ -98,7 +98,7 @@ func _create_personal_column(driver: Driver) -> Control:
 	bio.text = driver.biography
 	bio.theme_type_variation = &"MutedLabel"
 	bio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	bio.custom_minimum_size.y = 54
+	bio.custom_minimum_size.y = 42
 	column.add_child(bio)
 	return column
 
@@ -106,7 +106,7 @@ func _create_personal_column(driver: Driver) -> Control:
 func _create_ratings_column(driver: Driver, ratings: Array, heading: String) -> Control:
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.custom_minimum_size.x = 285
+	column.custom_minimum_size.x = 240
 	var title := Label.new()
 	title.text = heading
 	title.theme_type_variation = &"BodyStrong"
@@ -119,7 +119,7 @@ func _create_ratings_column(driver: Driver, ratings: Array, heading: String) -> 
 		var value := Label.new()
 		value.text = "%02d" % rating["rating"]
 		value.tooltip_text = "Maximum potential: %d" % rating["potential"]
-		value.add_theme_font_size_override("font_size", 18)
+		value.add_theme_font_size_override("font_size", UITokens.FONT_CARD_TITLE)
 		var cap := Label.new()
 		cap.text = "/ %02d POT" % rating["potential"]
 		cap.theme_type_variation = &"MutedLabel"
@@ -132,13 +132,13 @@ func _create_ratings_column(driver: Driver, ratings: Array, heading: String) -> 
 
 func _create_career_row(driver: Driver) -> Control:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 34)
+	row.add_theme_constant_override("separation", UITokens.SPACE_LG)
 	for metric in [["STARTS", driver.career_starts], ["WINS", driver.career_wins], ["PODIUMS", driver.career_podiums], ["POLES", driver.career_poles], ["FASTEST LAPS", driver.career_fastest_laps], ["POINTS", driver.career_points], ["TITLES", driver.championships]]:
 		var block := VBoxContainer.new()
 		block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var value := Label.new()
 		value.text = str(metric[1])
-		value.add_theme_font_size_override("font_size", 22)
+		value.add_theme_font_size_override("font_size", UITokens.FONT_METRIC)
 		var label := Label.new()
 		label.text = metric[0]
 		label.theme_type_variation = &"MutedLabel"
@@ -153,7 +153,7 @@ func _add_detail(parent: VBoxContainer, label_text: String, value_text: String) 
 	var label := Label.new()
 	label.text = label_text
 	label.theme_type_variation = &"MutedLabel"
-	label.custom_minimum_size.x = 110
+	label.custom_minimum_size.x = 88
 	var value := Label.new()
 	value.text = value_text
 	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
