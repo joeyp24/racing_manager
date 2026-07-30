@@ -901,9 +901,30 @@ static func _process_sponsor_and_merchandise(team, result) -> void:
 	if revenue > 0:
 		team.money += revenue
 		team.record_finance("Merchandise", revenue, "Race-week merchandise sales")
-	if result.finishing_position <= 5:
+	SponsorManager.ensure_state(team)
+	if result.finishing_position <= 5 and not team.active_sponsor_contract.is_empty():
+		var contract: Dictionary = team.active_sponsor_contract
 		var activations := team.career_state.sponsor_activations as Array
-		activations.push_front({"event":"Winner's circle hospitality" if result.finishing_position == 1 else "Fan appearance", "value":250 + demand * 10, "completed":false, "season":team.current_season_year})
+		var activation_type := "Hospitality" if result.finishing_position == 1 else (
+			"Product campaign" if str(contract.profile) == "GROWTH" else (
+				"Community event" if result.finishing_position <= 3 else "Driver appearance"
+			)
+		)
+		var activation_value := maxi(250, roundi(float(int(contract.payment_per_race)) * 0.55) + demand * 10)
+		activations.push_front({
+			"event": "%s: %s" % [str(contract.sponsor_name), activation_type],
+			"type": activation_type,
+			"sponsor_id": str(contract.sponsor_id),
+			"sponsor_name": str(contract.sponsor_name),
+			"value": activation_value,
+			"fans": 55 if activation_type == "Community event" else 30,
+			"morale_cost": 1 if activation_type == "Hospitality" else 2,
+			"requirement": "Active driver and sponsor-forward branding" if activation_type == "Product campaign" else "Team availability",
+			"deadline": mini(CalendarCatalog.SEASON_END_DAY, team.current_season_day + 14),
+			"completed": false,
+			"declined": false,
+			"season": team.current_season_year
+		})
 
 
 static func order_merchandise(team, quantity: int) -> bool:
@@ -925,14 +946,39 @@ static func complete_sponsor_activation(team, index: int) -> bool:
 	if index < 0 or index >= activations.size():
 		return false
 	var activation := activations[index] as Dictionary
-	if bool(activation.completed):
+	if bool(activation.completed) or bool(activation.get("declined", false)):
+		return false
+	if team.current_season_day > int(activation.get("deadline", CalendarCatalog.SEASON_END_DAY)):
 		return false
 	activation.completed = true
 	var value := int(activation.value)
-	team.money += value
-	team.fans += 25
+	var game_manager: Node = Engine.get_main_loop().root.get_node_or_null("GameManager")
+	if game_manager != null:
+		game_manager.call("add_team_money", value)
+	else:
+		team.money += value
+	team.fans += int(activation.get("fans", 25))
+	var driver: Driver = team.get_active_driver()
+	if driver != null:
+		driver.morale = maxi(0, driver.morale - int(activation.get("morale_cost", 1)))
+	SponsorManager.adjust_relationship(team, str(activation.sponsor_id), 4)
+	SponsorManager.add_activation_progress(team, str(activation.sponsor_id))
 	team.record_finance("Sponsor activation", value, str(activation.event))
-	add_notification(team, "Sponsor", "Activation completed", "+$%s and 25 fans" % value)
+	add_notification(team, "Sponsor", "Activation completed", "+$%s, fan growth and stronger partner relations" % value)
+	team.emit_changed()
+	return true
+
+
+static func decline_sponsor_activation(team, index: int) -> bool:
+	var activations := ensure_state(team).sponsor_activations as Array
+	if index < 0 or index >= activations.size():
+		return false
+	var activation := activations[index] as Dictionary
+	if bool(activation.completed) or bool(activation.get("declined", false)):
+		return false
+	activation.declined = true
+	SponsorManager.adjust_relationship(team, str(activation.sponsor_id), -3)
+	add_notification(team, "Sponsor", "Activation declined", "Preparation time preserved, but the partner relationship cooled.")
 	team.emit_changed()
 	return true
 

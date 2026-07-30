@@ -202,11 +202,31 @@ func _render_operations(state: Dictionary) -> void:
 	var sponsor_lines := PackedStringArray()
 	for index in (state.sponsor_activations as Array).size():
 		var activation := state.sponsor_activations[index] as Dictionary
-		sponsor_lines.append("%s · $%d · %s" % [activation.event, int(activation.value), "Complete" if bool(activation.completed) else "Available"])
+		var activation_status := "Complete" if bool(activation.completed) else (
+			"Declined" if bool(activation.get("declined", false))
+			else (
+				"Expired"
+				if GameManager.team.current_season_day > int(activation.get("deadline", CalendarCatalog.SEASON_END_DAY))
+				else "Available through day %d" % int(activation.get("deadline", 0))
+			)
+		)
+		sponsor_lines.append("%s · $%d · Fans +%d · Driver morale -%d · %s" % [
+			activation.event,
+			int(activation.value),
+			int(activation.get("fans", 25)),
+			int(activation.get("morale_cost", 1)),
+			activation_status
+		])
 	var sponsor_actions: Array[Dictionary] = []
 	for index in (state.sponsor_activations as Array).size():
-		if not bool((state.sponsor_activations[index] as Dictionary).completed):
-			sponsor_actions.append({"label":"Complete activation %d" % (index + 1), "call":_complete_activation.bind(index)})
+		var activation := state.sponsor_activations[index] as Dictionary
+		if (
+			not bool(activation.completed)
+			and not bool(activation.get("declined", false))
+			and GameManager.team.current_season_day <= int(activation.get("deadline", CalendarCatalog.SEASON_END_DAY))
+		):
+			sponsor_actions.append({"label":"Accept activation %d" % (index + 1), "call":_complete_activation.bind(index)})
+			sponsor_actions.append({"label":"Decline activation %d" % (index + 1), "call":_decline_activation.bind(index)})
 	_add_section("SPONSOR ACTIVATION", "\n".join(sponsor_lines) if not sponsor_lines.is_empty() else "Strong race results generate appearances, hospitality and sponsor-specific activation opportunities.", sponsor_actions)
 	var merch := state.merchandise as Dictionary
 	_add_section("MERCHANDISE & FAN GROWTH", "%d fans · Popularity %d · Stock %d · $%d last revenue\nRegional fanbases grow through results and international programmes." % [GameManager.team.fans, int(merch.popularity), int(merch.stock), int(merch.last_revenue)], [{"label":"Order 50 units · $500", "call":_order_merch.bind(50)}, {"label":"Order 200 units · $2,000", "call":_order_merch.bind(200)}])
@@ -368,6 +388,7 @@ func _buy_spare_car() -> void:
 func _set_travel_plan(plan: String) -> void: CareerExpansionManager.ensure_state(GameManager.team).logistics.travel_plan = plan; _finish_action(true)
 func _set_resource_policy(policy: String) -> void: CareerExpansionManager.ensure_state(GameManager.team).resource_allocations.policy = policy; _finish_action(true)
 func _complete_activation(index: int) -> void: _finish_action(CareerExpansionManager.complete_sponsor_activation(GameManager.team, index))
+func _decline_activation(index: int) -> void: _finish_action(CareerExpansionManager.decline_sponsor_activation(GameManager.team, index))
 func _order_merch(quantity: int) -> void: _finish_action(CareerExpansionManager.order_merchandise(GameManager.team, quantity))
 func _launch_international(region: String) -> void: _finish_action(CareerExpansionManager.launch_international_program(GameManager.team, region, "Touring cars"))
 func _cycle_branding(key: String, values: Array) -> void:
