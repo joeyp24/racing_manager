@@ -16,6 +16,8 @@ var part_type: String = "Engine"
 @export var tier: String = "Standard"
 @export var effect_name: String = "Power"
 @export var effect_value: int = 0
+# The part's contribution before condition and team-wide performance modifiers.
+@export var base_performance_points: int = 8
 @export var performance_bonus: int = 0
 @export var purchase_price: int = 0
 @export var sale_price: int = 0
@@ -36,7 +38,11 @@ func get_summary() -> String:
 
 
 func get_effective_performance_bonus() -> int:
-	return roundi(float(performance_bonus) * float(condition) / 100.0)
+	return get_conditioned_performance_points() - base_performance_points
+
+
+func get_conditioned_performance_points() -> int:
+	return roundi(float(base_performance_points + performance_bonus) * float(condition) / 100.0)
 
 
 func get_attribute_key() -> String:

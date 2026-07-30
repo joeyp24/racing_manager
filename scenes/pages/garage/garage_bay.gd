@@ -54,15 +54,16 @@ func display_car(current_car: Car) -> void:
 	car_name_label.text = current_car.name
 
 	car_details_label.text = (
-		"%d %s %s\nCondition: %d%%\nPerformance: %d"
+		"%d PERFORMANCE POINTS\n%d %s %s\nCondition: %d%%"
 		% [
+			current_car.get_total_performance(GameManager.team),
 			current_car.year,
 			current_car.manufacturer,
 			current_car.model,
-			current_car.condition,
-			current_car.get_total_performance()
+			current_car.condition
 		]
 	)
+	car_details_label.add_theme_font_size_override("font_size", 18)
 
 	action_button.text = "Inspect Car"
 	action_button.disabled = false

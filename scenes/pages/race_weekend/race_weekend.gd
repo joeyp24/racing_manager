@@ -106,7 +106,7 @@ func complete_qualifying() -> void:
 	var focus_bonus: float = 3.0 if weekend_data["practice_focus"] == "qualifying" else 0.0
 	var confidence_bonus: float = 1.5 if weekend_data["practice_focus"] == "confidence" else 0.0
 	var qualifying_score: float = (
-		float(GameManager.selected_car.get_total_performance()) * 0.55
+		float(GameManager.selected_car.get_total_performance(GameManager.team)) * 0.55
 		+ float(driver.qualifying_pace) * 0.30
 		+ float(driver.consistency) * 0.15
 		+ float(weekend_data["practice_quality"]) * 0.45

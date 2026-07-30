@@ -15,6 +15,21 @@ def test_live_simulation_is_seedable_and_clamps_resources():
 def test_mechanical_setup_is_not_changed_live():
     text = (ROOT / "scenes/pages/live_race/live_race.gd").read_text()
     assert "set_player_setup" not in text; assert "set_player_brake_bias" in text
+
+
+def test_car_performance_uses_part_points_and_explains_modifiers():
+    part = (ROOT / "resources/car_part.gd").read_text()
+    car = (ROOT / "resources/car.gd").read_text()
+    team = (ROOT / "resources/team.gd").read_text()
+    inspection = (ROOT / "scenes/pages/garage/car_inspection.gd").read_text()
+    garage = (ROOT / "scenes/pages/garage/garage_bay.gd").read_text()
+    assert "base_performance_points" in part
+    assert "func get_base_performance_points()" in car
+    assert "func get_part_performance_breakdown" in team
+    for source in ("Engineering department", "Engineering staff", "Crew chief", "Wind tunnel", "Secret department"):
+        assert source in team
+    assert "format_performance_breakdown" in inspection
+    assert "PERFORMANCE POINTS" in inspection and "PERFORMANCE POINTS" in garage
 def test_save_is_versioned_verified_and_atomic():
     text = (ROOT / "scripts/save_manager.gd").read_text()
     assert "CURRENT_SAVE_FORMAT_VERSION" in text; assert "temporary_resource" in text

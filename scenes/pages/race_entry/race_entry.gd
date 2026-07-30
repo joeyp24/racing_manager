@@ -177,7 +177,7 @@ func update_forecast() -> void:
 		return
 	var strategy: Dictionary = RaceManager.get_strategy(selected_strategy)
 	var driver_rating := float(driver.get_overall_rating())
-	var strength := float(selected_car.get_total_performance()) * 0.58 + driver_rating * 0.34 + float(selected_car.condition) * 0.08
+	var strength := float(selected_car.get_total_performance(GameManager.team)) * 0.58 + driver_rating * 0.34 + float(selected_car.condition) * 0.08
 	strength *= float(strategy.get("performance_modifier", 1.0))
 	var expected_position := clampi(9 - roundi((strength - 55.0) / 7.0), 1, 8)
 	var spread := 1 if selected_strategy == "conservative" else (3 if selected_strategy == "aggressive" else 2)

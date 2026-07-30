@@ -882,6 +882,33 @@ func get_engineering_performance_boost() -> float:
 	return get_average_role_attribute("Engineer", true) * 0.035
 
 
+func get_part_performance_breakdown(part: CarPart) -> Dictionary:
+	if part == null:
+		return {"base": 0, "total": 0, "modifiers": []}
+	var base := part.base_performance_points + part.performance_bonus
+	var conditioned := part.get_conditioned_performance_points()
+	var modifiers: Array[Dictionary] = []
+	if conditioned != base:
+		modifiers.append({"label": "Condition (%d%%)" % part.condition, "points": conditioned - base})
+	var percentage_modifiers: Array[Dictionary] = [
+		{"label": "Engineering department", "percent": get_department_bonus("engineering")},
+		{"label": "Engineering staff", "percent": get_engineering_performance_boost()},
+		{"label": "Crew chief", "percent": get_crew_chief_performance_boost()},
+		{"label": "Secret department", "percent": get_department_bonus("cheating")}
+	]
+	if part.part_type == "Body":
+		percentage_modifiers.append({"label": "Wind tunnel", "percent": get_department_bonus("wind_tunnel")})
+	var total := conditioned
+	for modifier in percentage_modifiers:
+		var percent := float(modifier.percent)
+		if percent <= 0.0:
+			continue
+		var points := roundi(float(conditioned) * percent / 100.0)
+		modifiers.append({"label": str(modifier.label), "points": points, "detail": "+%.1f%%" % percent})
+		total += points
+	return {"base": base, "conditioned": conditioned, "total": total, "modifiers": modifiers}
+
+
 func get_reliability_boost() -> float:
 	return get_average_role_attribute("Engineer", false) * 0.08
 
