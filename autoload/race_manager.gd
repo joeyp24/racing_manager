@@ -247,7 +247,7 @@ func _get_entry_driver(weekend_data: Dictionary) -> Driver:
 	var entries := weekend_data.get("entries", []) as Array
 	if not entries.is_empty():
 		var entry := entries[0] as Dictionary
-		var assigned := GameManager.team.get_driver_by_id(str(entry.get("driver_id", "")))
+		var assigned: Driver = GameManager.team.get_driver_by_id(str(entry.get("driver_id", "")))
 		if assigned != null:
 			return assigned
 	return GameManager.team.get_active_driver()
@@ -259,8 +259,8 @@ func _build_additional_team_entries(selected_race: Race, selected_strategy: Stri
 	var maximum_players := mini(selected_entries.size(), get_maximum_field_size(selected_race.series_id))
 	for index in range(1, maximum_players):
 		var entry := selected_entries[index] as Dictionary
-		var driver := GameManager.team.get_driver_by_id(str(entry.get("driver_id", "")))
-		var car := GameManager.team.get_car(int(entry.get("car_bay", -1)))
+		var driver: Driver = GameManager.team.get_driver_by_id(str(entry.get("driver_id", "")))
+		var car: Car = GameManager.team.get_car(int(entry.get("car_bay", -1)))
 		if driver == null or car == null or driver.series_id != selected_race.series_id or car.series_id != selected_race.series_id:
 			continue
 		entries.append({
@@ -319,7 +319,7 @@ func finalize_live_race(
 	result.condition_lost = calculate_condition_loss(selected_race, result.strategy_id)
 	result.condition_lost = maxi(1, roundi(float(result.condition_lost) * float(weekend_data.get("wear_modifier", 1.0))))
 	result.net_earnings = result.prize_money - result.entry_fee - result.driver_salary
-	var staff_payroll := GameManager.team.process_staff_race()
+	var staff_payroll: Dictionary = GameManager.team.process_staff_race()
 	result.crew_chief_salary = int(staff_payroll.get("crew_chief_salary", 0))
 	result.engineering_payroll = int(staff_payroll.get("engineering_payroll", 0))
 	for expired_name in staff_payroll.get("expired_names", []):
@@ -494,7 +494,7 @@ func run_race(
 		- result.entry_fee
 		- result.driver_salary
 	)
-	var staff_payroll := GameManager.team.process_staff_race()
+	var staff_payroll: Dictionary = GameManager.team.process_staff_race()
 	result.crew_chief_salary = int(staff_payroll.get("crew_chief_salary", 0))
 	result.engineering_payroll = int(staff_payroll.get("engineering_payroll", 0))
 	for expired_name in staff_payroll.get("expired_names", []):
@@ -554,7 +554,7 @@ func calculate_player_score(
 ) -> float:
 	var strategy := get_strategy(selected_strategy)
 	var car_performance := float(player_car.get_total_performance_points(GameManager.team))
-	var team := GameManager.team
+	var team: Team = GameManager.team
 	# A stock car should run in the midfield; several meaningful part upgrades
 	# are required before its raw pace matches the established front-runners.
 	var performance_score: float = car_performance * 0.55
@@ -563,11 +563,11 @@ func calculate_player_score(
 		float(player_car.condition) * 0.08
 	)
 
-	var driver_boost := team.get_department_bonus("driver_development") if team != null else 0.0
-	var simulator_boost := team.get_department_bonus("simulator") if team != null else 0.0
+	var driver_boost: float = team.get_department_bonus("driver_development") if team != null else 0.0
+	var simulator_boost: float = team.get_department_bonus("simulator") if team != null else 0.0
 	var detailed_driver_score := calculate_driver_attribute_score(selected_race, player_driver.get_attribute_dictionary())
 	var driver_attribute_score: float = detailed_driver_score * (1.0 + driver_boost / 100.0) * 0.30
-	var feedback_score := float(player_driver.car_feedback) * (1.0 + simulator_boost / 100.0) * 0.04
+	var feedback_score: float = float(player_driver.car_feedback) * (1.0 + simulator_boost / 100.0) * 0.04
 
 	var variance_limit: float = lerpf(
 		12.0,
@@ -588,9 +588,9 @@ func calculate_player_score(
 		)
 	)
 
-	var spotter_restart_bonus := team.get_restart_performance_boost() if team != null else 0.0
+	var spotter_restart_bonus: float = team.get_restart_performance_boost() if team != null else 0.0
 
-	var total_score := (
+	var total_score: float = (
 		performance_score
 		+ condition_score
 		+ driver_attribute_score
@@ -748,7 +748,7 @@ func apply_race_effects(
 		result.mileage_added
 	)
 	# Engineering reliability and spotter awareness prevent avoidable race damage.
-	var protection := (
+	var protection: float = (
 		GameManager.team.get_reliability_boost()
 		+ GameManager.team.get_accident_risk_reduction()
 	)
@@ -805,12 +805,12 @@ func apply_race_effects(
 
 
 func apply_department_race_effects(result: RaceResult) -> void:
-	var team := GameManager.team
+	var team: Team = GameManager.team
 	var base_fans := maxi(10, 110 - result.finishing_position * 5)
 	result.fans_earned = roundi(float(base_fans) * (1.0 + team.get_department_bonus("marketing") / 100.0))
 	team.fans += result.fans_earned
 
-	var cheating_level := team.get_department_level("cheating")
+	var cheating_level: int = team.get_department_level("cheating")
 	if cheating_level > 0:
 		var penalty_chance := 0.04 + float(cheating_level) * 0.04
 		if random_number_generator.randf() < penalty_chance:
@@ -837,7 +837,7 @@ func apply_reputation_reward(result: RaceResult) -> void:
 
 
 func apply_sponsor_reward(result: RaceResult) -> void:
-	var team := GameManager.team
+	var team: Team = GameManager.team
 	if team.active_sponsor_id.is_empty():
 		return
 
@@ -886,7 +886,7 @@ func update_driver_career_stats(
 		result.championship_points_earned
 	)
 	driver.development_points += 1
-	var development_bonus := GameManager.team.get_department_bonus("driver_development") / 100.0
+	var development_bonus: float = GameManager.team.get_department_bonus("driver_development") / 100.0
 	GameManager.team.driver_development_progress += development_bonus
 	if GameManager.team.driver_development_progress >= 1.0:
 		driver.development_points += floori(GameManager.team.driver_development_progress)
@@ -1155,7 +1155,7 @@ func simulate_other_series_through_date(target_day: int) -> Array[String]:
 		if series_id == GameManager.team.current_series_id:
 			continue
 		var calendar := get_calendar_for_series(series_id)
-		var series_data := GameManager.team.get_world_series_data(series_id)
+		var series_data: Dictionary = GameManager.team.get_world_series_data(series_id)
 		if int(series_data.get("season_number", 0)) != GameManager.team.season_number:
 			series_data = {"completed_rounds":0, "results":[], "standings":[], "season_number":GameManager.team.season_number}
 		var completed_rounds := int(series_data.get("completed_rounds", 0))
@@ -1175,7 +1175,7 @@ func build_event_queue(target_day: int) -> Array[Dictionary]:
 	var queue: Array[Dictionary] = []
 	if GameManager.team == null:
 		return queue
-	var start_day := GameManager.team.current_season_day
+	var start_day: int = GameManager.team.current_season_day
 	var end_day := clampi(target_day, start_day, CalendarCatalog.SEASON_END_DAY)
 	for series in SeriesCatalog.SERIES:
 		var series_id := str(series.id)
@@ -1233,7 +1233,7 @@ func get_advance_preview(target_day: int) -> Dictionary:
 func advance_to_date(target_day: int) -> Dictionary:
 	if GameManager.team == null:
 		return {"days_advanced":0, "summaries":[]}
-	var from_day := GameManager.team.current_season_day
+	var from_day: int = GameManager.team.current_season_day
 	var queue := build_event_queue(target_day)
 	var summaries := simulate_other_series_through_date(target_day)
 	summaries.append_array(GameManager.team.advance_to_date(target_day))
@@ -1309,7 +1309,7 @@ func finish_season_if_complete() -> void:
 		if not GameManager.team.get_completed_races().has(race_id):
 			return
 
-	var standings := (
+	var standings: Array[Dictionary] = (
 		GameManager.team.get_sorted_championship_standings()
 	)
 	var player_position: int = 0
@@ -1391,7 +1391,7 @@ func apply_driver_development() -> void:
 		var represented_team: bool = driver.season_starts > 0
 		if represented_team:
 			driver.seasons_with_team += 1
-			var season_bonus := GameManager.team.get_department_bonus("driver_development") / 100.0
+			var season_bonus: float = GameManager.team.get_department_bonus("driver_development") / 100.0
 			GameManager.team.driver_development_progress += float(driver.development_points) * season_bonus
 			if GameManager.team.driver_development_progress >= 1.0:
 				driver.development_points += floori(GameManager.team.driver_development_progress)

@@ -16,9 +16,9 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
+offset_left = 12.0
 offset_top = 12.0
-offset_right = -16.0
+offset_right = -12.0
 offset_bottom = -12.0
 
 [node name="layout" type="VBoxContainer" parent="margin"]
@@ -28,7 +28,7 @@ theme_override_constants/separation = 8
 [node name="car_name_label" type="Label" parent="margin/layout"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"PageTitle"
 
 [node name="identity_row" type="HBoxContainer" parent="margin/layout"]
 layout_mode = 2
@@ -39,7 +39,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="condition_box" type="VBoxContainer" parent="margin/layout/identity_row"]
-custom_minimum_size = Vector2(180, 0)
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
 [node name="condition_label" type="Label" parent="margin/layout/identity_row/condition_box"]
@@ -56,14 +56,14 @@ show_percentage = false
 value = 100.0
 
 [node name="performance_points_panel" type="PanelContainer" parent="margin/layout"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
 [node name="performance_points_label" type="Label" parent="margin/layout/performance_points_panel"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.7, 0.2, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"StatValue"
 text = "0 PERFORMANCE POINTS"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -73,7 +73,6 @@ tooltip_text = "Final car PP after condition, part modifiers, and car modifiers.
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
-theme_override_font_sizes/font_size = 12
 text = "Car Modifiers: None"
 horizontal_alignment = 1
 
@@ -90,9 +89,8 @@ layout_mode = 2
 custom_minimum_size = Vector2(340, 0)
 
 [node name="title" type="Label" parent="margin/layout/columns/installed"]
-theme_type_variation = &"PageTitle"
+theme_type_variation = &"SectionTitle"
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "Installed Parts"
 
 [node name="hint" type="Label" parent="margin/layout/columns/installed"]
@@ -118,7 +116,6 @@ layout_mode = 2
 theme_type_variation = &"SectionTitle"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "Parts Inventory"
 
 [node name="inventory_scroll" type="ScrollContainer" parent="margin/layout/columns/inventory"]

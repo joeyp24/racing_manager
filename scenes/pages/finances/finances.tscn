@@ -16,27 +16,27 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 14.0
-offset_right = -18.0
-offset_bottom = -14.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
 
 [node name="layout" type="VBoxContainer" parent="margin"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="title" type="Label" parent="margin/layout"]
 theme_type_variation = &"PageTitle"
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
 text = "Team Finances"
 
 [node name="summary" type="HBoxContainer" parent="margin/layout"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 8
 
 [node name="overview_panel" type="PanelContainer" parent="margin/layout/summary"]
 layout_mode = 2
+theme_type_variation = &"CardPanel"
 size_flags_horizontal = 3
 
 [node name="overview_label" type="Label" parent="margin/layout/summary/overview_panel"]
@@ -46,6 +46,7 @@ text = "Financial overview"
 
 [node name="payroll_panel" type="PanelContainer" parent="margin/layout/summary"]
 layout_mode = 2
+theme_type_variation = &"CardPanel"
 size_flags_horizontal = 3
 
 [node name="payroll_label" type="Label" parent="margin/layout/summary/payroll_panel"]
@@ -56,7 +57,6 @@ text = "Payroll"
 [node name="history_title" type="Label" parent="margin/layout"]
 theme_type_variation = &"SectionTitle"
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
 text = "Transaction History"
 
 [node name="recovery_button" type="Button" parent="margin/layout"]

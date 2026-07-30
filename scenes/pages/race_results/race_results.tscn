@@ -18,12 +18,17 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="results_container" type="VBoxContainer" parent="margin_container" unique_id=398741187]
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="title_label" type="Label" parent="margin_container/results_container" unique_id=298679443]
-theme_type_variation = &"SectionTitle"
+theme_type_variation = &"PageTitle"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Race Results"
@@ -31,10 +36,12 @@ text = "Race Results"
 [node name="race_name_label" type="Label" parent="margin_container/results_container" unique_id=576232691]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"CardTitle"
 
 [node name="finishing_position_label" type="Label" parent="margin_container/results_container" unique_id=241891256]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"StatValue"
 
 [node name="results_scroll_container" type="ScrollContainer" parent="margin_container/results_container" unique_id=768077961]
 unique_name_in_owner = true

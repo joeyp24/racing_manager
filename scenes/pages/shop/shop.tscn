@@ -16,10 +16,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 14.0
-offset_right = -18.0
-offset_bottom = -14.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
 
 [node name="layout" type="VBoxContainer" parent="margin"]
 layout_mode = 2
@@ -28,11 +28,10 @@ theme_override_constants/separation = 8
 [node name="title" type="Label" parent="margin/layout"]
 theme_type_variation = &"PageTitle"
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
 text = "Parts Shop"
 
 [node name="subtitle" type="Label" parent="margin/layout"]
-theme_type_variation = &"SectionTitle"
+theme_type_variation = &"MutedLabel"
 layout_mode = 2
 text = "Build your inventory with specialized upgrades for every area of the car."
 
@@ -53,8 +52,8 @@ size_flags_vertical = 3
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 columns = 3
 
 [node name="status_label" type="Label" parent="margin/layout"]

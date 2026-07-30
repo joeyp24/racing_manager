@@ -83,8 +83,8 @@ func sort_candidates(a: StaffMember, b: StaffMember) -> bool:
 
 func make_row(member: StaffMember, hiring: bool) -> PanelContainer:
 	var card := PanelContainer.new(); card.theme_type_variation = &"CardPanel"
-	card.custom_minimum_size.y = 64
-	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8)
+	card.custom_minimum_size.y = UITokens.COMPACT_ROW_HEIGHT
+	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", UITokens.SPACE_MD)
 	var label := Label.new(); label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.text = "%s\n%s  ·  %d %s  ·  $%s/race%s" % [member.staff_name, member.role, member.rating, member.get_rating_grade(), number(member.salary), "  ·  %d races" % member.contract_races_remaining if member.hired else ""]
 	label.theme_type_variation = &"BodyStrong"

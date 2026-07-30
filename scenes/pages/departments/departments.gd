@@ -23,7 +23,8 @@ func refresh_departments() -> void:
 func create_hq_card() -> Control:
 	var team: Team = GameManager.team
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(315, 190)
+	panel.custom_minimum_size = Vector2(285, 160)
+	panel.theme_type_variation = &"CardPanel"
 	var content := VBoxContainer.new()
 	var title := Label.new(); title.text = "Team Headquarters"
 	var level := Label.new(); level.text = "Level %d / %d" % [team.hq_level, SeriesCatalog.SERIES.size()]
@@ -48,16 +49,17 @@ func create_department_card(department_id: String) -> Control:
 	var data := DepartmentCatalog.get_data(department_id)
 	var level := team.get_department_level(department_id)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(315, 190)
+	panel.custom_minimum_size = Vector2(285, 160)
+	panel.theme_type_variation = &"CardPanel"
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", UITokens.CARD_PADDING_HORIZONTAL)
+	margin.add_theme_constant_override("margin_top", UITokens.CARD_PADDING_VERTICAL)
+	margin.add_theme_constant_override("margin_right", UITokens.CARD_PADDING_HORIZONTAL)
+	margin.add_theme_constant_override("margin_bottom", UITokens.CARD_PADDING_VERTICAL)
 	var content := VBoxContainer.new()
 	var title := Label.new()
 	title.text = str(data.get("name", department_id))
-	title.add_theme_font_size_override("font_size", 18)
+	title.theme_type_variation = &"CardTitle"
 	var level_label := Label.new()
 	level_label.text = "Not purchased" if level == 0 else "Level %d / %d  •  %.1f%% bonus" % [level, DepartmentCatalog.MAX_LEVEL, team.get_department_bonus(department_id)]
 	var description := Label.new()

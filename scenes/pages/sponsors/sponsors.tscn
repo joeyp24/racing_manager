@@ -28,19 +28,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="content" type="VBoxContainer" parent="PageScroll/margin"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="title" type="Label" parent="PageScroll/margin/content"]
 theme_type_variation = &"PageTitle"
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
 text = "Sponsor Offers"
 
 [node name="status_label" type="Label" parent="PageScroll/margin/content"]
@@ -52,4 +51,4 @@ text = "Choose one sponsor for this season."
 [node name="offers_container" type="VBoxContainer" parent="PageScroll/margin/content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8

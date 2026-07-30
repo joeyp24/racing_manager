@@ -80,12 +80,13 @@ func create_candidate_row(driver: Driver) -> void:
 	var details := Label.new()
 	var hire_button := Button.new()
 
-	panel.custom_minimum_size = Vector2(0, 116)
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	row.add_theme_constant_override("separation", 18)
+	panel.custom_minimum_size = Vector2(0, 92)
+	panel.theme_type_variation = &"CardPanel"
+	margin.add_theme_constant_override("margin_left", UITokens.CARD_PADDING_HORIZONTAL)
+	margin.add_theme_constant_override("margin_top", UITokens.CARD_PADDING_VERTICAL)
+	margin.add_theme_constant_override("margin_right", UITokens.CARD_PADDING_HORIZONTAL)
+	margin.add_theme_constant_override("margin_bottom", UITokens.CARD_PADDING_VERTICAL)
+	row.add_theme_constant_override("separation", UITokens.SPACE_LG)
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	details.text = "%s — %s\n%s\nDevelopment: %s | Last Season: %s\nCareer: %d starts | %d wins | %d podiums | %d points" % [
@@ -104,7 +105,7 @@ func create_candidate_row(driver: Driver) -> void:
 	var is_contracted := GameManager.team.contracted_driver_ids.has(driver.driver_id)
 	var has_accepted_offer := bool((GameManager.team.contract_offers.get(driver.driver_id, {}) as Dictionary).get("accepted", false))
 	hire_button.text = "Contracted" if is_contracted else ("Sign" if has_accepted_offer else "Negotiate")
-	hire_button.custom_minimum_size = Vector2(100, 0)
+	hire_button.custom_minimum_size = Vector2(96, UITokens.CONTROL_HEIGHT)
 	hire_button.disabled = (
 		is_contracted
 		or (has_accepted_offer and not GameManager.team.can_hire_driver(driver))
