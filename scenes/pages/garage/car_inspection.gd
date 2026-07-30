@@ -50,6 +50,8 @@ func _notification(what: int) -> void:
 
 
 func update_responsive_split() -> void:
+	if columns == null:
+		return
 	columns.split_offset = clampi(roundi(size.x * 0.38), 300, 440)
 
 
