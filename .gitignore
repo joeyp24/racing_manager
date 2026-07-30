@@ -3,3 +3,5 @@
 /android/
 __pycache__/
 *.py[cod]
+*.tmp
+*.tscn[0-9]*

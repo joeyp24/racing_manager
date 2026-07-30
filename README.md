@@ -369,6 +369,32 @@ Keep the project beginner-friendly and easy to understand.
 
 ---
 
+# Validation
+
+Every pull request is checked automatically for:
+
+- duplicate top-level GDScript function declarations
+- missing literal `res://` resource paths
+- committed temporary or editor-generated files
+- source-level gameplay contracts
+- Godot project and scene parsing in headless mode
+- Performance Points behavioral tests
+
+Run the fast repository checks locally with:
+
+```sh
+python tools/validate_project.py
+python -m pytest -q tests
+```
+
+With Godot 4.7 available on the command line, run the engine checks with:
+
+```sh
+python tools/run_godot_checks.py
+```
+
+---
+
 # Feature Status
 
 ## Implemented and playable
