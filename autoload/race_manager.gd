@@ -1412,9 +1412,31 @@ func advance_to_date(target_day: int) -> Dictionary:
 	if GameManager.team == null:
 		return {"days_advanced":0, "summaries":[]}
 	var from_day: int = GameManager.team.current_season_day
-	var queue := build_event_queue(target_day)
-	var summaries := simulate_other_series_through_date(target_day)
-	summaries.append_array(GameManager.team.advance_to_date(target_day))
+	var desired_day: int = target_day
+	# If the requested target is not beyond our current day, try to resolve a sensible next-day to advance to.
+	if desired_day <= from_day and GameManager.team.week_advance_required:
+		# Prefer the next unlocked player race with a later schedule day.
+		var next_race := get_next_race(GameManager.team)
+		if next_race != null and int(next_race.schedule_day) > from_day:
+			desired_day = int(next_race.schedule_day)
+		else:
+			# Fallback: find the next scheduled player calendar day after our current day.
+			var calendar := get_calendar_for_series(GameManager.team.current_series_id)
+			var found_day: int = -1
+			for race in calendar:
+				if int(race.schedule_day) > from_day and not GameManager.team.get_completed_races().has(race.race_id):
+					found_day = int(race.schedule_day)
+					break
+			if found_day > 0:
+				desired_day = found_day
+			else:
+				# As a last resort, step forward one day so the UI can progress.
+				desired_day = mini(from_day + 1, CalendarCatalog.SEASON_END_DAY)
+	# Build event queue and simulate other series up to the resolved desired day.
+	var queue := build_event_queue(desired_day)
+	var summaries := simulate_other_series_through_date(desired_day)
+	# Advance the team's calendar and collect summaries from the team.
+	summaries.append_array(GameManager.team.advance_to_date(desired_day))
 	return {"from_day":from_day, "target_day":GameManager.team.current_season_day, "days_advanced":GameManager.team.current_season_day - from_day, "events":queue, "summaries":summaries}
 
 
