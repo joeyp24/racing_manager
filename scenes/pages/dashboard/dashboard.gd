@@ -319,12 +319,17 @@ func _show_advance_preview(target_day: int) -> void:
 
 func _confirm_date_advance() -> void:
 	var target_day := int(advance_preview.get_meta("target_day", GameManager.team.current_season_day))
+	# Diagnostic log to help trace stuck-advance issue
+	push_warning("Advance requested: target_day=%d, current_day=%d, week_advance_required=%s" % [target_day, GameManager.team.current_season_day, str(GameManager.team.week_advance_required)])
 	var result := RaceManager.advance_to_date(target_day)
-	var days := int(result.days_advanced)
+	push_warning("Advance result: %s" % str(result))
+	var days := int(result.days_advanced) if result.has("days_advanced") else 0
 	# Fallback: if nothing advanced (edge case where desired day equals current), advance one calendar day so the UI can progress.
 	if days == 0:
 		var fallback_target := mini(target_day + 1, CalendarCatalog.SEASON_END_DAY)
+		push_warning("Performing fallback team advance to %d" % fallback_target)
 		var fallback_summaries := GameManager.team.advance_to_date(fallback_target)
+		push_warning("Fallback summaries: %s" % str(fallback_summaries))
 		# Compute actual days advanced from team state
 		days = GameManager.team.current_season_day - int(result.from_day if result.has("from_day") else GameManager.team.current_season_day)
 		# Optionally record fallback summary
@@ -334,6 +339,8 @@ func _confirm_date_advance() -> void:
 				result.summaries.append_array(fallback_summaries)
 			else:
 				result["summaries"] = fallback_summaries
+	# Ensure the advance preview is hidden after confirming
+	advance_preview.hide()
 	week_status_label.text = "%s • %d days advanced" % [CalendarCatalog.format_day(GameManager.team.current_season_day), days]
 	GameManager.save_game()
 	update_dashboard()
