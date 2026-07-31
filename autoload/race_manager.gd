@@ -1331,18 +1331,19 @@ func simulate_other_series_through_date(target_day: int) -> Array[String]:
 		var completed_rounds := int(series_data.get("completed_rounds", 0))
 		var simulated_count := 0
 		# Only simulate races scheduled after our current season day and up to the target day.
-		while completed_rounds < calendar.size() and calendar[completed_rounds].schedule_day <= target_day:
-			var race_day := int(calendar[completed_rounds].schedule_day)
-			if race_day > start_day and race_day <= target_day:
-				_simulate_world_series_race(series_id, calendar[completed_rounds], series_data)
-				completed_rounds += 1
-				simulated_count += 1
-				series_data["completed_rounds"] = completed_rounds
-			elif race_day <= start_day:
+		for idx in range(completed_rounds, calendar.size()):
+			var race_day := int(calendar[idx].schedule_day)
+			if race_day <= start_day:
 				# This race is already past relative to our team; mark as behind us to avoid re-evaluating.
 				completed_rounds += 1
-			else:
+				continue
+			if race_day > target_day:
 				break
+			# Race is between start_day and target_day (inclusive) — simulate it.
+			_simulate_world_series_race(series_id, calendar[idx], series_data)
+			completed_rounds += 1
+			simulated_count += 1
+			series_data["completed_rounds"] = completed_rounds
 		GameManager.team.set_world_series_data(series_id, series_data)
 		if simulated_count > 0:
 			summaries.append("%s: %d race%s" % [str(series.name), simulated_count, "" if simulated_count == 1 else "s"])
