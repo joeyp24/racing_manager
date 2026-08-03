@@ -24,59 +24,7 @@ func _ready() -> void:
 func rebuild_race_progression() -> void:
 	if GameManager.team == null:
 		return
-
-	if race_calendar.is_empty():
-		return
-
-	var valid_races: Array[Race] = []
-
-	for race_resource in race_calendar:
-		if race_resource == null:
-			continue
-
-		if race_resource.race_id.is_empty():
-			push_warning(
-				"Race '%s' is missing a race_id."
-				% race_resource.race_name
-			)
-			continue
-
-		valid_races.append(race_resource)
-
-	if valid_races.is_empty():
-		return
-
-	var progression_changed: bool = false
-	var first_race: Race = valid_races[0]
-
-	if not GameManager.team.get_unlocked_races().has(
-		first_race.race_id
-	):
-		GameManager.team.unlock_race_for_series(GameManager.team.current_series_id, first_race.race_id)
-
-		progression_changed = true
-
-	for race_index in range(valid_races.size() - 1):
-		var current_race: Race = valid_races[race_index]
-		var next_race: Race = valid_races[race_index + 1]
-
-		var current_race_completed: bool = (
-			GameManager.team.get_completed_races().has(
-				current_race.race_id
-			)
-		)
-
-		if not current_race_completed:
-			break
-
-		if not GameManager.team.get_unlocked_races().has(
-			next_race.race_id
-		):
-			GameManager.team.unlock_race_for_series(GameManager.team.current_series_id, next_race.race_id)
-
-			progression_changed = true
-
-	if progression_changed:
+	if GameManager.team.ensure_calendar_progression(GameManager.team.current_series_id):
 		GameManager.team.emit_changed()
 		GameManager.save_game()
 

@@ -13,6 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECKS = (
     ("project import and parse", ("--headless", "--path", ".", "--import")),
     (
+        "calendar system regression tests",
+        ("--headless", "--path", ".", "--script", "tests/test_calendar_system.gd"),
+    ),
+    (
         "Performance Points behavioral tests",
         ("--headless", "--path", ".", "--script", "tests/test_performance_points.gd"),
     ),

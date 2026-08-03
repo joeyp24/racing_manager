@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 13
+const CURRENT_SAVE_FORMAT_VERSION: int = 14
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -139,6 +139,7 @@ const DIFFICULTY_SETTINGS: Dictionary = {
 
 func _init() -> void:
 	ensure_series_progress()
+	ensure_calendar_progression()
 	ensure_world_series_data()
 	ensure_departments()
 	ensure_default_player_driver()
@@ -349,10 +350,60 @@ func ensure_world_series_data() -> void:
 		if not world_series_data.has(series_id):
 			world_series_data[series_id] = {
 				"completed_rounds": 0,
+				"completed_race_ids": [],
 				"results": [],
 				"standings": [],
-				"season_number": season_number
+				"season_number": season_number,
+				"season_year": current_season_year
 			}
+			continue
+		var data := world_series_data[series_id] as Dictionary
+		if data.has("season_year") and int(data.get("season_year", 0)) != current_season_year:
+			world_series_data[series_id] = {
+				"completed_rounds": 0,
+				"completed_race_ids": [],
+				"results": [],
+				"standings": [],
+				"season_number": season_number,
+				"season_year": current_season_year
+			}
+			continue
+		if not data.has("completed_race_ids"):
+			var completed_race_ids: Array[String] = []
+			for result_value in data.get("results", []):
+				var result := result_value as Dictionary
+				var race_id := str(result.get("race_id", ""))
+				if not race_id.is_empty() and not completed_race_ids.has(race_id):
+					completed_race_ids.append(race_id)
+			data["completed_race_ids"] = completed_race_ids
+			data["completed_rounds"] = completed_race_ids.size()
+		if not data.has("season_year"):
+			data["season_year"] = current_season_year
+
+
+func ensure_calendar_progression(series_id: String = current_series_id) -> bool:
+	ensure_series_progress(series_id)
+	var progress := series_progress[series_id] as Dictionary
+	var completed: Array = progress.get("completed_races", [])
+	var events := CalendarCatalog.get_events(series_id)
+	var unlocked: Array[String] = []
+	var next_race_found := false
+	for event in events:
+		var race_id := str(event.get("race_id", ""))
+		if race_id.is_empty():
+			continue
+		if completed.has(race_id):
+			unlocked.append(race_id)
+			continue
+		if not next_race_found:
+			next_race_found = true
+			unlocked.append(race_id)
+	var previous_unlocked: Array = progress.get("unlocked_races", [])
+	var changed := previous_unlocked != unlocked
+	progress["unlocked_races"] = unlocked
+	if changed:
+		_sync_legacy_progress_mirrors()
+	return changed
 
 
 func get_world_series_data(series_id: String) -> Dictionary:
