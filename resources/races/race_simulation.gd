@@ -599,6 +599,7 @@ func as_final_standings() -> Array[Dictionary]:
 			"overtakes": entry.overtakes,
 			"overtaken": entry.overtaken,
 			"pit_stops": entry.pit_stops,
+			"best_lap_time": entry.best_lap_time,
 			"tyre_condition": entry.tyre_condition,
 			"mechanical_health": entry.mechanical_health,
 			"fuel_target": entry.fuel_target_mode,

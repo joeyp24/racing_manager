@@ -54,6 +54,16 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Payroll"
 
+[node name="forecast_panel" type="PanelContainer" parent="margin/layout"]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="forecast_label" type="Label" parent="margin/layout/forecast_panel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Season cash forecast"
+autowrap_mode = 2
+
 [node name="history_title" type="Label" parent="margin/layout"]
 theme_type_variation = &"SectionTitle"
 layout_mode = 2

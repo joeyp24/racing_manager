@@ -313,12 +313,14 @@ func create_live_simulation(
 		compound = "Wet"
 		fuel_fraction = 0.60
 	var player_race_attributes := player_car.get_race_attributes()
+	player_race_attributes["consistency"] = player_driver.get_effective_consistency()
 	var expansion_modifiers := _call_career_expansion_manager(&"get_race_modifiers", [GameManager.team]) as Dictionary
+	var rivalry_modifiers := _call_career_expansion_manager(&"get_rivalry_modifiers", [GameManager.team]) as Dictionary
 	player_race_attributes["reliability"] = clampf(float(player_race_attributes.get("reliability", 75.0)) + float(expansion_modifiers.reliability), 1.0, 100.0)
 	player_race_attributes["fuel"] = clampf(float(player_race_attributes.get("fuel", 50.0)) + float(expansion_modifiers.fuel), 1.0, 100.0)
 	player_race_attributes["tyres"] = clampf(float(player_race_attributes.get("tyres", 50.0)) + float(expansion_modifiers.tyres), 1.0, 100.0)
 	player_race_attributes["strategy_skill"] = clampf(42.0 + GameManager.team.get_crew_chief_performance_boost() * 7.0, 35.0, 98.0)
-	player_race_attributes["incident_scale"] = float(GameManager.team.get_difficulty_setting("player_incident_multiplier", 1.0))
+	player_race_attributes["incident_scale"] = float(GameManager.team.get_difficulty_setting("player_incident_multiplier", 1.0)) * float(rivalry_modifiers.get("incident_scale", 1.0))
 	player_race_attributes["pit_time_reduction"] = GameManager.team.get_pit_stop_time_reduction()
 	player_race_attributes["pit_mistake_reduction"] = GameManager.team.get_pit_mistake_reduction()
 	simulation.setup(
@@ -461,10 +463,11 @@ func finalize_live_race(
 	for expired_name in staff_payroll.get("expired_names", []):
 		result.expired_staff_names.append(str(expired_name))
 	result.net_earnings -= result.crew_chief_salary + result.engineering_payroll
-	player_driver.record_race({"race_id":selected_race.race_id, "race_name":selected_race.race_name, "start":result.starting_position, "finish":result.finishing_position, "positions_gained":result.positions_gained, "qualifying":result.starting_position, "points":result.championship_points_earned, "track_type":selected_race.track_type, "weather":selected_race.weather, "status":str((result.standings[result.finishing_position - 1] as Dictionary).get("status", "Finished")), "incident":false})
+	var player_row := result.standings[result.finishing_position - 1] as Dictionary
+	player_driver.record_race({"race_id":selected_race.race_id, "race_name":selected_race.race_name, "start":result.starting_position, "finish":result.finishing_position, "positions_gained":result.positions_gained, "qualifying":result.starting_position, "points":result.championship_points_earned, "track_type":selected_race.track_type, "weather":selected_race.weather, "status":str(player_row.get("status", "Finished")), "incident":float(player_row.get("incident_time_loss", 0.0)) > 0.0})
 	GameManager.team.process_driver_race_contracts(weekend_data)
-	_call_career_expansion_manager(&"process_race", [GameManager.team, result, simulation])
 	apply_race_effects(result)
+	_call_career_expansion_manager(&"process_race", [GameManager.team, result, simulation])
 	complete_race(selected_race)
 	last_result = result
 	GameManager.save_game()
@@ -646,8 +649,9 @@ func run_race(
 		result.expired_staff_names.append(str(expired_name))
 	result.net_earnings -= result.crew_chief_salary + result.engineering_payroll
 	GameManager.team.process_driver_race_contracts(weekend_data)
-
+	player_driver.record_race({"race_id":selected_race.race_id, "race_name":selected_race.race_name, "start":result.starting_position, "finish":result.finishing_position, "positions_gained":result.positions_gained, "qualifying":result.starting_position, "points":result.championship_points_earned, "track_type":selected_race.track_type, "weather":selected_race.weather, "status":"Finished", "incident":false})
 	apply_race_effects(result)
+	_call_career_expansion_manager(&"process_race", [GameManager.team, result, null])
 	complete_race(selected_race)
 
 	last_result = result
@@ -749,7 +753,7 @@ func calculate_player_score(
 	var variance_limit: float = lerpf(
 		12.0,
 		4.0,
-		float(player_driver.consistency) / 100.0
+		float(player_driver.get_effective_consistency()) / 100.0
 	)
 	if team != null:
 		variance_limit = maxf(1.0, variance_limit - team.get_car_setup_variance_reduction())
@@ -779,6 +783,7 @@ func calculate_player_score(
 		+ feedback_score
 		+ spotter_restart_bonus
 		+ expansion_bonus
+		+ player_driver.get_race_state_modifier()
 		+ random_variance
 	)
 	return total_score * float(strategy.get("performance_modifier", 1.0))
@@ -972,6 +977,7 @@ func apply_race_effects(
 
 	apply_reputation_reward(result)
 	apply_sponsor_reward(result)
+	FinanceManager.apply_race_commercial_revenue(GameManager.team, result)
 
 	update_championship_standings(
 		result.standings
@@ -1367,6 +1373,15 @@ func build_event_queue(target_day: int) -> Array[Dictionary]:
 			if series_id != GameManager.team.current_series_id and completed_world_races.has(race.race_id):
 				continue
 			queue.append({"day":race.schedule_day, "type":"player_race" if series_id == GameManager.team.current_series_id else "other_race", "title":"%s — Round %d" % [str(series.name), race.season_round], "series_id":series_id, "race_id":race.race_id})
+	var special_events_value: Variant = _call_career_expansion_manager(&"get_special_events", [GameManager.team])
+	if special_events_value is Array:
+		for event_value in special_events_value:
+			var event := event_value as Dictionary
+			if int(event.get("day", 0)) <= start_day or int(event.get("day", 0)) > end_day:
+				continue
+			if str(event.get("status", "Scheduled")) in ["Completed", "Missed"]:
+				continue
+			queue.append({"day":int(event.day), "type":"special_event", "title":"%s - %s" % [event.name, event.status], "event_id":str(event.id)})
 	# Race-based agreements are represented on their actual calendar date. They
 	# remain player-race events, but are no longer invisible to the time preview.
 	var future_player_races: Array[Race] = []

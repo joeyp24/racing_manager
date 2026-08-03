@@ -293,3 +293,27 @@ def test_weekly_scouting_hours_power_reports_and_recruiting():
     assert "func negotiate_driver_contract" in team
     assert "scouting_hours_remaining" in scouting and '"???"' in scouting
     assert "Scouting is optional" in market and "Potential OVR %s" in market
+
+
+def test_finance_and_living_paddock_systems_are_integrated():
+    team = (ROOT / "resources/team.gd").read_text()
+    finance = (ROOT / "resources/finance_manager.gd").read_text()
+    driver = (ROOT / "resources/driver.gd").read_text()
+    career = (ROOT / "resources/career_expansion_manager.gd").read_text()
+    race_manager = (ROOT / "autoload/race_manager.gd").read_text()
+    race_simulation = (ROOT / "resources/races/race_simulation.gd").read_text()
+    career_hub = (ROOT / "scenes/pages/career_hub/career_hub.gd").read_text()
+    calendar = (ROOT / "scenes/pages/race_calendar/race_calendar.gd").read_text()
+    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 15" in team
+    assert "return _string_array" in team
+    assert "class_name FinanceManager" in finance
+    assert "owner_support" in finance and "series_distribution" in finance
+    assert "func apply_race_dynamics" in driver and "get_race_state_modifier" in driver
+    assert "func get_rivalry_modifiers" in career
+    assert "func _process_ai_development" in career and "scout_ai_team_development" in career
+    assert "news_feed" in career and "deadline_year" in career
+    assert "func get_special_events" in career and "enter_special_event" in career
+    assert '"type":"special_event"' in race_manager
+    assert '"best_lap_time": entry.best_lap_time' in race_simulation
+    assert '"AI DEVELOPMENT RACE"' in career_hub and '"WEEKLY PADDOCK FEED"' in career_hub
+    assert "create_special_event" in calendar

@@ -42,6 +42,12 @@ func _render() -> void:
 
 func _render_inbox(state: Dictionary) -> void:
 	_add_section("TEAM PRINCIPAL INBOX", "News, urgent decisions, driver conversations, sponsor requests, paddock events and press conferences appear here.")
+	var news_lines := PackedStringArray()
+	for index in mini(10, (state.news_feed as Array).size()):
+		var story := state.news_feed[index] as Dictionary
+		var marker := "TOP STORY" if int(story.get("importance", 1)) >= 3 else str(story.get("category", "Paddock")).to_upper()
+		news_lines.append("%s · %s\n%s" % [marker, story.get("headline", "Update"), story.get("body", "")])
+	_add_section("WEEKLY PADDOCK FEED", "\n\n".join(news_lines) if not news_lines.is_empty() else "Results, transfers, upgrades, rumors, sponsor reactions and championship turning points will appear here.")
 	var shown := 0
 	for value in state.inbox:
 		if shown >= 14:
@@ -72,8 +78,17 @@ func _render_board(state: Dictionary) -> void:
 	var target_lines := PackedStringArray()
 	for value in board.targets:
 		var target := value as Dictionary
-		target_lines.append("%s  %s · %s" % ["✓" if bool(target.complete) else "○", target.label, "Complete" if bool(target.complete) else "In progress"])
+		var deadline := int(target.get("deadline_year", GameManager.team.current_season_year))
+		var progress_text := "%s / %s" % [target.get("progress", 0), target.get("target", "-")]
+		if str(target.get("kind", "")) == "championship":
+			progress_text = "P%s / target P%s" % [target.get("progress", "-"), target.get("target", "-")]
+			target_lines.append("%s  %s · %s · due %d · %s" % ["✓" if bool(target.complete) else "○", target.label, progress_text, deadline, target.get("status", "Active")])
 	_add_section("BOARD EXPECTATIONS", "Confidence %d%% · Job security %d%% · Owner patience %d%%\n%s\n%s" % [int(board.confidence), int(board.job_security), int(board.owner_patience), "\n".join(target_lines), board.last_review], [{"label":"Request ownership funding", "call":_request_funding}])
+	var review_lines := PackedStringArray()
+	for index in mini(8, (board.get("history", []) as Array).size()):
+		var review := board.history[index] as Dictionary
+		review_lines.append("%d · %s · %s" % [int(review.get("reviewed_year", 0)), review.get("label", "Expectation"), review.get("status", "Reviewed")])
+	_add_section("OWNER REVIEW HISTORY", "\n".join(review_lines) if not review_lines.is_empty() else "Completed and failed expectations will remain here across seasons.")
 	var rivalry_lines := PackedStringArray()
 	for rival_id in state.rivalries:
 		var rival := state.rivalries[rival_id] as Dictionary
@@ -95,6 +110,12 @@ func _render_board(state: Dictionary) -> void:
 
 
 func _render_people(state: Dictionary) -> void:
+	var form_lines := PackedStringArray()
+	for driver in GameManager.team.get_contracted_drivers():
+		var trend := "+%d" % driver.form_trend if driver.form_trend > 0 else str(driver.form_trend)
+		var uncertainty := " · CONTRACT UNCERTAIN" if driver.contract_races_remaining <= 3 else ""
+		form_lines.append("%s · Form %d (%s) · Confidence %d (%+d) · Morale %d · Effective consistency %d%s" % [driver.driver_name, driver.form, trend, driver.confidence, driver.last_confidence_change, driver.morale, driver.get_effective_consistency(), uncertainty])
+	_add_section("DRIVER FORM & CONFIDENCE", "\n".join(form_lines) if not form_lines.is_empty() else "Sign a driver to track form, confidence, morale and contract pressure. Recent results, incidents and team orders all affect race performance.")
 	var academy := state.academy as Dictionary
 	var academy_lines := PackedStringArray(["Academy seats %d / %d" % [(academy.enrolled as Array).size(), int(academy.slots)]])
 	var academy_actions: Array[Dictionary] = []
@@ -250,7 +271,7 @@ func _render_operations(state: Dictionary) -> void:
 		]
 	)
 	var forecast := CareerExpansionManager.update_finance_forecast(GameManager.team)
-	_add_section("FINANCIAL FORECASTING", "Cash $%d · Weekly income $%d · Weekly costs $%d · Net %s$%d\nSeason-end forecast $%d · Safe upgrade budget $%d%s" % [int(forecast.cash), int(forecast.weekly_income), int(forecast.weekly_costs), "+" if int(forecast.weekly_net) >= 0 else "", int(forecast.weekly_net), int(forecast.season_end_cash), int(forecast.upgrade_budget), "\n⚠ Payroll exceeds sustainable income." if bool(forecast.payroll_warning) else ""])
+	_add_section("FINANCIAL FORECASTING", "Cash $%d · %d races remaining\nPer race: income $%d · costs $%d · net %s$%d\nSeason: income $%d · costs $%d · projected cash $%d\nReserve $%d · safe upgrade budget $%d%s%s" % [int(forecast.cash), int(forecast.remaining_races), int(forecast.race_income), int(forecast.race_cost), "+" if int(forecast.race_net) >= 0 else "", int(forecast.race_net), int(forecast.projected_income), int(forecast.projected_costs), int(forecast.season_end_cash), int(forecast.minimum_reserve), int(forecast.upgrade_budget), "\n⚠ Payroll exceeds sustainable race income." if bool(forecast.payroll_warning) else "", "\nNo sponsor is signed; sponsor income is excluded." if GameManager.team.active_sponsor_contract.is_empty() else ""])
 
 
 func _render_world(state: Dictionary) -> void:
@@ -259,7 +280,20 @@ func _render_world(state: Dictionary) -> void:
 	var record_lines := PackedStringArray()
 	for track in state.records.tracks:
 		var data := state.records.tracks[track] as Dictionary
-		record_lines.append("%s · %d starts · %d wins · %d poles · best P%d" % [track, int(data.starts), int(data.wins), int(data.poles), int(data.best_finish)])
+		var average := float(data.get("average_finish_total", 0)) / maxf(1.0, float(data.get("starts", 1)))
+		var lap_text := " · lap %.3fs by %s" % [float(data.get("best_lap", 0.0)), data.get("lap_record_driver", "Unknown")] if float(data.get("best_lap", 0.0)) > 0.0 else ""
+		var qualifying := data.get("qualifying_record", {}) as Dictionary
+		var qualifying_text := " · qualifying %.2f by %s" % [float(qualifying.score), qualifying.get("driver", "Unknown")] if not qualifying.is_empty() else ""
+		var winner_names := PackedStringArray()
+		for winner_index in mini(3, (data.get("previous_winners", []) as Array).size()):
+			var winner := (data.previous_winners as Array)[winner_index] as Dictionary
+			winner_names.append("%d %s" % [int(winner.season), winner.driver])
+		var history_text := " · recent winners: %s" % ", ".join(winner_names) if not winner_names.is_empty() else ""
+		record_lines.append("%s · %d starts · %d wins · best P%d · avg P%.1f · last winner %s%s%s%s" % [track, int(data.starts), int(data.wins), int(data.best_finish), average, data.get("last_winner", "Unknown"), lap_text, qualifying_text, history_text])
+	for track_type in state.records.get("track_types", {}):
+		var type_data := state.records.track_types[track_type] as Dictionary
+		var type_average := float(type_data.get("finish_total", 0)) / maxf(1.0, float(type_data.get("starts", 1)))
+		record_lines.append("%s FORM · %d starts · %d wins · average P%.1f" % [str(track_type).to_upper(), int(type_data.starts), int(type_data.wins), type_average])
 	for series_id in state.records.series:
 		var data := state.records.series[series_id] as Dictionary
 		record_lines.append("%s · %d wins · %d podiums · %d points" % [series_id, int(data.wins), int(data.podiums), int(data.points)])
@@ -274,6 +308,26 @@ func _render_world(state: Dictionary) -> void:
 		var alliance := value as Dictionary
 		alliance_lines.append("%s · %s · %s" % [", ".join(alliance.teams), alliance.manufacturer, alliance.focus])
 	_add_section("AI MANUFACTURER ALLIANCES", "\n".join(alliance_lines) if not alliance_lines.is_empty() else "AI alliances, shared technology and divergent design philosophies evolve each offseason.")
+	var development := state.ai_development as Dictionary
+	var development_lines := PackedStringArray()
+	var development_actions: Array[Dictionary] = []
+	var listed_teams := {}
+	for index in mini(12, (development.reports as Array).size()):
+		var report := development.reports[index] as Dictionary
+		var revealed := bool(report.get("revealed", false))
+		development_lines.append("Day %d · %s · %s" % [int(report.day), report.team_name, ("equipment %d · +%d PP · $%d invested" % [int(report.equipment_rating), int(report.gain), int(report.investment)]) if revealed else "new package spotted · details unknown"])
+		var team_id := str(report.team_id)
+		if not revealed and not listed_teams.has(team_id):
+			listed_teams[team_id] = true
+			development_actions.append({"label":"Scout %s · 6h" % report.team_name, "call":_scout_ai_team.bind(team_id)})
+	_add_section("AI DEVELOPMENT RACE", "\n".join(development_lines) if not development_lines.is_empty() else "Rival teams introduce upgrade packages every two weeks. Scout them to reveal investment, performance gain and current equipment level.", development_actions)
+	var event_lines := PackedStringArray()
+	var event_actions: Array[Dictionary] = []
+	for event in CareerExpansionManager.get_special_events(GameManager.team):
+		event_lines.append("%s · %s · %s · entry $%d · purse $%d · %s" % [CalendarCatalog.format_day(int(event.day)), event.name, event.status, int(event.entry_cost), int(event.prize), event.description])
+		if str(event.status) == "Scheduled" and GameManager.team.current_season_day <= int(event.day):
+			event_actions.append({"label":"Enter %s" % event.name, "call":_enter_special_event.bind(str(event.id))})
+	_add_section("SPECIAL EVENTS", "\n".join(event_lines), event_actions)
 	var international := state.international as Dictionary
 	var international_lines := PackedStringArray(["Disciplines: %s" % ", ".join(international.disciplines)])
 	for region in international.markets:
@@ -410,6 +464,8 @@ func _complete_activation(index: int) -> void: _finish_action(CareerExpansionMan
 func _decline_activation(index: int) -> void: _finish_action(CareerExpansionManager.decline_sponsor_activation(GameManager.team, index))
 func _order_merch(quantity: int) -> void: _finish_action(CareerExpansionManager.order_merchandise(GameManager.team, quantity))
 func _launch_international(region: String) -> void: _finish_action(CareerExpansionManager.launch_international_program(GameManager.team, region, "Touring cars"))
+func _scout_ai_team(team_id: String) -> void: _finish_action(CareerExpansionManager.scout_ai_team_development(GameManager.team, team_id), "Six weekly scouting hours are required for this report.")
+func _enter_special_event(event_id: String) -> void: _finish_action(CareerExpansionManager.enter_special_event(GameManager.team, event_id), "Entry requirements, car/driver availability, reputation or funding are not currently met.")
 func _cycle_branding(key: String, values: Array) -> void:
 	var branding := CareerExpansionManager.ensure_state(GameManager.team).branding as Dictionary
 	var index := values.find(branding.get(key, values[0]))
