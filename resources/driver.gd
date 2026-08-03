@@ -48,6 +48,9 @@ const PERSONALITY_FIELDS: Array[String] = ["ambition", "loyalty", "professionali
 @export_range(0, 99) var coachability: int = 50
 @export_range(0, 99) var confidence: int = 60
 @export_range(0, 99) var morale: int = 70
+@export_range(0, 99) var form: int = 50
+@export_range(-10, 10) var form_trend: int = 0
+@export var last_confidence_change: int = 0
 @export_range(0, 99) var teamwork: int = 50
 @export_range(0, 99) var pressure_tolerance: int = 50
 @export_range(0, 100) var fatigue: int = 0
@@ -186,7 +189,7 @@ func record_race(result: Dictionary) -> void:
 func get_form_summary(limit: int = 5) -> Dictionary:
 	var count := mini(limit, race_history.size())
 	if count == 0:
-		return {"races":0, "average_start":0.0, "average_finish":0.0, "positions_gained":0.0, "finish_rate":0.0, "incident_rate":0.0}
+		return {"races":0, "average_start":0.0, "average_finish":0.0, "positions_gained":0.0, "finish_rate":0.0, "incident_rate":0.0, "form":form, "confidence":confidence, "morale":morale, "trend":form_trend}
 	var starts := 0.0
 	var finishes := 0.0
 	var gained := 0.0
@@ -197,4 +200,52 @@ func get_form_summary(limit: int = 5) -> Dictionary:
 		starts += float(item.get("start", 0)); finishes += float(item.get("finish", 0)); gained += float(item.get("positions_gained", 0))
 		if str(item.get("status", "Finished")) != "Retired": completed += 1
 		if bool(item.get("incident", false)): incidents += 1
-	return {"races":count, "average_start":starts/count, "average_finish":finishes/count, "positions_gained":gained/count, "finish_rate":float(completed)/count, "incident_rate":float(incidents)/count}
+	return {"races":count, "average_start":starts/count, "average_finish":finishes/count, "positions_gained":gained/count, "finish_rate":float(completed)/count, "incident_rate":float(incidents)/count, "form":form, "confidence":confidence, "morale":morale, "trend":form_trend}
+
+
+func get_race_state_modifier() -> float:
+	return (
+		float(form - 50) * 0.06
+		+ float(confidence - 50) * 0.04
+		+ float(morale - 50) * 0.025
+		- float(fatigue) * 0.018
+	)
+
+
+func get_effective_consistency() -> int:
+	return clampi(consistency + roundi(float(form - 50) * 0.10) + roundi(float(confidence - 50) * 0.12), 1, 99)
+
+
+func apply_race_dynamics(result: Dictionary, expected_finish: int, team_order: String = "Race freely") -> Dictionary:
+	var finish := int(result.get("finish", expected_finish))
+	var status := str(result.get("status", "Finished"))
+	var incident := bool(result.get("incident", false)) or status == "Retired"
+	var performance_delta := clampi(expected_finish - finish, -8, 8)
+	var target_form := clampi(50 + performance_delta * 5 - (18 if incident else 0), 5, 95)
+	var old_form := form
+	form = clampi(roundi(lerpf(float(form), float(target_form), 0.38)), 0, 99)
+	form_trend = clampi(form - old_form, -10, 10)
+	var confidence_delta := clampi(performance_delta, -4, 4)
+	if finish == 1:
+		confidence_delta += 3
+	if incident:
+		confidence_delta -= 5
+	if team_order != "Race freely":
+		confidence_delta -= 1
+	if contract_races_remaining <= 3:
+		confidence_delta -= 2
+	last_confidence_change = clampi(confidence_delta, -8, 8)
+	confidence = clampi(confidence + last_confidence_change, 0, 99)
+	var morale_delta := clampi(performance_delta, -3, 3)
+	if team_order in ["Hold position", "Let teammate pass"]:
+		morale_delta -= 3
+	if contract_races_remaining <= 3:
+		morale_delta -= 1
+	morale = clampi(morale + morale_delta, 0, 99)
+	return {
+		"form_change": form_trend,
+		"confidence_change": last_confidence_change,
+		"morale_change": morale_delta,
+		"incident": incident,
+		"contract_uncertain": contract_races_remaining <= 3
+	}

@@ -2,6 +2,7 @@ extends Control
 
 @onready var overview_label: Label = %overview_label
 @onready var payroll_label: Label = %payroll_label
+@onready var forecast_label: Label = %forecast_label
 @onready var history_container: VBoxContainer = %history_container
 @onready var recovery_button: Button = %recovery_button
 
@@ -31,6 +32,19 @@ func refresh_finances() -> void:
 	var chief_salary := team.get_effective_salary(chief.salary) if chief != null else 0
 	var engineer_salary := team.get_staff_payroll() - chief_salary
 	payroll_label.text = "Driver: $%s/race\nCrew chief: $%s/race\nEngineers: $%s/race\nTotal payroll: $%s/race\nRaces remaining: %d\nProjected remaining payroll: $%s" % [format_number(driver_salary), format_number(chief_salary), format_number(engineer_salary), format_number(team.get_total_race_payroll()), remaining_races, format_number(team.get_total_race_payroll() * remaining_races)]
+	var forecast := FinanceManager.build_forecast(team)
+	forecast_label.text = (
+		"SEASON CASH FORECAST\n"
+		+ "Expected race income: $%s  |  Race cost: $%s  |  Operating result: %s\n"
+		+ "Series distribution $%s  +  event share $%s  +  sponsor $%s  +  expected purse $%s  +  owner/manufacturer $%s\n"
+		+ "Remaining income $%s  |  remaining costs $%s  |  projected season end $%s\n"
+		+ "Recommended reserve $%s  |  safe upgrade budget $%s%s"
+	) % [
+		format_number(int(forecast.race_income)), format_number(int(forecast.race_cost)), format_money(int(forecast.race_net)),
+		format_number(int(forecast.series_distribution)), format_number(int(forecast.gate_share)), format_number(int(forecast.sponsor_income)), format_number(int(forecast.expected_purse)), format_number(int(forecast.owner_support) + int(forecast.manufacturer_support)),
+		format_number(int(forecast.projected_income)), format_number(int(forecast.projected_costs)), format_number(int(forecast.season_end_cash)),
+		format_number(int(forecast.minimum_reserve)), format_number(int(forecast.upgrade_budget)), ("\nWarning: current commitments are not sustainable." if not bool(forecast.sustainable) else "") + ("\nNo sponsor is signed; available sponsor income is excluded." if team.active_sponsor_contract.is_empty() else "")
+	]
 	recovery_button.disabled = team.recovery_funding_used or team.money >= 10000
 	recovery_button.text = "Owner investment already used" if team.recovery_funding_used else "Accept emergency owner investment (+$15,000)"
 

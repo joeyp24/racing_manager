@@ -3,9 +3,10 @@
 ## Economy balance simulation
 
 Run `python3 tools/balance_simulation.py --difficulty Club --seasons 500` to exercise the
-career economy with a deterministic Monte Carlo model. The report includes bankruptcy
-rate, cash after each race, finishing position, upgrade timing, and modeled ROI for every
-part family and department. Use `--seed` to reproduce a run or compare balance changes.
+career economy with a deterministic Monte Carlo model. It includes series distributions,
+event revenue, first-season owner support, sponsor income, payroll, repairs, and weekend
+operations. The report covers bankruptcy rate, cash after each race, finishing position,
+upgrade timing, and modeled ROI. Use `--seed` to reproduce or compare balance changes.
 
 A stock-car motorsports management game built in Godot 4.x.
 
@@ -176,6 +177,13 @@ Implemented:
 - Transfer rumors, confirmed moves, and season recaps spanning the full racing world
 - Eight-tier career series ladder with entry fees and Team HQ promotion requirements
 - Series-specific dealership inventories and fictional driver fields sized to real-world grids
+- Sustainable race-by-race finances with series distributions, event revenue, owner support, manufacturer support, upkeep, reserves, and season forecasts
+- Persistent driver form, confidence, morale, contract pressure, and incident-driven rivalries
+- In-season AI development packages with scouting intel in Career HQ
+- A weekly paddock news feed with interactive press, sponsor, rivalry, and ownership decisions
+- Annual and multi-season owner expectations with review history
+- Track winners, lap and qualifying records, venue results, and performance by track type
+- Calendar-integrated invitationals, endurance races, manufacturer challenges, and exhibitions
 
 ## Series progression
 

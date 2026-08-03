@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 14
+const CURRENT_SAVE_FORMAT_VERSION: int = 15
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -897,17 +897,26 @@ func load_series_progress(series_id: String = current_series_id) -> void:
 
 func get_completed_races() -> Array[String]:
 	ensure_series_progress(current_series_id)
-	return (series_progress[current_series_id] as Dictionary).get("completed_races", [])
+	return _string_array((series_progress[current_series_id] as Dictionary).get("completed_races", []))
 
 
 func get_unlocked_races() -> Array[String]:
 	ensure_series_progress(current_series_id)
-	return (series_progress[current_series_id] as Dictionary).get("unlocked_races", [])
+	return _string_array((series_progress[current_series_id] as Dictionary).get("unlocked_races", []))
 
 
 func get_championship_standings() -> Array[Dictionary]:
 	ensure_series_progress(current_series_id)
-	return (series_progress[current_series_id] as Dictionary).get("standings", [])
+	return _dictionary_array((series_progress[current_series_id] as Dictionary).get("standings", []))
+
+
+func _string_array(value: Variant) -> Array[String]:
+	var strings: Array[String] = []
+	if value is not Array:
+		return strings
+	for item in value:
+		strings.append(str(item))
+	return strings
 
 
 func complete_race_for_series(series_id: String, race_id: String) -> void:

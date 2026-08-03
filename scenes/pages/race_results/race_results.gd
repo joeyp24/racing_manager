@@ -157,6 +157,10 @@ func create_financial_summary(result: RaceResult) -> String:
 		+ "Crew Chief Salary: -$%s\n"
 		+ "Engineering Payroll: -$%s\n"
 		+ "Repair Costs: -$%s\n"
+		+ "Series Distribution: +$%s\n"
+		+ "Event & Hospitality Share: +$%s\n"
+		+ "First-Season Owner Support: +$%s\n"
+		+ "Manufacturer Support: +$%s\n"
 		+ "Sponsor Race Payment: +$%s\n"
 		+ "Sponsor Objective Bonus: +$%s\n"
 		+ "Sponsor Failure Penalty: -$%s\n"
@@ -174,6 +178,10 @@ func create_financial_summary(result: RaceResult) -> String:
 		format_number(result.crew_chief_salary),
 		format_number(result.engineering_payroll),
 		format_number(result.repair_cost),
+		format_number(result.series_distribution),
+		format_number(result.gate_revenue),
+		format_number(result.owner_race_support),
+		format_number(result.manufacturer_race_support),
 		format_number(result.sponsor_race_payment),
 		format_number(result.sponsor_objective_bonus),
 		format_number(result.sponsor_failure_penalty),

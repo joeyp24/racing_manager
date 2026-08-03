@@ -28,6 +28,9 @@ PURSES = [500, 550, 600, 650, 700, 750, 800, 900, 1000, 1100, 1250, 1500]
 WEEKEND_COSTS = [1095 + race * 70 for race in range(12)]
 UPGRADES = {"Engine": (2_800, 0.9), "Suspension": (2_100, 0.65), "Body": (1_800, 0.5)}
 DEPARTMENTS = {"Engineering": (8_000, 500), "Marketing": (6_000, 360), "Accounting": (7_000, 300)}
+SERIES_DISTRIBUTION = 1_320
+EVENT_REVENUE = 220
+FIRST_SEASON_OWNER_SUPPORT = 780
 
 
 def payout(win: int, position: int) -> int:
@@ -49,7 +52,13 @@ def simulate(difficulty: str, seasons: int, seed: int) -> None:
         cash, pace, bought = settings["starting_cash"] - round(6_500 * settings["market"]), 0.0, set()
         for race, purse in enumerate(PURSES):
             position = max(1, min(20, round(rng.gauss(10.5 + race * settings["growth"] / 8 - pace, 3))))
-            income = round(payout(purse, position) * settings["prize"]) + round(650 * settings["sponsor"])
+            income = (
+                round(payout(purse, position) * settings["prize"])
+                + round(650 * settings["sponsor"])
+                + SERIES_DISTRIBUTION
+                + round(EVENT_REVENUE * settings["sponsor"])
+                + FIRST_SEASON_OWNER_SUPPORT
+            )
             cost = (
                 round(WEEKEND_COSTS[race] * settings["weekend"])
                 + round(rng.uniform(100, 500) * settings["repairs"])

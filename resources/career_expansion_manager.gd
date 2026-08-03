@@ -1,9 +1,10 @@
 extends RefCounted
 class_name CareerExpansionManager
 
-const STATE_VERSION: int = 1
+const STATE_VERSION: int = 2
 const MAX_INBOX_ITEMS: int = 80
 const MAX_NOTIFICATIONS: int = 120
+const MAX_NEWS_ITEMS: int = 100
 
 const RND_NODES: Dictionary = {
 	"engine_efficiency": {"name":"Efficient combustion", "branch":"Engine", "cost":6500, "days":28, "effect":"fuel", "value":3},
@@ -51,6 +52,7 @@ static func defaults() -> Dictionary:
 	return {
 		"version":STATE_VERSION,
 		"inbox":[],
+		"news_feed":[],
 		"notifications":[],
 		"notification_preferences":{"Contracts":true, "Repairs":true, "Projects":true, "Sponsors":true, "Race":true, "Board":true},
 		"board":{
@@ -59,7 +61,8 @@ static func defaults() -> Dictionary:
 			"owner_patience":70,
 			"funding":0,
 			"targets":[],
-			"last_review":"No review yet"
+			"last_review":"No review yet",
+			"history":[]
 		},
 		"rivalries":{},
 		"processed_transfers":[],
@@ -99,6 +102,8 @@ static func defaults() -> Dictionary:
 		"finance_forecast":{},
 		"calendar_variations":{},
 		"records":{"tracks":{}, "series":{}, "all_time":{}},
+		"ai_development":{"last_day":CalendarCatalog.SEASON_START_DAY, "reports":[], "intel":{}},
+		"special_events":[],
 		"world_entrants":[],
 		"alliances":[],
 		"international":{"markets":{}, "programs":[], "disciplines":["Stock cars"]},
@@ -128,6 +133,7 @@ static func ensure_state(team) -> Dictionary:
 	_ensure_relationships(team)
 	_ensure_world_entrants(team)
 	_ensure_transfer_rivalries(team)
+	_ensure_special_events(team)
 	_update_tutorial_progress(team)
 	update_finance_forecast(team)
 	return team.career_state
@@ -143,7 +149,7 @@ static func _merge_defaults(target: Dictionary, template: Dictionary) -> void:
 
 
 static func add_notification(team, category: String, title: String, body: String, urgent: bool = false) -> void:
-	var state := ensure_state(team)
+	var state: Dictionary = team.career_state
 	var preference_key: String = str({
 		"Contracts":"Contracts", "Driver market":"Contracts", "Medical":"Contracts",
 		"Workshop":"Repairs", "Logistics":"Repairs",
@@ -165,6 +171,26 @@ static func add_notification(team, category: String, title: String, body: String
 	})
 	if notifications.size() > MAX_NOTIFICATIONS:
 		notifications.resize(MAX_NOTIFICATIONS)
+
+
+static func add_news_item(team, category: String, headline: String, body: String, importance: int = 1) -> void:
+	ensure_state(team)
+	_append_news(team, category, headline, body, importance)
+
+
+static func _append_news(team, category: String, headline: String, body: String, importance: int = 1) -> void:
+	var news := team.career_state.news_feed as Array
+	news.push_front({
+		"id":"news_%d_%d" % [Time.get_unix_time_from_system(), news.size()],
+		"category":category,
+		"headline":headline,
+		"body":body,
+		"importance":clampi(importance, 1, 3),
+		"season":team.current_season_year,
+		"day":team.current_season_day
+	})
+	if news.size() > MAX_NEWS_ITEMS:
+		news.resize(MAX_NEWS_ITEMS)
 
 
 static func set_notification_preference(team, category: String, enabled: bool) -> void:
@@ -276,14 +302,34 @@ static func _apply_effects(team, effects: Dictionary) -> void:
 static func _ensure_board_targets(team) -> void:
 	var board := team.career_state.get("board", {}) as Dictionary
 	var targets := board.get("targets", []) as Array
-	if not targets.is_empty():
-		return
+	for value in targets:
+		var existing := value as Dictionary
+		var legacy_id := str(existing.get("id", "expectation"))
+		existing["kind"] = str(existing.get("kind", legacy_id.get_slice("_", 0)))
+		existing["created_year"] = int(existing.get("created_year", team.current_season_year))
+		existing["deadline_year"] = int(existing.get("deadline_year", team.current_season_year))
+		existing["horizon"] = maxi(1, int(existing.deadline_year) - int(existing.created_year) + 1)
+		existing["status"] = str(existing.get("status", "Complete" if bool(existing.get("complete", false)) else "Active"))
 	var expected_finish := 8
 	if team.last_season_position > 0:
 		expected_finish = maxi(1, team.last_season_position)
-	targets.append({"id":"championship", "label":"Finish P%d or better" % expected_finish, "target":expected_finish, "progress":0, "complete":false})
-	targets.append({"id":"finance", "label":"Keep at least $10,000 available", "target":10000, "progress":team.money, "complete":team.money >= 10000})
-	targets.append({"id":"development", "label":"Complete one R&D programme", "target":1, "progress":0, "complete":false})
+	var has_current_annual := targets.any(func(value: Variant) -> bool:
+		var target := value as Dictionary
+		return int(target.get("created_year", 0)) == team.current_season_year and str(target.get("kind", "")) == "championship"
+	)
+	if not has_current_annual and int(board.get("annual_reviewed_year", 0)) != team.current_season_year:
+		targets.append({"id":"championship_%d" % team.current_season_year, "kind":"championship", "label":"Finish P%d or better" % expected_finish, "target":expected_finish, "progress":0, "complete":false, "status":"Active", "created_year":team.current_season_year, "deadline_year":team.current_season_year, "horizon":1})
+		targets.append({"id":"finance_%d" % team.current_season_year, "kind":"finance", "label":"Finish the season with a $10,000 reserve", "target":10000, "progress":team.money, "complete":team.money >= 10000, "status":"Active", "created_year":team.current_season_year, "deadline_year":team.current_season_year, "horizon":1})
+	var has_development := targets.any(func(value: Variant) -> bool: return str((value as Dictionary).get("kind", "")) == "driver_development" and str((value as Dictionary).get("status", "Active")) == "Active")
+	if not has_development:
+		var driver: Driver = team.get_active_driver()
+		var baseline := driver.get_overall_rating() if driver != null else 0
+		targets.append({"id":"driver_development_%d" % team.current_season_year, "kind":"driver_development", "label":"Develop a team driver by 3 OVR", "target":3, "progress":0, "baseline":baseline, "driver_id":driver.driver_id if driver != null else "", "complete":false, "status":"Active", "created_year":team.current_season_year, "deadline_year":team.current_season_year + 1, "horizon":2})
+	var current_index := SeriesCatalog.get_index(team.current_series_id)
+	var has_promotion := targets.any(func(value: Variant) -> bool: return str((value as Dictionary).get("kind", "")) == "promotion" and str((value as Dictionary).get("status", "Active")) == "Active")
+	if current_index >= 0 and current_index < SeriesCatalog.SERIES.size() - 1 and not has_promotion:
+		var next_series := SeriesCatalog.SERIES[current_index + 1] as Dictionary
+		targets.append({"id":"promotion_%d" % team.current_season_year, "kind":"promotion", "label":"Reach %s" % next_series.name, "target_series":str(next_series.id), "target":current_index + 1, "progress":current_index, "complete":false, "status":"Active", "created_year":team.current_season_year, "deadline_year":team.current_season_year + 2, "horizon":3})
 	board["targets"] = targets
 
 
@@ -297,6 +343,8 @@ static func process_day(team, elapsed_days: int) -> Array[String]:
 	_process_academy(team, elapsed_days, summaries)
 	_process_scouting_network(team, elapsed_days, summaries)
 	_process_staff(team, elapsed_days, summaries)
+	_process_ai_development(team, summaries)
+	_process_special_events(team, summaries)
 	_apply_upkeep(team, elapsed_days, summaries)
 	_process_weekly_merchandise(team, elapsed_days, summaries)
 	_generate_paddock_event(team, elapsed_days)
@@ -305,10 +353,14 @@ static func process_day(team, elapsed_days: int) -> Array[String]:
 
 
 static func start_new_season(team) -> void:
-	var merchandise := ensure_state(team).merchandise as Dictionary
+	var state := ensure_state(team)
+	var merchandise := state.merchandise as Dictionary
 	merchandise.last_sales_day = team.current_season_day
 	merchandise.last_weekly_units = 0
 	merchandise.last_weekly_revenue = 0
+	(state.ai_development as Dictionary).last_day = team.current_season_day
+	state.special_events = []
+	_ensure_special_events(team)
 	update_finance_forecast(team)
 
 
@@ -636,6 +688,186 @@ static func _generate_paddock_event(team, elapsed_days: int) -> void:
 		])
 
 
+static func _process_ai_development(team, summaries: Array[String]) -> void:
+	var development := team.career_state.ai_development as Dictionary
+	var last_day := int(development.get("last_day", CalendarCatalog.SEASON_START_DAY))
+	var cycles := floori(float(team.current_season_day - last_day) / 14.0)
+	if cycles <= 0:
+		return
+	var teams := team.get_ai_team_states_for_series(team.current_series_id)
+	if teams.is_empty():
+		development.last_day = team.current_season_day
+		return
+	var reports := development.reports as Array
+	var intel := development.intel as Dictionary
+	var series := SeriesCatalog.get_series(team.current_series_id)
+	var base_investment := maxi(500, int(series.get("estimated_race_cost", 1200)) / 2)
+	var upgrades := 0
+	for cycle in cycles:
+		for offset in mini(2, teams.size()):
+			var index := posmod(team.current_season_year + last_day + cycle * 3 + offset * 5, teams.size())
+			var rival := teams[index] as Dictionary
+			var budget := int(rival.get("budget", 0))
+			if budget < base_investment:
+				continue
+			var investment := mini(base_investment, maxi(0, roundi(float(budget) * 0.08)))
+			var old_rating := int(rival.get("equipment_rating", 50))
+			var gain := 1 + (1 if int(rival.get("engineering_rating", 50)) >= 72 and posmod(hash(str(rival.team_id) + str(team.current_season_day)), 3) == 0 else 0)
+			rival.budget = budget - investment
+			rival.equipment_rating = clampi(old_rating + gain, 1, 100)
+			rival.engineering_rating = clampi(int(rival.get("engineering_rating", 50)) + (1 if gain > 1 else 0), 1, 100)
+			rival.trend = float(rival.get("trend", 0.0)) + float(gain) * 0.35
+			var revealed := bool(intel.get(str(rival.team_id), false))
+			var report := {
+				"team_id":str(rival.team_id),
+				"team_name":str(rival.team_name),
+				"day":team.current_season_day,
+				"season":team.current_season_year,
+				"investment":investment,
+				"gain":gain,
+				"equipment_rating":int(rival.equipment_rating),
+				"revealed":revealed
+			}
+			reports.push_front(report)
+			upgrades += 1
+			add_news_item(team, "Development", "%s brings an upgrade" % rival.team_name, "%s has introduced a %s package before the next round." % [rival.team_name, "major" if gain > 1 else "targeted"], 2 if gain > 1 else 1)
+	development.last_day = last_day + cycles * 14
+	if reports.size() > 80:
+		reports.resize(80)
+	if upgrades > 0:
+		summaries.append("Rival development: %d upgrade package%s introduced" % [upgrades, "" if upgrades == 1 else "s"])
+
+
+static func scout_ai_team_development(team, team_id: String) -> bool:
+	team.ensure_scouting_hours()
+	if team.scouting_hours_remaining < 6 or team.get_ai_team_state(team_id).is_empty():
+		return false
+	team.scouting_hours_remaining -= 6
+	var state := ensure_state(team)
+	var development := state.ai_development as Dictionary
+	(development.intel as Dictionary)[team_id] = true
+	for value in development.reports:
+		var report := value as Dictionary
+		if str(report.get("team_id", "")) == team_id:
+			report.revealed = true
+	var rival := team.get_ai_team_state(team_id)
+	add_inbox_item(team, "Scouting", "Development report: %s" % rival.get("team_name", "Rival team"), "Scouts rate the current equipment at %d, engineering at %d, with a %+.1f development trend." % [int(rival.get("equipment_rating", 50)), int(rival.get("engineering_rating", 50)), float(rival.get("trend", 0.0))])
+	team.emit_changed()
+	return true
+
+
+static func _ensure_special_events(team) -> void:
+	var events := team.career_state.get("special_events", []) as Array
+	for value in events:
+		if int((value as Dictionary).get("season", 0)) == team.current_season_year:
+			return
+	var templates := [
+		{"id":"all_star", "name":"International All-Star 100", "type":"Invitational", "day":102, "entry_cost":500, "prize":6500, "required_level":2, "description":"A reputation-gated sprint against leading drivers."},
+		{"id":"endurance", "name":"Heartland 300 Endurance", "type":"Endurance", "day":172, "entry_cost":900, "prize":10000, "required_level":1, "description":"A long-distance non-championship test of pace and reliability."},
+		{"id":"manufacturer", "name":"Manufacturer Development Challenge", "type":"Manufacturer", "day":242, "entry_cost":0, "prize":8000, "required_level":1, "description":"A technical challenge available to manufacturer-backed teams."},
+		{"id":"exhibition", "name":"Season Finale Exhibition", "type":"Exhibition", "day":306, "entry_cost":300, "prize":4500, "required_level":1, "description":"A fan-focused exhibition with appearance and performance money."}
+	]
+	var occupied_special_days: Array[int] = []
+	for template_value in templates:
+		var event := (template_value as Dictionary).duplicate(true)
+		event.day = _find_special_event_day(team.current_series_id, int(event.day), occupied_special_days)
+		occupied_special_days.append(int(event.day))
+		event.id = "%s_%d" % [event.id, team.current_season_year]
+		event.season = team.current_season_year
+		event.status = "Scheduled"
+		event.finish = 0
+		event.payout = 0
+		events.append(event)
+	team.career_state.special_events = events
+
+
+static func _find_special_event_day(series_id: String, preferred_day: int, occupied_special_days: Array[int]) -> int:
+	var race_days: Array[int] = []
+	for race_event in CalendarCatalog.get_events(series_id):
+		race_days.append(int(race_event.get("schedule_day", 0)))
+	for offset in [0, -4, 4, -7, 7, -10, 10, -14, 14]:
+		var candidate := clampi(preferred_day + int(offset), CalendarCatalog.SEASON_START_DAY + 7, CalendarCatalog.SEASON_END_DAY - 7)
+		if occupied_special_days.has(candidate):
+			continue
+		var conflicts := race_days.any(func(race_day: int) -> bool: return absi(race_day - candidate) <= 2)
+		if not conflicts:
+			return candidate
+	return clampi(preferred_day, CalendarCatalog.SEASON_START_DAY + 7, CalendarCatalog.SEASON_END_DAY - 7)
+
+
+static func get_special_events(team) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var state := ensure_state(team)
+	for value in state.special_events:
+		var event := value as Dictionary
+		if int(event.get("season", 0)) == team.current_season_year:
+			result.append(event)
+	result.sort_custom(func(first: Dictionary, second: Dictionary) -> bool: return int(first.day) < int(second.day))
+	return result
+
+
+static func can_enter_special_event(team, event: Dictionary) -> bool:
+	if event.is_empty() or str(event.get("status", "")) != "Scheduled" or team.current_season_day > int(event.get("day", 0)):
+		return false
+	if team.get_reputation_level() < int(event.get("required_level", 1)) or team.money < int(event.get("entry_cost", 0)):
+		return false
+	if str(event.get("type", "")) == "Manufacturer":
+		return str((ensure_state(team).manufacturer as Dictionary).get("partner", "Independent")) != "Independent"
+	return team.get_active_driver() != null and team.cars.any(func(car): return car != null)
+
+
+static func enter_special_event(team, event_id: String) -> bool:
+	for event in get_special_events(team):
+		if str(event.get("id", "")) != event_id or not can_enter_special_event(team, event):
+			continue
+		var cost := int(event.get("entry_cost", 0))
+		team.money -= cost
+		if cost > 0:
+			team.record_finance("Special Event", -cost, "%s entry" % event.name)
+		event.status = "Entered"
+		add_news_item(team, "Special Event", "%s confirms entry" % team.team_name, "The team will contest the %s alongside its championship programme." % event.name, 2)
+		add_notification(team, "Race", "Special-event entry confirmed", "%s takes place on %s." % [event.name, CalendarCatalog.format_day(int(event.day))])
+		team.emit_changed()
+		return true
+	return false
+
+
+static func _process_special_events(team, summaries: Array[String]) -> void:
+	for event in get_special_events(team):
+		if int(event.day) > team.current_season_day or str(event.status) in ["Completed", "Missed"]:
+			continue
+		if str(event.status) != "Entered":
+			event.status = "Missed"
+			continue
+		var driver: Driver = team.get_active_driver()
+		var car: Car = null
+		for car_value in team.cars:
+			if car_value is Car:
+				car = car_value as Car
+				break
+		if driver == null or car == null:
+			event.status = "Missed"
+			continue
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(str(event.id) + team.team_name)
+		var strength := float(driver.get_overall_rating()) + float(car.get_total_performance_points(team)) + driver.get_race_state_modifier()
+		var finish := clampi(roundi(15.0 - (strength - 100.0) * 0.12 + rng.randf_range(-3.0, 3.0)), 1, 24)
+		var payout_ratio := 1.0 if finish == 1 else (0.72 if finish <= 3 else (0.45 if finish <= 8 else 0.20))
+		var payout := roundi(float(event.prize) * payout_ratio)
+		event.status = "Completed"
+		event.finish = finish
+		event.payout = payout
+		team.money += payout
+		team.record_finance("Special Event", payout, "%s P%d payout" % [event.name, finish])
+		driver.record_race({"race_id":event.id, "race_name":event.name, "start":12, "finish":finish, "positions_gained":12-finish, "status":"Finished", "incident":false, "special_event":true})
+		driver.apply_race_dynamics({"finish":finish, "status":"Finished", "incident":false}, 12)
+		if finish <= 5:
+			ReputationManager.apply_event(team, "sporting_credibility", 2, "Strong special-event result", 35, "Special Event")
+		add_news_item(team, "Special Event", "%s finishes P%d in %s" % [team.team_name, finish, event.name], "The non-championship appearance earned $%s and increased the team's profile." % String.num_int64(payout), 3 if finish <= 3 else 2)
+		add_inbox_item(team, "Race", "Special-event result", "%s finished P%d and earned $%s without affecting championship points." % [driver.driver_name, finish, String.num_int64(payout)])
+		summaries.append("%s: P%d, $%s earned" % [event.name, finish, String.num_int64(payout)])
+
+
 static func promote_academy_driver(team, prospect_id: String) -> Driver:
 	var academy := ensure_state(team).academy as Dictionary
 	for value in academy.enrolled:
@@ -728,6 +960,7 @@ static func _ensure_transfer_rivalries(team) -> void:
 		data.intensity = clampi(int(data.intensity) + 6, 0, 100)
 		(data.history as Array).push_front({"season":transaction.get("season", 0), "event":transaction.get("text", "Transfer dispute")})
 		rivalries[team_id] = data
+		_append_news(team, "Transfer", "Driver market movement", str(transaction.get("text", "A transfer rumor is circulating in the paddock.")), 2)
 	if processed.size() > 100:
 		processed.resize(100)
 
@@ -868,7 +1101,12 @@ static func run_preseason_test(team, focus: String) -> Dictionary:
 static func process_race(team, result, simulation = null) -> void:
 	var state := ensure_state(team)
 	var board := state.board as Dictionary
-	var finish_target := int(((board.targets as Array)[0] as Dictionary).target) if not (board.targets as Array).is_empty() else 8
+	var finish_target := 8
+	for target_value in board.targets:
+		var expectation := target_value as Dictionary
+		if str(expectation.get("kind", expectation.get("id", ""))) == "championship" and str(expectation.get("status", "Active")) == "Active":
+			finish_target = int(expectation.get("target", finish_target))
+			break
 	var delta := 4 if result.finishing_position <= finish_target else -3
 	if result.finishing_position == 1:
 		delta += 4
@@ -878,6 +1116,8 @@ static func process_race(team, result, simulation = null) -> void:
 	_update_records(team, result)
 	_update_stats(team, result)
 	_update_rivalries(team, result)
+	_update_driver_dynamics(team, result)
+	_publish_race_news(team, result)
 	_generate_press_conference(team, result)
 	_generate_story_arc(team, result)
 	_process_sponsor_and_merchandise(team, result)
@@ -895,28 +1135,81 @@ static func _update_board_progress(team, result) -> void:
 	var targets := (team.career_state.board as Dictionary).targets as Array
 	for target_value in targets:
 		var target := target_value as Dictionary
-		match str(target.id):
+		if str(target.get("status", "Active")) != "Active":
+			continue
+		match str(target.get("kind", target.get("id", ""))):
 			"championship":
-				target["progress"] = result.finishing_position
-				target["complete"] = result.finishing_position <= int(target.target)
+				var standings := team.get_sorted_championship_standings()
+				var position := result.finishing_position
+				for index in standings.size():
+					if bool((standings[index] as Dictionary).get("is_player", false)):
+						position = index + 1
+						break
+				target["progress"] = position
+				target["complete"] = position <= int(target.target)
 			"finance":
 				target["progress"] = team.money
 				target["complete"] = team.money >= int(target.target)
 			"development":
 				target["progress"] = (team.career_state.rd.completed as Array).size()
 				target["complete"] = int(target.progress) >= int(target.target)
+			"driver_development":
+				var driver := team.get_driver_by_id(str(target.get("driver_id", "")))
+				if driver == null:
+					driver = team.get_active_driver()
+				var gain := maxi(0, driver.get_overall_rating() - int(target.get("baseline", driver.get_overall_rating()))) if driver != null else 0
+				target["progress"] = gain
+				target["complete"] = gain >= int(target.target)
+			"promotion":
+				var current_index := SeriesCatalog.get_index(team.current_series_id)
+				target["progress"] = current_index
+				target["complete"] = current_index >= int(target.target)
 
 
 static func _update_records(team, result) -> void:
 	var records := team.career_state.records as Dictionary
 	var track_id: String = str(result.race.track_name)
 	var tracks := records.tracks as Dictionary
-	var track := tracks.get(track_id, {"starts":0, "wins":0, "poles":0, "best_finish":999, "best_lap":0.0}) as Dictionary
+	var track := tracks.get(track_id, {"starts":0, "wins":0, "poles":0, "best_finish":999, "best_lap":0.0, "average_finish_total":0, "previous_winners":[], "player_results":[], "qualifying_record":{}}) as Dictionary
+	_merge_defaults(track, {"average_finish_total":0, "previous_winners":[], "player_results":[], "qualifying_record":{}, "last_winner":""})
 	track.starts = int(track.starts) + 1
 	track.wins = int(track.wins) + (1 if result.finishing_position == 1 else 0)
 	track.poles = int(track.poles) + (1 if result.starting_position == 1 else 0)
 	track.best_finish = mini(int(track.best_finish), result.finishing_position)
+	track.average_finish_total = int(track.average_finish_total) + result.finishing_position
+	(track.player_results as Array).push_front({"season":team.current_season_year, "finish":result.finishing_position, "start":result.starting_position, "driver":result.player_driver.driver_name})
+	if (track.player_results as Array).size() > 12:
+		(track.player_results as Array).resize(12)
+	if result.qualifying_score > float((track.qualifying_record as Dictionary).get("score", -INF)):
+		track.qualifying_record = {"score":result.qualifying_score, "driver":result.player_driver.driver_name, "season":team.current_season_year}
+	if not result.standings.is_empty():
+		var winner := result.standings[0] as Dictionary
+		track.last_winner = str(winner.get("driver_name", "Unknown"))
+		(track.previous_winners as Array).push_front({"season":team.current_season_year, "driver":track.last_winner, "team":winner.get("team_name", "")})
+		if (track.previous_winners as Array).size() > 10:
+			(track.previous_winners as Array).resize(10)
+		var best_lap := 0.0
+		var lap_driver := ""
+		for row_value in result.standings:
+			var row := row_value as Dictionary
+			var lap := float(row.get("best_lap_time", 0.0))
+			if lap > 0.0 and (best_lap <= 0.0 or lap < best_lap):
+				best_lap = lap
+				lap_driver = str(row.get("driver_name", "Unknown"))
+		if best_lap > 0.0 and (float(track.best_lap) <= 0.0 or best_lap < float(track.best_lap)):
+			track.best_lap = best_lap
+			track.lap_record_driver = lap_driver
+			track.lap_record_season = team.current_season_year
 	tracks[track_id] = track
+	var type_records := records.get("track_types", {}) as Dictionary
+	var type_id := str(result.race.track_type)
+	var type_data := type_records.get(type_id, {"starts":0, "wins":0, "finish_total":0, "best_finish":999}) as Dictionary
+	type_data.starts = int(type_data.starts) + 1
+	type_data.wins = int(type_data.wins) + (1 if result.finishing_position == 1 else 0)
+	type_data.finish_total = int(type_data.finish_total) + result.finishing_position
+	type_data.best_finish = mini(int(type_data.best_finish), result.finishing_position)
+	type_records[type_id] = type_data
+	records["track_types"] = type_records
 	var series_records := records.series as Dictionary
 	var series := series_records.get(result.race.series_id, {"starts":0, "wins":0, "podiums":0, "points":0, "championships":0}) as Dictionary
 	series.starts = int(series.starts) + 1
@@ -949,11 +1242,75 @@ static func _update_rivalries(team, result) -> void:
 		return
 	var rivalries := team.career_state.rivalries as Dictionary
 	var data := rivalries.get(rival_id, {"name":rival.get("driver_name", "Rival"), "team":rival.get("team_name", ""), "intensity":10, "incidents":0, "defeats":0, "disputes":0, "history":[]}) as Dictionary
-	data.intensity = clampi(int(data.intensity) + (4 if result.positions_gained != 0 else 2), 0, 100)
-	if result.finishing_position < int(rival.get("position", result.finishing_position + 1)):
+	var player_incident := false
+	for row_value in result.standings:
+		var row := row_value as Dictionary
+		if bool(row.get("is_player", false)):
+			player_incident = float(row.get("incident_time_loss", 0.0)) > 0.0 or str(row.get("status", "Finished")) != "Finished"
+			break
+	data.intensity = clampi(int(data.intensity) + (10 if player_incident else (4 if result.positions_gained != 0 else 2)), 0, 100)
+	if player_incident:
+		data.incidents = int(data.incidents) + 1
+	var rival_position := result.standings.find(rival) + 1
+	if rival_position > 0 and result.finishing_position < rival_position:
 		data.defeats = int(data.defeats) + 1
-	(data.history as Array).push_front({"season":team.current_season_year, "race":result.race.race_name, "player_finish":result.finishing_position})
+	(data.history as Array).push_front({"season":team.current_season_year, "race":result.race.race_name, "player_finish":result.finishing_position, "incident":player_incident})
+	if (data.history as Array).size() > 16:
+		(data.history as Array).resize(16)
 	rivalries[rival_id] = data
+	if player_incident:
+		add_news_item(team, "Rivalry", "%s rivalry boils over" % data.name, "Contact at %s raised the rivalry to %d intensity and put both drivers in the spotlight." % [result.race.track_name, int(data.intensity)], 3)
+		add_inbox_item(team, "Media", "Rivalry response requested", "The press wants a response after the incident with %s." % data.name, [
+			{"label":"Cool the situation", "effects":{"professionalism":3, "rivalry":-8}},
+			{"label":"Keep the pressure on", "effects":{"commercial_appeal":3, "rivalry":8, "fans":45}}
+		])
+
+
+static func get_rivalry_modifiers(team) -> Dictionary:
+	var maximum := 0
+	for value in (ensure_state(team).rivalries as Dictionary).values():
+		maximum = maxi(maximum, int((value as Dictionary).get("intensity", 0)))
+	return {
+		"maximum_intensity":maximum,
+		"incident_scale":1.0 + minf(0.18, float(maximum) * 0.0018),
+		"media_attention":maximum >= 55
+	}
+
+
+static func _update_driver_dynamics(team, result) -> void:
+	var driver: Driver = result.player_driver
+	if driver == null:
+		return
+	var incident := false
+	var status := "Finished"
+	for value in result.standings:
+		var row := value as Dictionary
+		if bool(row.get("is_player", false)):
+			incident = float(row.get("incident_time_loss", 0.0)) > 0.0
+			status = str(row.get("status", "Finished"))
+			break
+	var change := driver.apply_race_dynamics({"finish":result.finishing_position, "status":status, "incident":incident}, result.expected_finishing_position, result.team_order_summary)
+	if abs(int(change.confidence_change)) >= 4 or bool(change.contract_uncertain):
+		add_notification(team, "Driver", "%s's confidence changed" % driver.driver_name, "Form %d (%+d), confidence %d (%+d), morale %d." % [driver.form, int(change.form_change), driver.confidence, int(change.confidence_change), driver.morale])
+
+
+static func _publish_race_news(team, result) -> void:
+	var headline := "%s takes P%d at %s" % [result.player_driver.driver_name, result.finishing_position, result.race.track_name]
+	var importance := 1
+	if result.finishing_position == 1:
+		headline = "%s wins at %s" % [result.player_driver.driver_name, result.race.track_name]
+		importance = 3
+	elif result.finishing_position <= 3:
+		headline = "%s reaches the podium at %s" % [result.player_driver.driver_name, result.race.track_name]
+		importance = 2
+	var completed := team.get_completed_races().size()
+	var season_length := int(SeriesCatalog.get_series(team.current_series_id).get("season_length", 12))
+	var turning_point := completed >= season_length / 2 and result.finishing_position <= 3
+	add_news_item(team, "Championship" if turning_point else "Race", headline, "%s started P%d, finished P%d and earned %d championship points.%s" % [team.team_name, result.starting_position, result.finishing_position, result.championship_points_earned, " The result could prove pivotal in the title race." if turning_point else ""], maxi(importance, 3 if turning_point else 1))
+	if result.sponsor_objective_completed:
+		add_news_item(team, "Sponsor", "%s celebrates objective success" % result.sponsor_name, "The partner praised the team's result and released a $%s performance bonus." % String.num_int64(result.sponsor_objective_bonus), 2)
+	elif not result.sponsor_name.is_empty() and result.finishing_position <= 3:
+		add_news_item(team, "Sponsor", "%s welcomes the podium" % result.sponsor_name, "The result strengthened the commercial partnership and created a new activation opportunity.", 1)
 
 
 static func _generate_press_conference(team, result) -> void:
@@ -1174,14 +1531,52 @@ static func process_season_end(team, finishing_position: int) -> void:
 		return
 	state.season_processed = team.current_season_year
 	var board := state.board as Dictionary
-	var met := 0
 	for target_value in board.targets:
-		if bool((target_value as Dictionary).get("complete", false)):
+		var target := target_value as Dictionary
+		match str(target.get("kind", target.get("id", ""))):
+			"championship":
+				target.progress = finishing_position
+				target.complete = finishing_position <= int(target.target)
+			"finance":
+				target.progress = team.money
+				target.complete = team.money >= int(target.target)
+			"driver_development":
+				var driver := team.get_driver_by_id(str(target.get("driver_id", "")))
+				if driver == null:
+					driver = team.get_active_driver()
+				var gain := maxi(0, driver.get_overall_rating() - int(target.get("baseline", driver.get_overall_rating()))) if driver != null else 0
+				target.progress = gain
+				target.complete = gain >= int(target.target)
+			"promotion":
+				var series_index := SeriesCatalog.get_index(team.current_series_id)
+				target.progress = series_index
+				target.complete = series_index >= int(target.target)
+	var met := 0
+	var reviewed := 0
+	var retained: Array = []
+	var history := board.get("history", []) as Array
+	for target_value in board.targets:
+		var target := target_value as Dictionary
+		if int(target.get("deadline_year", team.current_season_year)) > team.current_season_year:
+			retained.append(target)
+			continue
+		reviewed += 1
+		target.status = "Complete" if bool(target.get("complete", false)) else "Failed"
+		if bool(target.complete):
 			met += 1
-	var confidence_delta := (met * 6) - (((board.targets as Array).size() - met) * 5)
+		var archived := target.duplicate(true)
+		archived["reviewed_year"] = team.current_season_year
+		history.push_front(archived)
+	if history.size() > 30:
+		history.resize(30)
+	board.history = history
+	var confidence_delta := (met * 6) - ((reviewed - met) * 5)
 	board.confidence = clampi(int(board.confidence) + confidence_delta, 0, 100)
 	board.job_security = clampi(int(board.job_security) + confidence_delta, 0, 100)
-	board.last_review = "%d of %d objectives met; board confidence %d%%." % [met, (board.targets as Array).size(), board.confidence]
+	board.owner_patience = clampi(int(board.owner_patience) + signi(confidence_delta) * 3, 0, 100)
+	board.last_review = "%d of %d due objectives met; board confidence %d%%. %d multi-season objective%s remain active." % [met, reviewed, board.confidence, retained.size(), "" if retained.size() == 1 else "s"]
+	board.annual_reviewed_year = team.current_season_year
+	board.targets = retained
 	_generate_awards(team, finishing_position)
 	_develop_academy_season(team)
 	_generate_regulation(team)
@@ -1189,9 +1584,8 @@ static func process_season_end(team, finishing_position: int) -> void:
 	_generate_manufacturer_offers(team)
 	board["funding_used"] = false
 	board["funding"] = 0
-	board.targets = []
-	_ensure_board_targets(team)
 	add_inbox_item(team, "Board", "Season review", str(board.last_review))
+	add_news_item(team, "Board", "Ownership completes its season review", str(board.last_review), 3 if confidence_delta < 0 else 2)
 	team.emit_changed()
 
 
@@ -1360,37 +1754,7 @@ static func _generate_manufacturer_offers(team) -> void:
 
 static func update_finance_forecast(team) -> Dictionary:
 	var state: Dictionary = team.career_state
-	var weekly_salary := 0
-	for driver in team.get_contracted_drivers():
-		weekly_salary += driver.salary
-	for member in team.staff:
-		if member.hired:
-			weekly_salary += member.salary
-	var upkeep := 0
-	for facility_id in FACILITIES:
-		upkeep += int(FACILITIES[facility_id].upkeep) * get_facility_level(team, facility_id)
-	var merchandise := state.merchandise as Dictionary
-	var weekly_merchandise_income := (
-		mini(int(merchandise.stock), calculate_weekly_merchandise_demand(team))
-		* int(merchandise.price)
-	)
-	var projected_income := (
-		maxi(0, team.get_effective_sponsor_value(4000))
-		+ roundi(float(team.fans) * 0.4)
-		+ weekly_merchandise_income
-	)
-	var projected_costs := weekly_salary + upkeep + maxi(0, int((state.logistics as Dictionary).damaged_inventory) * 600)
-	var weeks_remaining := maxi(0, SEASON_END_DAY - team.current_season_day) / 7
-	var forecast := {
-		"cash":team.money,
-		"weekly_income":projected_income,
-		"weekly_merchandise_income":weekly_merchandise_income,
-		"weekly_costs":projected_costs,
-		"weekly_net":projected_income - projected_costs,
-		"season_end_cash":team.money + (projected_income - projected_costs) * weeks_remaining,
-		"payroll_warning":projected_costs > projected_income * 1.35,
-		"upgrade_budget":maxi(0, team.money - projected_costs * 3)
-	}
+	var forecast := FinanceManager.build_forecast(team)
 	state.finance_forecast = forecast
 	return forecast
 
