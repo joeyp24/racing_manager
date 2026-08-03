@@ -694,7 +694,7 @@ static func _process_ai_development(team, summaries: Array[String]) -> void:
 	var cycles := floori(float(team.current_season_day - last_day) / 14.0)
 	if cycles <= 0:
 		return
-	var teams := team.get_ai_team_states_for_series(team.current_series_id)
+	var teams: Array[Dictionary] = team.get_ai_team_states_for_series(team.current_series_id)
 	if teams.is_empty():
 		development.last_day = team.current_season_day
 		return
@@ -750,7 +750,7 @@ static func scout_ai_team_development(team, team_id: String) -> bool:
 		var report := value as Dictionary
 		if str(report.get("team_id", "")) == team_id:
 			report.revealed = true
-	var rival := team.get_ai_team_state(team_id)
+	var rival: Dictionary = team.get_ai_team_state(team_id)
 	add_inbox_item(team, "Scouting", "Development report: %s" % rival.get("team_name", "Rival team"), "Scouts rate the current equipment at %d, engineering at %d, with a %+.1f development trend." % [int(rival.get("equipment_rating", 50)), int(rival.get("engineering_rating", 50)), float(rival.get("trend", 0.0))])
 	team.emit_changed()
 	return true
@@ -1139,8 +1139,8 @@ static func _update_board_progress(team, result) -> void:
 			continue
 		match str(target.get("kind", target.get("id", ""))):
 			"championship":
-				var standings := team.get_sorted_championship_standings()
-				var position := result.finishing_position
+				var standings: Array[Dictionary] = team.get_sorted_championship_standings()
+				var position: int = result.finishing_position
 				for index in standings.size():
 					if bool((standings[index] as Dictionary).get("is_player", false)):
 						position = index + 1
@@ -1154,7 +1154,7 @@ static func _update_board_progress(team, result) -> void:
 				target["progress"] = (team.career_state.rd.completed as Array).size()
 				target["complete"] = int(target.progress) >= int(target.target)
 			"driver_development":
-				var driver := team.get_driver_by_id(str(target.get("driver_id", "")))
+				var driver: Driver = team.get_driver_by_id(str(target.get("driver_id", "")))
 				if driver == null:
 					driver = team.get_active_driver()
 				var gain := maxi(0, driver.get_overall_rating() - int(target.get("baseline", driver.get_overall_rating()))) if driver != null else 0
@@ -1251,7 +1251,7 @@ static func _update_rivalries(team, result) -> void:
 	data.intensity = clampi(int(data.intensity) + (10 if player_incident else (4 if result.positions_gained != 0 else 2)), 0, 100)
 	if player_incident:
 		data.incidents = int(data.incidents) + 1
-	var rival_position := result.standings.find(rival) + 1
+	var rival_position: int = result.standings.find(rival) + 1
 	if rival_position > 0 and result.finishing_position < rival_position:
 		data.defeats = int(data.defeats) + 1
 	(data.history as Array).push_front({"season":team.current_season_year, "race":result.race.race_name, "player_finish":result.finishing_position, "incident":player_incident})
@@ -1303,9 +1303,9 @@ static func _publish_race_news(team, result) -> void:
 	elif result.finishing_position <= 3:
 		headline = "%s reaches the podium at %s" % [result.player_driver.driver_name, result.race.track_name]
 		importance = 2
-	var completed := team.get_completed_races().size()
+	var completed: int = team.get_completed_races().size()
 	var season_length := int(SeriesCatalog.get_series(team.current_series_id).get("season_length", 12))
-	var turning_point := completed >= season_length / 2 and result.finishing_position <= 3
+	var turning_point: bool = completed >= season_length / 2 and result.finishing_position <= 3
 	add_news_item(team, "Championship" if turning_point else "Race", headline, "%s started P%d, finished P%d and earned %d championship points.%s" % [team.team_name, result.starting_position, result.finishing_position, result.championship_points_earned, " The result could prove pivotal in the title race." if turning_point else ""], maxi(importance, 3 if turning_point else 1))
 	if result.sponsor_objective_completed:
 		add_news_item(team, "Sponsor", "%s celebrates objective success" % result.sponsor_name, "The partner praised the team's result and released a $%s performance bonus." % String.num_int64(result.sponsor_objective_bonus), 2)
@@ -1541,7 +1541,7 @@ static func process_season_end(team, finishing_position: int) -> void:
 				target.progress = team.money
 				target.complete = team.money >= int(target.target)
 			"driver_development":
-				var driver := team.get_driver_by_id(str(target.get("driver_id", "")))
+				var driver: Driver = team.get_driver_by_id(str(target.get("driver_id", "")))
 				if driver == null:
 					driver = team.get_active_driver()
 				var gain := maxi(0, driver.get_overall_rating() - int(target.get("baseline", driver.get_overall_rating()))) if driver != null else 0
