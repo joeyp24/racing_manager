@@ -260,7 +260,13 @@ Unlocked races:
 team.unlocked_races
 ```
 
-The Race Calendar determines progression using the order of the exported race array.
+Progression is reconciled from the series schedule whenever a game is loaded, a race
+finishes, or the next event is requested. Completed events and exactly the next
+available event are unlocked without depending on the calendar page being opened.
+
+All championships share the same season-day timeline. AI series store the IDs of
+their completed events and simulate only races whose scheduled date has been reached,
+making date advances idempotent and safe to resume from a saved game.
 
 ---
 

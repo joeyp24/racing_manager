@@ -111,6 +111,7 @@ static func _repair_and_migrate(team: Team) -> void:
 		ReputationManager.migrate_legacy_xp(team)
 	team.ensure_series_progress(team.current_series_id)
 	team.load_series_progress(team.current_series_id)
+	team.ensure_calendar_progression(team.current_series_id)
 	team.ensure_world_series_data()
 	team.ensure_ai_team_career()
 	team.ensure_departments()

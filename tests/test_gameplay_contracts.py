@@ -105,8 +105,9 @@ def test_yearly_calendar_advances_by_date_and_catches_up_world_series():
     assert '"schedule_day":schedule_day' in calendar
     assert "@export var schedule_day" in race
     assert "@export var current_season_day" in team
-    assert "while completed_rounds < calendar.size() and calendar[completed_rounds].schedule_day <= target_day" in manager
-    assert "simulate_other_series_through_date(target_day)" in manager
+    assert 'completed_race_ids.has(race.race_id)' in manager
+    assert 'if int(race.schedule_day) > target_day' in manager
+    assert "simulate_other_series_through_date(desired_day)" in manager
 
 
 def test_development_uses_elapsed_calendar_days():
