@@ -25,6 +25,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_simulation_depth.gd"),
     ),
     (
+        "race operations UI tests",
+        ("--headless", "--path", ".", "--script", "tests/test_race_operations_ui.gd"),
+    ),
+    (
         "sponsorship system tests",
         ("--headless", "--path", ".", "--script", "tests/test_sponsorship_system.gd"),
     ),

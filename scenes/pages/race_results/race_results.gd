@@ -7,6 +7,7 @@ extends Control
 @onready var car_effects_label: Label = %car_effects_label
 @onready var decisive_factors_label: Label = %decisive_factors_label
 @onready var replay_label: Label = %replay_label
+@onready var analysis_label: Label = %analysis_label
 @onready var continue_button: Button = %continue_button
 
 
@@ -41,6 +42,54 @@ func show_race_result() -> void:
 	car_effects_label.text = create_car_effects_text(result)
 	decisive_factors_label.text = create_decisive_factors_text(result)
 	replay_label.text = create_replay_text(result)
+	analysis_label.text = create_post_race_analysis_text(result)
+
+
+func create_post_race_analysis_text(result: RaceResult) -> String:
+	var lines: Array[String] = ["POST-RACE STRATEGY ANALYSIS"]
+	var distance_text := "%d scheduled / %d completed laps" % [result.scheduled_laps, result.completed_laps]
+	if result.overtime_attempts > 0:
+		distance_text += "  |  %d overtime attempt%s" % [result.overtime_attempts, "" if result.overtime_attempts == 1 else "s"]
+	lines.append(distance_text)
+	lines.append("Track presentation: %s  |  %s" % [str(result.track_presentation.get("banking_summary", result.race.track_type)), str(result.track_presentation.get("camera_style", "Track camera"))])
+	lines.append("\nPLANNED VS ACTUAL")
+	var strategy_count := 0
+	for event_value in result.strategy_timeline:
+		var event := event_value as Dictionary
+		if str(event.get("type", "")) not in ["plan", "call", "stop", "caution_call"]:
+			continue
+		lines.append("Lap %d  |  %s  |  %s" % [int(event.get("lap", 0)), str(event.get("title", "Decision")), str(event.get("detail", ""))])
+		strategy_count += 1
+		if strategy_count >= 8:
+			break
+	if strategy_count == 0:
+		lines.append("No pit calls were recorded.")
+	lines.append("\nDECISIVE MOMENTS")
+	var moment_count := 0
+	for moment_value in result.decisive_moments:
+		var moment := moment_value as Dictionary
+		if str(moment.get("type", "")) not in ["pass", "damage", "caution", "caution_outcome", "overtime"]:
+			continue
+		lines.append("Lap %d  |  %s  |  %s" % [int(moment.get("lap", 0)), str(moment.get("title", "Moment")), str(moment.get("detail", ""))])
+		moment_count += 1
+		if moment_count >= 8:
+			break
+	if moment_count == 0:
+		lines.append("No single pass or caution swing dominated the result.")
+	lines.append("\nTIME & POSITION ACCOUNTING")
+	lines.append("Traffic loss: %.1fs  |  Caution gain: %+d positions" % [result.traffic_time_lost, result.caution_position_gain])
+	lines.append("Engineer calls: %d  |  Model accuracy after review: %d%%" % [result.engineer_call_count, roundi(result.engineer_accuracy * 100.0)])
+	lines.append("\nCOMPONENT DEGRADATION")
+	for component in Car.DAMAGE_COMPONENTS:
+		var data := result.component_degradation.get(component, {}) as Dictionary
+		if data.is_empty():
+			continue
+		var change := float(data.get("change", float(data.get("finish", 100.0)) - float(data.get("start", 100.0))))
+		lines.append("%s  %.0f%% -> %.0f%%  (%+.1f)" % [component.capitalize(), float(data.get("start", 100.0)), float(data.get("finish", 100.0)), change])
+	lines.append("\nWHAT COULD HAVE CHANGED THE RESULT")
+	for counterfactual in result.counterfactuals:
+		lines.append("- %s" % counterfactual)
+	return "\n".join(lines)
 
 
 func create_replay_text(result: RaceResult) -> String:
@@ -290,6 +339,7 @@ func show_missing_result() -> void:
 	car_effects_label.text = ""
 	decisive_factors_label.text = ""
 	replay_label.text = ""
+	analysis_label.text = ""
 
 
 func _on_continue_button_pressed() -> void:

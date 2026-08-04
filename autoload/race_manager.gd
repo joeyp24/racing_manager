@@ -248,7 +248,13 @@ func _get_effective_ai_roster(series_id: String) -> Array[Dictionary]:
 			driver["consistency"] = clampi(int(driver.consistency) + roundi(float(state.staff_quality - 50) * 0.04), 1, 100)
 		driver["car_performance"] = clampi(int(driver.car_performance) + equipment_delta + roundi(float(state.trend)), 1, 100)
 		driver["strategy_rating"] = clampf(float(state.strategy_rating) * strategy_scale, 20.0, 100.0)
-		driver["reliability"] = clampf(float(state.equipment_rating) * 0.62 + float(state.staff_quality) * 0.38, 25.0, 99.0)
+		driver["philosophy_id"] = str(state.get("philosophy_id", "balanced_contender"))
+		driver["strategy_aggression"] = float(state.get("strategy_aggression", 0.0))
+		driver["reliability_bias"] = float(state.get("reliability_bias", 0.0))
+		driver["qualifying_bias"] = float(state.get("qualifying_bias", 0.0))
+		driver["youth_bias"] = float(state.get("youth_bias", 0.0))
+		driver["development_bias"] = float(state.get("development_multiplier", 1.0)) - 1.0
+		driver["reliability"] = clampf(float(state.equipment_rating) * 0.62 + float(state.staff_quality) * 0.38 + float(driver.reliability_bias) * 25.0, 25.0, 99.0)
 		driver["fuel_efficiency"] = clampf(float(state.engineering_rating) * 0.75 + 12.0, 25.0, 99.0)
 		driver["tyre_preservation"] = clampf(float(state.staff_quality) * 0.70 + float(state.strategy_rating) * 0.30, 25.0, 99.0)
 		if career_driver == null and int(state.get("driver_generation", 0)) > 0:
@@ -315,6 +321,7 @@ func create_live_simulation(
 	player_race_attributes["incident_scale"] = float(GameManager.team.get_difficulty_setting("player_incident_multiplier", 1.0)) * float(rivalry_modifiers.get("incident_scale", 1.0))
 	player_race_attributes["pit_time_reduction"] = GameManager.team.get_pit_stop_time_reduction()
 	player_race_attributes["pit_mistake_reduction"] = GameManager.team.get_pit_mistake_reduction()
+	player_race_attributes["engineer_quality"] = GameManager.team.get_race_engineer_quality()
 	simulation.setup(
 		selected_race,
 		player_driver,
@@ -442,6 +449,7 @@ func finalize_live_race(
 	result.field_size = result.standings.size()
 	result.finishing_position = find_player_position(result.standings)
 	result.positions_gained = result.starting_position - result.finishing_position
+	_populate_post_race_analysis(result, simulation)
 	_populate_decisive_factors(result, simulation)
 	result.prize_money = calculate_prize_money(selected_race, result.finishing_position)
 	result.championship_points_earned = calculate_championship_points(selected_race.series_id, {"position":result.finishing_position})
@@ -684,6 +692,66 @@ func _record_ai_race_histories(selected_race: Race, standings: Array[Dictionary]
 		)
 
 
+func _populate_post_race_analysis(result: RaceResult, simulation: RaceSimulation) -> void:
+	if result == null or simulation == null:
+		return
+	result.strategy_timeline = simulation.strategy_timeline.duplicate(true)
+	result.decisive_moments = simulation.race_events.duplicate(true)
+	result.overtime_attempts = simulation.overtime_attempts
+	result.scheduled_laps = simulation.scheduled_laps
+	result.completed_laps = simulation.current_lap
+	result.track_presentation = TrackPresentationCatalog.get_profile(result.race)
+	var player := simulation.get_player_entry()
+	if player == null:
+		return
+	result.traffic_time_lost = player.traffic_time_loss
+	result.caution_position_gain = player.caution_position_gain
+	var accurate_calls := 0
+	for advice_value in simulation.engineer_advice_history:
+		var advice := advice_value as Dictionary
+		if bool(advice.get("was_accurate", true)):
+			accurate_calls += 1
+	result.engineer_call_count = simulation.engineer_advice_history.size()
+	result.engineer_accuracy = float(accurate_calls) / maxf(1.0, float(result.engineer_call_count))
+	result.player_car.ensure_damage_state()
+	for component in Car.DAMAGE_COMPONENTS:
+		var start_health := result.player_car.get_component_health(component)
+		var finish_health := float(player.component_health.get(component, 100.0))
+		result.component_degradation[component] = {
+			"start":start_health, "finish":finish_health,
+			"loss":maxf(0.0, start_health - finish_health), "change":finish_health - start_health
+		}
+	var planned_lap := -1
+	var actual_lap := -1
+	for event_value in result.strategy_timeline:
+		var event := event_value as Dictionary
+		if str(event.get("type", "")) == "plan" and planned_lap < 0:
+			planned_lap = int(event.get("planned_lap", -1))
+		elif str(event.get("type", "")) == "stop" and actual_lap < 0:
+			actual_lap = int(event.get("lap", -1))
+	if planned_lap >= 0 and actual_lap >= 0 and abs(actual_lap - planned_lap) >= 3:
+		result.counterfactuals.append("Stopping closer to the planned lap %d window could have changed the traffic rejoin." % planned_lap)
+	elif planned_lap >= 0 and actual_lap < 0:
+		result.counterfactuals.append("Completing the planned stop around lap %d would have traded track position for tyre and fuel security." % planned_lap)
+	if player.traffic_time_loss >= 2.0:
+		result.counterfactuals.append("Finding clear air could have recovered about %.1fs lost in traffic." % player.traffic_time_loss)
+	if player.caution_position_gain < 0:
+		result.counterfactuals.append("A different caution call could have protected %d lost position%s." % [abs(player.caution_position_gain), "" if abs(player.caution_position_gain) == 1 else "s"])
+	var weakest := ""
+	var weakest_health := 101.0
+	for component in Car.DAMAGE_COMPONENTS:
+		var health := float(player.component_health.get(component, 100.0))
+		if health < weakest_health:
+			weakest = component
+			weakest_health = health
+	if weakest_health < 72.0:
+		result.counterfactuals.append("Quick %s repairs may have limited the late-race performance loss." % weakest)
+	if result.engineer_call_count > 0 and result.engineer_accuracy < 0.70:
+		result.counterfactuals.append("A stronger race-engineering group would have reduced uncertainty in the pit-wall calls.")
+	if result.counterfactuals.is_empty():
+		result.counterfactuals.append("The result was primarily pace-limited; strategy alternatives were unlikely to change more than one position.")
+
+
 func _populate_decisive_factors(result: RaceResult, simulation: RaceSimulation = null) -> void:
 	if result.player_driver == null or result.player_car == null:
 		return
@@ -799,6 +867,7 @@ func calculate_ai_score(
 
 	var driver_attribute_score := calculate_driver_attribute_score(selected_race, attributes) * 0.43
 	var car_development_score := (float(ai_driver.get("car_performance", 50)) - 50.0) * 0.22
+	car_development_score += float(ai_driver.get("qualifying_bias", 0.0)) * 3.0
 
 	var variance_limit: float = lerpf(
 		12.0,
@@ -950,6 +1019,11 @@ func apply_race_effects(
 		result.player_car.condition
 		- result.condition_lost
 	)
+	result.player_car.ensure_damage_state()
+	for component in Car.DAMAGE_COMPONENTS:
+		var degradation := result.component_degradation.get(component, {}) as Dictionary
+		if not degradation.is_empty():
+			result.player_car.damage_state[component] = clampf(float(degradation.get("finish", 100.0)), 0.0, 100.0)
 	for part in result.player_car.installed_parts:
 		if part is CarPart:
 			part.condition = maxi(0, part.condition - maxi(1, result.condition_lost / 3))

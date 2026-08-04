@@ -1,6 +1,15 @@
 extends Resource
 class_name Car
 
+const DAMAGE_COMPONENTS: Array[String] = ["aerodynamics", "suspension", "engine", "brakes", "drivetrain"]
+const DAMAGE_LABELS: Dictionary = {
+	"aerodynamics": "Aerodynamics",
+	"suspension": "Suspension",
+	"engine": "Engine",
+	"brakes": "Brakes",
+	"drivetrain": "Drivetrain"
+}
+
 @export var name: String = "Starter Stock Car"
 @export var series_id: String = "local_short_track"
 
@@ -26,6 +35,7 @@ class_name Car
 @export var value: int = 7500
 
 @export var installed_parts: Array[CarPart] = []
+@export var damage_state: Dictionary = {}
 
 
 func _set(property: StringName, value: Variant) -> bool:
@@ -37,6 +47,7 @@ func _set(property: StringName, value: Variant) -> bool:
 
 
 func ensure_standard_parts() -> void:
+	ensure_damage_state()
 	for part_type in CarPart.PART_TYPES:
 		if get_part(part_type) == null:
 			installed_parts.append(PartCatalog.create_standard_part(part_type))
@@ -79,6 +90,7 @@ func get_total_performance_points(team: Team = null) -> int:
 
 
 func get_race_attributes() -> Dictionary:
+	ensure_damage_state()
 	var attributes := {"power": float(horsepower), "aero": float(aerodynamic_efficiency), "grip": float(mechanical_grip), "braking": float(braking), "tyres": float(tyre_preservation), "fuel": float(fuel_efficiency), "reliability": float(reliability)}
 	for part in installed_parts:
 		if part == null:
@@ -87,4 +99,39 @@ func get_race_attributes() -> Dictionary:
 		if attributes.has(key):
 			attributes[key] = clampf(float(attributes[key]) + part.get_effective_attribute_modifier(), 1.0, 100.0)
 		attributes["reliability"] = clampf(float(attributes["reliability"]) + part.get_effective_reliability_modifier(), 1.0, 100.0)
+	attributes["component_health"] = damage_state.duplicate(true)
 	return attributes
+
+
+func ensure_damage_state() -> void:
+	for component in DAMAGE_COMPONENTS:
+		damage_state[component] = clampf(float(damage_state.get(component, 100.0)), 0.0, 100.0)
+
+
+func get_component_health(component: String) -> float:
+	ensure_damage_state()
+	return float(damage_state.get(component, 100.0))
+
+
+func get_damage_points() -> float:
+	ensure_damage_state()
+	var total := 0.0
+	for component in DAMAGE_COMPONENTS:
+		total += 100.0 - get_component_health(component)
+	return total
+
+
+func get_damage_summary() -> String:
+	ensure_damage_state()
+	var summaries: Array[String] = []
+	for component in DAMAGE_COMPONENTS:
+		var health := roundi(get_component_health(component))
+		if health < 99:
+			summaries.append("%s %d%%" % [str(DAMAGE_LABELS[component]), health])
+	return "No component damage" if summaries.is_empty() else "  |  ".join(summaries)
+
+
+func restore_all_damage() -> void:
+	for component in DAMAGE_COMPONENTS:
+		damage_state[component] = 100.0
+	emit_changed()
