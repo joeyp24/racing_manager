@@ -112,13 +112,13 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="TrackCard" type="PanelContainer" parent="Root/Main/RaceData"]
-custom_minimum_size = Vector2(0, 150)
+custom_minimum_size = Vector2(0, 170)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Card")
 
 [node name="track_map" type="Control" parent="Root/Main/RaceData/TrackCard"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 130)
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 mouse_filter = 2
 script = ExtResource("2_track")
@@ -160,7 +160,7 @@ fit_content = false
 scroll_active = false
 
 [node name="FeedCard" type="PanelContainer" parent="Root/Main/RaceData"]
-custom_minimum_size = Vector2(0, 92)
+custom_minimum_size = Vector2(0, 70)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Feed")
 
@@ -213,6 +213,38 @@ fit_content = false
 scroll_active = false
 text = "Waiting for telemetry…"
 
+[node name="EngineerCard" type="PanelContainer" parent="Root/Main/RaceData"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Feed")
+
+[node name="EngineerLayout" type="VBoxContainer" parent="Root/Main/RaceData/EngineerCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="EngineerHeader" type="HBoxContainer" parent="Root/Main/RaceData/EngineerCard/EngineerLayout"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Root/Main/RaceData/EngineerCard/EngineerLayout/EngineerHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SectionTitle"
+text = "RACE ENGINEER / RADIO"
+
+[node name="engineer_request_button" type="Button" parent="Root/Main/RaceData/EngineerCard/EngineerLayout/EngineerHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Request Update"
+
+[node name="engineer_label" type="RichTextLabel" parent="Root/Main/RaceData/EngineerCard/EngineerLayout"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+fit_content = false
+scroll_active = false
+text = "Engineer is reviewing the opening stint."
+
 [node name="ControlsCard" type="PanelContainer" parent="Root/Main/PitWall"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("Card")
@@ -255,7 +287,7 @@ text = "PIT STOP"
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="tyre_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/PitRow"]
+[node name="pit_service_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/PitRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -266,6 +298,13 @@ custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 theme_type_variation = &"PrimaryButton"
 text = "Box This Lap"
+
+[node name="pit_prediction_label" type="Label" parent="Root/Main/PitWall/ControlsCard/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Projected pit loss"
+autowrap_mode = 2
 
 [node name="SetupLabel" type="Label" parent="Root/Main/PitWall/ControlsCard/Controls"]
 layout_mode = 2
@@ -343,9 +382,90 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Advance One Lap"
 
-[node name="caution_dialog" type="ConfirmationDialog" parent="."]
+[node name="caution_overlay" type="ColorRect" parent="."]
 unique_name_in_owner = true
-title = "Caution on track"
-dialog_text = "The race is under caution. Pit for fresh tyres and fuel, or stay out to protect track position?"
-ok_button_text = "Pit this lap"
-cancel_button_text = "Stay out"
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.015, 0.022, 0.03, 0.88)
+
+[node name="Center" type="CenterContainer" parent="caution_overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="caution_overlay/Center"]
+custom_minimum_size = Vector2(620, 330)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Header")
+
+[node name="Layout" type="VBoxContainer" parent="caution_overlay/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="caution_title" type="Label" parent="caution_overlay/Center/Panel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PageTitle"
+text = "CAUTION"
+
+[node name="caution_summary" type="Label" parent="caution_overlay/Center/Panel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "Race paused for a pit decision."
+autowrap_mode = 2
+
+[node name="Rule" type="HSeparator" parent="caution_overlay/Center/Panel/Layout"]
+layout_mode = 2
+
+[node name="ServiceLabel" type="Label" parent="caution_overlay/Center/Panel/Layout"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "PIT SERVICE"
+
+[node name="caution_service_selector" type="OptionButton" parent="caution_overlay/Center/Panel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="caution_prediction_label" type="Label" parent="caution_overlay/Center/Panel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "MODEL: calculating position loss"
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="caution_overlay/Center/Panel/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Actions" type="HBoxContainer" parent="caution_overlay/Center/Panel/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="caution_pit_button" type="Button" parent="caution_overlay/Center/Panel/Layout/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PrimaryButton"
+text = "Pit This Lap"
+
+[node name="caution_stay_button" type="Button" parent="caution_overlay/Center/Panel/Layout/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Stay on Lead Lap"
+
+[node name="caution_wave_button" type="Button" parent="caution_overlay/Center/Panel/Layout/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Wave Around / Stay Out"

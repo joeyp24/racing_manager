@@ -1,6 +1,51 @@
 extends RefCounted
 class_name TeamCatalog
 
+const PHILOSOPHIES: Array[Dictionary] = [
+	{
+		"id":"aggressive_development", "name":"Aggressive development",
+		"description":"Spends early and accepts reliability risk to find performance.",
+		"development_multiplier":1.30, "staff_multiplier":0.95, "strategy_aggression":0.20,
+		"reliability_bias":-0.10, "qualifying_bias":0.08, "youth_bias":0.02,
+		"regulation_preference":"Open technical rules and frequent upgrade windows"
+	},
+	{
+		"id":"conservative_strategy", "name":"Conservative strategy",
+		"description":"Protects points, avoids marginal stops and prioritizes clean execution.",
+		"development_multiplier":0.92, "staff_multiplier":1.08, "strategy_aggression":-0.18,
+		"reliability_bias":0.16, "qualifying_bias":-0.05, "youth_bias":-0.04,
+		"regulation_preference":"Stable rules and tighter reliability standards"
+	},
+	{
+		"id":"youth_investment", "name":"Youth investment",
+		"description":"Promotes prospects quickly and tolerates inconsistency while they develop.",
+		"development_multiplier":1.08, "staff_multiplier":0.96, "strategy_aggression":0.04,
+		"reliability_bias":0.0, "qualifying_bias":0.02, "youth_bias":0.24,
+		"regulation_preference":"More rookie tests and development entries"
+	},
+	{
+		"id":"qualifying_focus", "name":"Qualifying focus",
+		"description":"Builds weekends around track position and short-run speed.",
+		"development_multiplier":1.05, "staff_multiplier":0.94, "strategy_aggression":0.12,
+		"reliability_bias":-0.05, "qualifying_bias":0.22, "youth_bias":0.0,
+		"regulation_preference":"Expanded qualifying and limited setup changes"
+	},
+	{
+		"id":"reliability_first", "name":"Reliability first",
+		"description":"Invests in durable cars, experienced staff and low-risk race plans.",
+		"development_multiplier":0.88, "staff_multiplier":1.18, "strategy_aggression":-0.10,
+		"reliability_bias":0.24, "qualifying_bias":-0.08, "youth_bias":-0.03,
+		"regulation_preference":"Cost controls and durability targets"
+	},
+	{
+		"id":"balanced_contender", "name":"Balanced contender",
+		"description":"Keeps spending, talent and race execution in equilibrium.",
+		"development_multiplier":1.0, "staff_multiplier":1.0, "strategy_aggression":0.0,
+		"reliability_bias":0.04, "qualifying_bias":0.04, "youth_bias":0.04,
+		"regulation_preference":"Incremental rules with competitive balance"
+	}
+]
+
 ## Stable, fictional organizations shared by the team browser and race simulation.
 ## Each organization fields multiple cars, as in a NASCAR-style team structure.
 
@@ -139,6 +184,7 @@ static func get_teams(series_id: String) -> Array[Dictionary]:
 		var identity: Array = identities[index]
 		var overall := clampi(base_rating + RATING_OFFSETS[index % RATING_OFFSETS.size()], 35, 99)
 		var team_id := "%s_team_%02d" % [series_id, index + 1]
+		var philosophy := PHILOSOPHIES[(index + SeriesCatalog.get_index(series_id) * 2) % PHILOSOPHIES.size()]
 		teams.append({
 			"team_id": team_id, "series_id": series_id, "team_name": str(identity[0]),
 			"hometown": str(identity[1]), "founded": int(identity[2]), "championships": int(identity[3]),
@@ -147,7 +193,16 @@ static func get_teams(series_id: String) -> Array[Dictionary]:
 			"engineering_rating": clampi(overall + ((index * 5) % 9) - 4, 1, 99),
 			"pit_crew_rating": clampi(overall + ((index * 7) % 11) - 5, 1, 99),
 			"strategy_rating": clampi(overall + ((index * 2) % 9) - 4, 1, 99),
-			"driver_count": int(car_counts[index])
+			"driver_count": int(car_counts[index]),
+			"philosophy_id": str(philosophy.id), "philosophy": str(philosophy.name),
+			"philosophy_description": str(philosophy.description),
+			"development_multiplier": float(philosophy.development_multiplier),
+			"staff_multiplier": float(philosophy.staff_multiplier),
+			"strategy_aggression": float(philosophy.strategy_aggression),
+			"reliability_bias": float(philosophy.reliability_bias),
+			"qualifying_bias": float(philosophy.qualifying_bias),
+			"youth_bias": float(philosophy.youth_bias),
+			"regulation_preference": str(philosophy.regulation_preference)
 		})
 	return teams
 

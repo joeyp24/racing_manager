@@ -4,6 +4,8 @@ extends SceneTree
 func _initialize() -> void:
 	_test_practice_runs_are_deterministic_and_setup_sensitive()
 	_test_race_strategy_resources_and_caution_compression()
+	_test_race_operations_strategy_and_damage()
+	_test_venue_presentations_are_specific()
 	_test_economy_difficulty_scaling()
 	_test_ai_team_careers_persist_and_develop()
 	print("Career simulation depth tests passed")
@@ -78,6 +80,61 @@ func _test_economy_difficulty_scaling() -> void:
 	assert(rookie_sponsor > club_sponsor and club_sponsor > pro_sponsor)
 
 
+func _test_race_operations_strategy_and_damage() -> void:
+	var race := _make_race()
+	race.lap_count = 12
+	race.accident_factor = 0.0
+	race.mechanical_stress = 0.0
+	var simulation := RaceSimulation.new()
+	var ai: Array[Dictionary] = [
+		{"driver_id":"ai_ops", "driver_name":"Ops Rival", "team_name":"Rival", "skill":60, "consistency":60, "aggression":60, "strategy_rating":65, "philosophy_id":"aggressive_development", "strategy_aggression":0.20}
+	]
+	var scores: Array[float] = [60.0]
+	simulation.setup(race, _make_driver(), "Player Team", 61.0, 1, ai, scores, "Standard", [], 77, {"reliability":70.0, "fuel":55.0, "tyres":55.0, "engineer_quality":46.0, "component_health":{"aerodynamics":100.0,"suspension":100.0,"engine":100.0,"brakes":100.0,"drivetrain":100.0}})
+	var player := simulation.get_player_entry()
+	assert(not simulation.latest_engineer_advice.is_empty())
+	assert(simulation.latest_engineer_advice.has("was_accurate"))
+	assert(int(simulation.latest_engineer_advice.staff_quality) == 46)
+	player.tyre_condition = 35.0
+	var fuel_only: Dictionary = simulation.get_pit_service_options().fuel_only
+	var fuel_prediction: Dictionary = simulation.predict_player_pit_loss(fuel_only)
+	assert(float(fuel_prediction.time_loss) > 0.0)
+	simulation._perform_pit_stop(player, fuel_only)
+	assert(is_equal_approx(player.tyre_condition, 35.0))
+	player.component_health["suspension"] = 42.0
+	var before_repair := float(player.component_health.suspension)
+	simulation._perform_pit_stop(player, simulation.get_pit_service_options().quick_repairs)
+	assert(float(player.component_health.suspension) > before_repair)
+	assert(player.tyre_condition == 100.0)
+	assert(simulation.strategy_timeline.any(func(event: Dictionary) -> bool: return str(event.get("type", "")) == "stop"))
+	simulation.current_lap = 11
+	simulation._trigger_caution()
+	assert(simulation.overtime_attempts == 1)
+	assert(simulation.get_total_laps() == 13)
+	player.laps_down = 1
+	var wave: Dictionary = simulation.request_player_wave_around()
+	assert(bool(wave.success) and bool(wave.gained_lap) and player.laps_down == 0)
+
+
+func _test_venue_presentations_are_specific() -> void:
+	var first := _make_race()
+	first.track_name = "Pine Ridge Raceway"
+	var second := _make_race()
+	second.track_name = "Copper Valley Raceway"
+	var first_profile: Dictionary = TrackPresentationCatalog.get_profile(first)
+	var second_profile: Dictionary = TrackPresentationCatalog.get_profile(second)
+	assert(first_profile.venue_id != second_profile.venue_id)
+	assert(first_profile.points != second_profile.points)
+	assert((first_profile.corners as Array).size() >= 4)
+	assert(float(first_profile.pit_entry) != float(first_profile.pit_exit))
+	assert(not str(first_profile.camera_style).is_empty())
+	var passing_zones := 0
+	for corner_value in first_profile.corners:
+		if bool((corner_value as Dictionary).passing):
+			passing_zones += 1
+	assert(passing_zones >= 1)
+
+
 func _test_ai_team_careers_persist_and_develop() -> void:
 	var team := Team.new()
 	var expected_count := 0
@@ -86,6 +143,8 @@ func _test_ai_team_careers_persist_and_develop() -> void:
 	assert(team.ai_team_career.size() == expected_count)
 	var first_id := str(team.ai_team_career.keys()[0])
 	var starting_state := team.get_ai_team_state(first_id).duplicate(true)
+	assert(starting_state.has("philosophy_id"))
+	assert(starting_state.has("regulation_preference"))
 	var summaries := team.process_ai_team_season()
 	var updated_state := team.get_ai_team_state(first_id)
 	assert(int(updated_state.seasons) == int(starting_state.seasons) + 1)

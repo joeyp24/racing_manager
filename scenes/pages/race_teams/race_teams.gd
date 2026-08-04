@@ -64,6 +64,14 @@ func show_team_detail() -> void:
 	for row in [["Equipment", organization.equipment_rating], ["Engineering", organization.engineering_rating], ["Pit crew", organization.pit_crew_rating], ["Strategy", organization.strategy_rating]]:
 		ratings.add_child(metric(str(row[0]), int(row[1])))
 	detail_container.add_child(ratings)
+	add_section("TEAM PHILOSOPHY")
+	add_body("%s  |  %s" % [str(organization.get("philosophy", "Balanced contender")), str(organization.get("philosophy_description", "Balanced decision-making."))])
+	add_muted("REGULATION PREFERENCE  %s" % str(organization.get("regulation_preference", "Competitive balance")))
+	var style_notes: Array[String] = []
+	style_notes.append("development %+.0f%%" % ((float(organization.get("development_multiplier", 1.0)) - 1.0) * 100.0))
+	style_notes.append("strategy risk %+.0f%%" % (float(organization.get("strategy_aggression", 0.0)) * 100.0))
+	style_notes.append("youth bias %+.0f%%" % (float(organization.get("youth_bias", 0.0)) * 100.0))
+	add_muted("DECISION MODEL  " + "  |  ".join(style_notes))
 	add_section("HISTORY")
 	add_body(str(organization.history))
 	var team_state := GameManager.team.get_ai_team_state(selected_team_id)

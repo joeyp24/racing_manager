@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 15
+const CURRENT_SAVE_FORMAT_VERSION: int = 16
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -418,9 +418,9 @@ func set_world_series_data(series_id: String, data: Dictionary) -> void:
 
 
 func ensure_ai_team_career() -> void:
-	if not ai_team_career.is_empty() and save_format_version >= 10:
+	if not ai_team_career.is_empty() and save_format_version >= 16:
 		var sample := ai_team_career.values()[0] as Dictionary
-		if sample.has("career_championships") and sample.has("season_results"):
+		if sample.has("career_championships") and sample.has("season_results") and sample.has("philosophy_id"):
 			return
 	for series in SeriesCatalog.SERIES:
 		var series_id := str(series.id)
@@ -437,6 +437,16 @@ func ensure_ai_team_career() -> void:
 				"engineering_rating": int(organization.engineering_rating),
 				"staff_quality": int(organization.pit_crew_rating),
 				"strategy_rating": int(organization.strategy_rating),
+				"philosophy_id": str(organization.philosophy_id),
+				"philosophy": str(organization.philosophy),
+				"philosophy_description": str(organization.philosophy_description),
+				"development_multiplier": float(organization.development_multiplier),
+				"staff_multiplier": float(organization.staff_multiplier),
+				"strategy_aggression": float(organization.strategy_aggression),
+				"reliability_bias": float(organization.reliability_bias),
+				"qualifying_bias": float(organization.qualifying_bias),
+				"youth_bias": float(organization.youth_bias),
+				"regulation_preference": str(organization.regulation_preference),
 				"budget": car_price * int(organization.driver_count) + operating_budget,
 				"trend": 0.0,
 				"seasons": 0,
@@ -505,6 +515,8 @@ func get_ai_organizations_for_series(series_id: String) -> Array[Dictionary]:
 			organization["movement"] = str(state.movement)
 			organization["driver_changes"] = int(state.driver_changes)
 			organization["championships"] = int(state.get("career_championships", organization.championships))
+			for personality_key in ["philosophy_id", "philosophy", "philosophy_description", "development_multiplier", "staff_multiplier", "strategy_aggression", "reliability_bias", "qualifying_bias", "youth_bias", "regulation_preference"]:
+				organization[personality_key] = state.get(personality_key, organization.get(personality_key))
 		organizations.append(organization)
 	return organizations
 
@@ -765,15 +777,18 @@ func process_ai_team_season() -> Array[String]:
 			var season_cost := int(series.estimated_race_cost) * int(series.season_length)
 			var commercial_factor := lerpf(0.70, 1.35, 1.0 - float(position - 1) / maxf(1.0, float(states.size() - 1)))
 			var revenue := roundi(float(season_cost) * commercial_factor + float(series.car_price) * 0.16)
-			var expenses := roundi(float(season_cost) * (0.82 + float(state.staff_quality) / 500.0))
+			var staff_multiplier := float(state.get("staff_multiplier", 1.0))
+			var development_multiplier := float(state.get("development_multiplier", 1.0))
+			var expenses := roundi(float(season_cost) * (0.82 + float(state.staff_quality) / 500.0) * staff_multiplier)
 			state["budget"] = int(state.budget) + revenue - expenses
 			var available_investment := maxi(0, int(state.budget) - roundi(float(season_cost) * 0.55))
-			var investment := mini(available_investment, roundi(float(series.car_price) * 0.20))
+			var investment_cap := roundi(float(series.car_price) * 0.20 * development_multiplier)
+			var investment := mini(available_investment, investment_cap)
 			state["budget"] = int(state.budget) - investment
 			var development_rate := (float(state.engineering_rating) * 0.55 + float(state.staff_quality) * 0.25 + float(state.strategy_rating) * 0.20) / 100.0
-			var investment_rate := clampf(float(investment) / maxf(1.0, float(series.car_price) * 0.20), 0.0, 1.0)
+			var investment_rate := clampf(float(investment) / maxf(1.0, float(investment_cap)), 0.0, 1.0)
 			var competitive_pressure := 0.45 if position > states.size() / 2 else 0.18
-			var rating_change := roundi(development_rate * investment_rate * 2.2 - competitive_pressure)
+			var rating_change := roundi(development_rate * investment_rate * 2.2 * development_multiplier - competitive_pressure)
 			if int(state.budget) < 0:
 				rating_change -= 2
 				state["staff_quality"] = maxi(30, int(state.staff_quality) - 1)
@@ -803,8 +818,10 @@ func process_ai_team_season() -> Array[String]:
 				season_results.resize(20)
 			state["season_results"] = season_results
 			state["movement"] = ""
-			var change_trigger := position > roundi(float(states.size()) * 0.70) or int(state.budget) < 0
-			if change_trigger and (season_number + position + str(state.team_id).length()) % 3 == 0:
+			var youth_bias := float(state.get("youth_bias", 0.0))
+			var change_trigger := position > roundi(float(states.size()) * lerpf(0.70, 0.55, maxf(0.0, youth_bias))) or int(state.budget) < 0
+			var change_cycle := 2 if youth_bias >= 0.15 else 3
+			if change_trigger and (season_number + position + str(state.team_id).length()) % change_cycle == 0:
 				state["driver_changes"] = int(state.driver_changes) + 1
 				state["driver_generation"] = int(state.driver_generation) + 1
 				state["driver_form"] = clampi(3 - position % 7, -3, 3)
@@ -1502,6 +1519,32 @@ func get_crew_chief_performance_boost() -> float:
 		return 0.0
 	var specialty_bonus := 0.75 if chief.specialty == "Race strategy" else 0.0
 	return float(chief.rating) * 0.05 + specialty_bonus
+
+
+func get_race_engineer_quality() -> float:
+	var chief := get_crew_chief()
+	var strategy_rating := float(chief.primary_rating) if chief != null else 42.0
+	var setup_rating := float(chief.secondary_rating) if chief != null else 42.0
+	var engineers := get_engineers()
+	var engineering_rating := 42.0
+	if not engineers.is_empty():
+		engineering_rating = 0.0
+		for engineer in engineers:
+			engineering_rating += float(engineer.rating)
+		engineering_rating /= float(engineers.size())
+	return clampf(strategy_rating * 0.48 + setup_rating * 0.16 + engineering_rating * 0.36, 20.0, 98.0)
+
+
+func get_workshop_damage_repair_cost(car: Car) -> int:
+	if car == null:
+		return 0
+	var repair_points := car.get_damage_points()
+	if repair_points <= 0.5:
+		return 0
+	var value_rate := maxf(65.0, float(car.value) * 0.0008)
+	var engineering_discount := get_department_bonus("engineering") + get_repair_time_reduction() * 0.35
+	var raw_cost := ceili(repair_points * value_rate * (1.0 - minf(0.35, engineering_discount / 100.0)))
+	return get_discounted_cost(roundi(float(raw_cost) * float(get_difficulty_setting("repair_multiplier", 1.0))))
 
 
 func get_car_setup_variance_reduction() -> float:
