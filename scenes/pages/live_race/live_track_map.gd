@@ -3,10 +3,12 @@ extends Control
 
 var simulation: RaceSimulation
 var marker_progress: Dictionary = {}
+var profile: Dictionary = {}
 
 
 func set_simulation(value: RaceSimulation) -> void:
 	simulation = value
+	profile = TrackPresentationCatalog.get_profile(simulation.race) if simulation != null else {}
 	set_process(simulation != null)
 	queue_redraw()
 
@@ -27,39 +29,55 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	if simulation == null or simulation.race == null:
+	if simulation == null or simulation.race == null or profile.is_empty():
 		return
 	var bounds := Rect2(Vector2(12.0, 8.0), size - Vector2(24.0, 16.0))
-	var track_color := Color("344354")
-	var inside_color := Color("111820")
-	draw_rect(bounds, inside_color, true)
-	if simulation.race.is_oval():
-		_draw_oval(bounds, track_color)
-	else:
-		_draw_road_course(bounds, track_color)
+	draw_rect(bounds, Color("111820"), true)
+	var points := _scaled_points(bounds)
+	_draw_track_surface(points, bounds)
+	_draw_pit_lane(points)
+	_draw_track_features(points)
 	_draw_status(bounds)
-	_draw_markers(bounds)
+	_draw_markers(points)
 
 
-func _draw_oval(bounds: Rect2, track_color: Color) -> void:
+func _draw_track_surface(points: PackedVector2Array, bounds: Rect2) -> void:
+	draw_polyline(points, Color("1e2935"), 17.0, true)
+	draw_polyline(points, Color("344354"), 11.0, true)
 	var center := bounds.get_center()
-	var radius := Vector2(maxf(48.0, bounds.size.x * 0.40), maxf(28.0, bounds.size.y * 0.34))
-	var points := PackedVector2Array()
-	for index in 65:
-		var angle := TAU * float(index) / 64.0
-		points.append(center + Vector2(cos(angle) * radius.x, sin(angle) * radius.y))
-	draw_polyline(points, Color("1e2935"), 15.0, true)
-	draw_polyline(points, track_color, 9.0, true)
-	var pit_y := center.y + radius.y + 12.0
-	draw_line(Vector2(center.x - radius.x * 0.55, pit_y), Vector2(center.x + radius.x * 0.55, pit_y), Color("8b98a8"), 3.0, true)
+	var groove_count := int(profile.get("grooves", 2))
+	for groove_index in groove_count:
+		var groove_points := PackedVector2Array()
+		var strength := (float(groove_index) - float(groove_count - 1) * 0.5) * 0.018
+		for point in points:
+			groove_points.append(point.lerp(center, strength))
+		draw_polyline(groove_points, Color("657182", 0.36), 1.2, true)
 
 
-func _draw_road_course(bounds: Rect2, track_color: Color) -> void:
-	var points := _road_points(bounds)
-	draw_polyline(points, Color("1e2935"), 15.0, true)
-	draw_polyline(points, track_color, 9.0, true)
-	var pit_start := bounds.position + Vector2(bounds.size.x * 0.56, bounds.size.y * 0.78)
-	draw_line(pit_start, pit_start + Vector2(bounds.size.x * 0.26, -4.0), Color("8b98a8"), 3.0, true)
+func _draw_pit_lane(points: PackedVector2Array) -> void:
+	var entry_progress := float(profile.get("pit_entry", 0.72))
+	var exit_progress := float(profile.get("pit_exit", 0.86))
+	var entry := _point_at_progress(points, entry_progress)
+	var exit := _point_at_progress(points, exit_progress)
+	var center := _points_center(points)
+	var lane_mid := entry.lerp(exit, 0.5).lerp(center, 0.22)
+	var pit_points := PackedVector2Array([entry, entry.lerp(lane_mid, 0.5), lane_mid, lane_mid.lerp(exit, 0.5), exit])
+	draw_polyline(pit_points, Color("9ca8b7"), 3.0, true)
+	var font := get_theme_default_font()
+	draw_string(font, entry + Vector2(5.0, -5.0), "PIT IN", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, Color("d8dee8"))
+
+
+func _draw_track_features(points: PackedVector2Array) -> void:
+	var font := get_theme_default_font()
+	for corner_value in profile.get("corners", []):
+		var corner := corner_value as Dictionary
+		var point := _point_at_progress(points, float(corner.get("progress", 0.0)))
+		var passing := bool(corner.get("passing", false))
+		draw_circle(point, 4.2 if passing else 2.8, Color("f0c84b") if passing else Color("7f8da0"))
+		var label := "%s  %d deg%s" % [str(corner.get("name", "Turn")), int(corner.get("banking", 0)), "  PASS" if passing else ""]
+		draw_string(font, point + Vector2(6.0, -4.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, Color("f4f6fa") if passing else Color("9aa6b6"))
+	var camera_point := _point_at_progress(points, float(profile.get("camera_focus", 0.0)))
+	draw_arc(camera_point, 8.0, 0.0, TAU, 16, Color("6fc7ff", 0.8), 1.5, true)
 
 
 func _draw_status(bounds: Rect2) -> void:
@@ -69,10 +87,11 @@ func _draw_status(bounds: Rect2) -> void:
 	var font := get_theme_default_font()
 	draw_circle(bounds.position + Vector2(14.0, 14.0), 5.0, flag_color)
 	draw_string(font, bounds.position + Vector2(26.0, 19.0), simulation.race_state, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12, Color("e8edf4"))
-	draw_string(font, bounds.position + Vector2(10.0, bounds.size.y - 8.0), "%s  •  %s" % [simulation.race.track_name, "OVAL" if simulation.race.is_oval() else simulation.race.track_type.to_upper()], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 11, Color("8b98a8"))
+	var footer := "%s  |  %s  |  %s" % [simulation.race.track_name, str(profile.get("banking_summary", "")), str(profile.get("camera_style", "Track camera"))]
+	draw_string(font, bounds.position + Vector2(10.0, bounds.size.y - 8.0), footer, HORIZONTAL_ALIGNMENT_LEFT, bounds.size.x - 20.0, 10, Color("8b98a8"))
 
 
-func _draw_markers(bounds: Rect2) -> void:
+func _draw_markers(points: PackedVector2Array) -> void:
 	if simulation.entries.is_empty():
 		return
 	var leader := simulation.entries[0]
@@ -81,10 +100,10 @@ func _draw_markers(bounds: Rect2) -> void:
 		if entry.status == "Retired":
 			continue
 		var progress := float(marker_progress.get(_entry_key(entry), _target_progress(entry)))
-		var point := _point_on_track(bounds, progress)
+		var point := _point_at_progress(points, progress)
 		var is_pitting := entry.last_pit_lap == simulation.current_lap
 		if is_pitting:
-			point.y += 12.0
+			point = point.lerp(_points_center(points), 0.16)
 		var color := Color("f05a38") if entry.is_player else Color("7aa2d6")
 		if is_pitting:
 			color = Color("d58cff")
@@ -96,38 +115,42 @@ func _draw_markers(bounds: Rect2) -> void:
 			draw_string(font, point + Vector2(8.0, -5.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 10, Color("f4f6fa"))
 
 
-func _point_on_track(bounds: Rect2, progress: float) -> Vector2:
-	if simulation.race.is_oval():
-		var center := bounds.get_center()
-		var radius := Vector2(maxf(48.0, bounds.size.x * 0.40), maxf(28.0, bounds.size.y * 0.34))
-		var angle := progress * TAU
-		return center + Vector2(cos(angle) * radius.x, sin(angle) * radius.y)
-	var points := _road_points(bounds)
-	var segment_progress := progress * float(points.size() - 1)
-	var index := mini(points.size() - 2, floori(segment_progress))
-	return points[index].lerp(points[index + 1], segment_progress - float(index))
+func _scaled_points(bounds: Rect2) -> PackedVector2Array:
+	var scaled := PackedVector2Array()
+	for point in profile.get("points", PackedVector2Array()):
+		scaled.append(bounds.position + Vector2(point.x * bounds.size.x, point.y * bounds.size.y))
+	return scaled
 
 
-func _road_points(bounds: Rect2) -> PackedVector2Array:
-	var origin := bounds.position
-	var extent := bounds.size
-	return PackedVector2Array([
-		origin + Vector2(extent.x * 0.18, extent.y * 0.28),
-		origin + Vector2(extent.x * 0.52, extent.y * 0.16),
-		origin + Vector2(extent.x * 0.84, extent.y * 0.30),
-		origin + Vector2(extent.x * 0.70, extent.y * 0.50),
-		origin + Vector2(extent.x * 0.88, extent.y * 0.72),
-		origin + Vector2(extent.x * 0.52, extent.y * 0.84),
-		origin + Vector2(extent.x * 0.32, extent.y * 0.62),
-		origin + Vector2(extent.x * 0.12, extent.y * 0.72),
-		origin + Vector2(extent.x * 0.18, extent.y * 0.28)
-	])
+func _point_at_progress(points: PackedVector2Array, progress: float) -> Vector2:
+	if points.size() < 2:
+		return Vector2.ZERO
+	var lengths: Array[float] = []
+	var total := 0.0
+	for index in range(points.size() - 1):
+		var length := points[index].distance_to(points[index + 1])
+		lengths.append(length)
+		total += length
+	var target := fposmod(progress, 1.0) * total
+	var travelled := 0.0
+	for index in lengths.size():
+		if travelled + lengths[index] >= target:
+			return points[index].lerp(points[index + 1], (target - travelled) / maxf(0.01, lengths[index]))
+		travelled += lengths[index]
+	return points[points.size() - 1]
+
+
+func _points_center(points: PackedVector2Array) -> Vector2:
+	var center := Vector2.ZERO
+	for point in points:
+		center += point
+	return center / maxf(1.0, float(points.size()))
 
 
 func _target_progress(entry: RaceEntryState) -> float:
-	var race_progress := float(maxi(0, simulation.current_lap - 1)) / maxf(1.0, float(simulation.race.lap_count))
-	var field_offset := float(simulation.entries.size() - entry.position) / maxf(1.0, float(simulation.entries.size())) * 0.055
-	return fposmod(race_progress + field_offset, 1.0)
+	var field_offset := float(simulation.entries.size() - entry.position) / maxf(1.0, float(simulation.entries.size())) * 0.10
+	var lap_phase := float(simulation.current_lap % 3) / 3.0
+	return fposmod(lap_phase + field_offset, 1.0)
 
 
 func _entry_key(entry: RaceEntryState) -> String:

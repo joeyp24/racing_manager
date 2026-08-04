@@ -304,7 +304,7 @@ def test_finance_and_living_paddock_systems_are_integrated():
     race_simulation = (ROOT / "resources/races/race_simulation.gd").read_text()
     career_hub = (ROOT / "scenes/pages/career_hub/career_hub.gd").read_text()
     calendar = (ROOT / "scenes/pages/race_calendar/race_calendar.gd").read_text()
-    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 15" in team
+    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 16" in team
     assert "return _string_array" in team
     assert "class_name FinanceManager" in finance
     assert "owner_support" in finance and "series_distribution" in finance
@@ -330,11 +330,38 @@ def test_oval_racing_live_decisions_and_career_briefing_are_integrated():
     assert "func is_oval()" in race
     assert 'forecast["rain_chance"] = 0' in simulation
     assert 'signal caution_started(lap: int)' in simulation
-    assert 'tyre_selector.add_item("Standard")' in live_race
-    assert 'caution_dialog.popup_centered' in live_race
+    assert 'entry.tyre_compound = "Standard"' in simulation
+    assert 'caution_overlay.visible = true' in live_race
     assert "live_track_map.gd" in live_scene
     assert '"WEEKLY BRIEFING"' in career_hub
     assert "WHY THIS CHANGED" in career_hub
     for story_id in ("sponsor_brand_conflict", "driver_resource_dispute", "regulation_controversy", "technical_failure_warning", "rival_accusation", "championship_pressure"):
         assert story_id in weekend
     assert "_show_reputation_gain" in home
+
+
+def test_race_operations_analysis_and_team_philosophies_are_integrated():
+    simulation = (ROOT / "resources/races/race_simulation.gd").read_text()
+    track_catalog = (ROOT / "resources/track_presentation_catalog.gd").read_text()
+    team_catalog = (ROOT / "resources/team_catalog.gd").read_text()
+    team = (ROOT / "resources/team.gd").read_text()
+    car = (ROOT / "resources/car.gd").read_text()
+    live_race = (ROOT / "scenes/pages/live_race/live_race.gd").read_text()
+    results = (ROOT / "scenes/pages/race_results/race_results.gd").read_text()
+    inspection = (ROOT / "scenes/pages/garage/car_inspection.gd").read_text()
+    assert "class_name TrackPresentationCatalog" in track_catalog
+    assert '"corners": corners' in track_catalog and '"camera_style"' in track_catalog
+    assert "func _generate_engineer_advice" in simulation
+    assert '"was_accurate":not wrong' in simulation
+    for service_id in ("four_tyres_fuel", "two_tyres_fuel", "fuel_only", "quick_repairs"):
+        assert service_id in simulation
+    assert "func predict_player_pit_loss" in simulation
+    assert "func request_player_wave_around" in simulation
+    assert "overtime_attempts" in simulation
+    assert "DAMAGE_COMPONENTS" in car and "component_health" in simulation
+    assert "Workshop Restoration" in inspection
+    assert "create_post_race_analysis_text" in results
+    assert "WHAT COULD HAVE CHANGED THE RESULT" in results
+    assert "const PHILOSOPHIES" in team_catalog
+    assert "philosophy_id" in team and "regulation_preference" in team
+    assert "engineer_request_button" in live_race

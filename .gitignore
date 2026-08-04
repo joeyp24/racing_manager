@@ -3,5 +3,8 @@
 /android/
 __pycache__/
 *.py[cod]
+.pytest_cache/
 *.tmp
 *.tscn[0-9]*
+*.gd.uid
+*.import

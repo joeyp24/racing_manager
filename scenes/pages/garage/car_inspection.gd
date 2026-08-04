@@ -10,6 +10,7 @@ const REPAIR_VALUE_PERCENTAGE_PER_POINT: float = 0.001
 @onready var condition_bar: ProgressBar = %condition_bar
 @onready var performance_points_label: Label = %performance_points_label
 @onready var car_modifiers_label: Label = %car_modifiers_label
+@onready var damage_label: Label = %damage_label
 @onready var parts_container: VBoxContainer = %parts_container
 @onready var columns: HSplitContainer = %columns
 @onready var inventory_title_label: Label = %inventory_title_label
@@ -70,6 +71,8 @@ func display_car() -> void:
 	condition_label.text = "CONDITION %d%%" % car.condition
 	condition_bar.value = car.condition
 	condition_bar.modulate = POSITIVE_COLOR if car.condition >= 80 else (Color("f2b84b") if car.condition >= 50 else NEGATIVE_COLOR)
+	car.ensure_damage_state()
+	damage_label.text = "COMPONENT HEALTH  |  %s\nDamage affects live pace, tyre wear, braking, fuel use and mechanical risk." % car.get_damage_summary()
 	rename_line_edit.text = car.name
 	sell_button.text = "Sell Car ($%s)" % format_number(car.value)
 	update_repair_display(car)
@@ -164,12 +167,12 @@ func _on_sell_part_pressed(part: CarPart) -> void:
 
 
 func update_repair_display(car: Car) -> void:
-	if car.condition >= MAX_CAR_CONDITION:
+	if car.condition >= MAX_CAR_CONDITION and car.get_damage_points() <= 0.5:
 		repair_button.text = "Car Fully Repaired"
 		repair_button.disabled = true
 		return
 	var repair_cost: int = calculate_repair_cost(car)
-	repair_button.text = "Repair Car ($%s)" % format_number(repair_cost)
+	repair_button.text = "Workshop Restoration ($%s)" % format_number(repair_cost)
 	repair_button.disabled = false
 
 
@@ -181,21 +184,22 @@ func calculate_repair_cost(car: Car) -> int:
 	var mechanic_discount := GameManager.team.get_repair_time_reduction() * 0.35
 	var improved_cost := ceili(float(base_cost) * (1.0 - (engineering_discount + mechanic_discount) / 100.0))
 	var difficulty_cost := roundi(float(improved_cost) * float(GameManager.team.get_difficulty_setting("repair_multiplier", 1.0)))
-	return GameManager.team.get_discounted_cost(difficulty_cost)
+	return GameManager.team.get_discounted_cost(difficulty_cost) + GameManager.team.get_workshop_damage_repair_cost(car)
 
 
 func _on_repair_button_pressed() -> void:
 	var car: Car = GameManager.selected_car
-	if car == null or car.condition >= MAX_CAR_CONDITION:
+	if car == null or (car.condition >= MAX_CAR_CONDITION and car.get_damage_points() <= 0.5):
 		return
 	var repair_cost: int = calculate_repair_cost(car)
 	if not GameManager.remove_team_money(repair_cost):
 		status_label.text = "Your team cannot afford these repairs."
 		return
 	car.condition = MAX_CAR_CONDITION
+	car.restore_all_damage()
 	GameManager.team.record_finance("Repairs", -repair_cost, "Repaired %s" % car.name)
 	car.emit_changed()
-	status_label.text = "%s was fully repaired." % car.name
+	status_label.text = "%s received full workshop restoration, including all five damage systems." % car.name
 	GameManager.save_game()
 	display_car()
 

@@ -14,7 +14,8 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 @onready var pace_selector: OptionButton = %pace_selector
 @onready var apply_pace_button: Button = %apply_pace_button
 @onready var next_lap_button: Button = %next_lap_button
-@onready var tyre_selector: OptionButton = %tyre_selector
+@onready var pit_service_selector: OptionButton = %pit_service_selector
+@onready var pit_prediction_label: Label = %pit_prediction_label
 @onready var pit_button: Button = %pit_button
 @onready var setup_selector: OptionButton = %setup_selector
 @onready var apply_setup_button: Button = %apply_setup_button
@@ -24,7 +25,16 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 @onready var team_order_selector: OptionButton = %team_order_selector
 @onready var apply_team_order_button: Button = %apply_team_order_button
 @onready var track_map: LiveTrackMap = %track_map
-@onready var caution_dialog: ConfirmationDialog = %caution_dialog
+@onready var engineer_label: RichTextLabel = %engineer_label
+@onready var engineer_request_button: Button = %engineer_request_button
+@onready var caution_overlay: Control = %caution_overlay
+@onready var caution_title: Label = %caution_title
+@onready var caution_summary: Label = %caution_summary
+@onready var caution_service_selector: OptionButton = %caution_service_selector
+@onready var caution_prediction_label: Label = %caution_prediction_label
+@onready var caution_pit_button: Button = %caution_pit_button
+@onready var caution_stay_button: Button = %caution_stay_button
+@onready var caution_wave_button: Button = %caution_wave_button
 
 var simulation: RaceSimulation
 var lap_timer := Timer.new()
@@ -59,15 +69,21 @@ func _ready() -> void:
 	apply_command_button.pressed.connect(_apply_commands)
 	apply_team_order_button.pressed.connect(_apply_team_order)
 	simulation.caution_started.connect(_on_caution_started)
-	caution_dialog.confirmed.connect(_pit_under_caution)
-	caution_dialog.canceled.connect(_stay_out_under_caution)
+	simulation.engineer_advice_ready.connect(_on_engineer_advice_ready)
+	engineer_request_button.pressed.connect(_request_engineer_update)
+	caution_pit_button.pressed.connect(_pit_under_caution)
+	caution_stay_button.pressed.connect(_stay_out_under_caution)
+	caution_wave_button.pressed.connect(_wave_around_under_caution)
+	pit_service_selector.item_selected.connect(_on_pit_service_selected)
+	caution_service_selector.item_selected.connect(_on_caution_service_selected)
 	for speed in SPEEDS:
 		speed_selector.add_item("%dx" % speed)
 	pace_selector.add_item("Conserve")
 	pace_selector.add_item("Balanced")
 	pace_selector.add_item("Attack")
 	pace_selector.select(1)
-	tyre_selector.add_item("Standard")
+	_populate_pit_services(pit_service_selector)
+	_populate_pit_services(caution_service_selector)
 	for setup in ["Forward", "Neutral", "Rearward"]:
 		setup_selector.add_item(setup)
 	for fuel_target in ["Save", "Balanced", "Push"]:
@@ -76,13 +92,15 @@ func _ready() -> void:
 		racecraft_selector.add_item(command)
 	for order in ["Race freely", "Hold position", "Swap positions", "Help lead car", "Conserve equipment"]:
 		team_order_selector.add_item(order)
-	tyre_selector.select(0)
+	pit_service_selector.select(0)
+	caution_service_selector.select(0)
 	setup_selector.select(1)
 	fuel_selector.select(1)
 	racecraft_selector.select(1)
 	speed_selector.select(1)
 	_update_timer_speed()
 	track_map.set_simulation(simulation)
+	caution_overlay.visible = false
 	_refresh_display()
 
 
@@ -142,14 +160,34 @@ func _advance_one_lap() -> void:
 func _request_pit_stop() -> void:
 	if simulation == null or simulation.is_complete:
 		return
-	var compound := tyre_selector.get_item_text(tyre_selector.selected)
-	if simulation.request_player_pit_stop(compound):
-		message_label.text = "PIT CONFIRMED • Box next lap for fresh tyres"
+	var service := _selected_pit_service(pit_service_selector)
+	if simulation.request_player_pit_stop(service):
 		_refresh_display()
+		message_label.text = "PIT CONFIRMED - %s" % simulation.describe_pit_service(service)
+
+
+func _populate_pit_services(selector: OptionButton) -> void:
+	for service_value in simulation.get_pit_service_options().values():
+		var service := service_value as Dictionary
+		selector.add_item(str(service.label))
+		selector.set_item_metadata(selector.item_count - 1, str(service.id))
+
+
+func _selected_pit_service(selector: OptionButton) -> Dictionary:
+	var service_id := str(selector.get_item_metadata(selector.selected)) if selector.selected >= 0 else "four_tyres_fuel"
+	return (simulation.get_pit_service_options().get(service_id, simulation.get_pit_service_options().four_tyres_fuel) as Dictionary).duplicate(true)
+
+
+func _on_pit_service_selected(_index: int) -> void:
+	_refresh_pit_prediction()
+
+
+func _on_caution_service_selected(_index: int) -> void:
+	_refresh_caution_prediction()
 
 
 func _on_caution_started(lap: int) -> void:
-	if finalized or caution_choice_open or lap >= simulation.race.lap_count:
+	if finalized or caution_choice_open or lap >= simulation.get_total_laps():
 		return
 	was_running_before_caution = not is_paused
 	caution_choice_open = true
@@ -157,20 +195,30 @@ func _on_caution_started(lap: int) -> void:
 	lap_timer.stop()
 	pause_button.text = "Resume Race"
 	next_lap_button.disabled = true
-	var player := simulation.get_player_entry()
-	var position_text := ""
-	if player != null:
-		position_text = "\n\nYou are P%d with %d%% tyre life and %.1f fuel laps remaining." % [player.position, roundi(player.tyre_condition), player.fuel_laps / maxf(0.1, simulation.race.fuel_consumption_factor)]
-	caution_dialog.dialog_text = "Caution on lap %d. The field is compressed and pit-lane time loss is reduced.%s\n\nPit for fresh tyres and fuel, or stay out to protect track position?" % [lap, position_text]
-	message_label.text = "YELLOW FLAG • SIMULATION PAUSED FOR PIT DECISION"
+	var caution_player := simulation.get_player_entry()
+	caution_title.text = "CAUTION - LAP %d" % lap
+	if caution_player != null:
+		var weakest := "engine"
+		for component in Car.DAMAGE_COMPONENTS:
+			if float(caution_player.component_health.get(component, 100.0)) < float(caution_player.component_health.get(weakest, 100.0)):
+				weakest = component
+		caution_summary.text = "P%d | Tyres %d%% | Fuel %.1f laps | %s %d%%\nChoose service, protect the lead lap, or take a wave-around." % [caution_player.position, roundi(caution_player.tyre_condition), caution_player.fuel_laps / maxf(0.1, simulation.race.fuel_consumption_factor), weakest.capitalize(), roundi(float(caution_player.component_health.get(weakest, 100.0)))]
+	caution_overlay.visible = true
+	_refresh_caution_prediction()
+	message_label.text = "YELLOW FLAG - SIMULATION PAUSED FOR STRATEGY"
 	_refresh_display()
-	caution_dialog.popup_centered(Vector2i(520, 250))
 
 
 func _pit_under_caution() -> void:
 	if simulation != null:
-		simulation.request_player_pit_stop("Standard")
-	_finish_caution_choice("PIT CONFIRMED • Box under caution for fresh tyres and fuel")
+		var service := _selected_pit_service(caution_service_selector)
+		simulation.request_player_pit_stop(service)
+		_finish_caution_choice("PIT CONFIRMED - %s" % simulation.describe_pit_service(service))
+
+
+func _wave_around_under_caution() -> void:
+	var outcome := simulation.request_player_wave_around() if simulation != null else {}
+	_finish_caution_choice(str(outcome.get("message", "Staying out under caution.")))
 
 
 func _stay_out_under_caution() -> void:
@@ -181,6 +229,7 @@ func _finish_caution_choice(message: String) -> void:
 	if not caution_choice_open:
 		return
 	caution_choice_open = false
+	caution_overlay.visible = false
 	next_lap_button.disabled = false
 	message_label.text = message
 	if was_running_before_caution:
@@ -188,6 +237,40 @@ func _finish_caution_choice(message: String) -> void:
 		pause_button.text = "Pause Race"
 		lap_timer.start()
 	_refresh_display()
+
+
+func _refresh_pit_prediction() -> void:
+	if simulation == null or pit_service_selector.item_count == 0:
+		return
+	var prediction := simulation.predict_player_pit_loss(_selected_pit_service(pit_service_selector))
+	pit_prediction_label.text = "Projected %.1fs | lose %d-%d | likely rejoin P%d" % [float(prediction.get("time_loss", 0.0)), int(prediction.get("minimum_positions_lost", 0)), int(prediction.get("maximum_positions_lost", 0)), int(prediction.get("likely_rejoin_position", 0))]
+
+
+func _refresh_caution_prediction() -> void:
+	if simulation == null or caution_service_selector.item_count == 0:
+		return
+	var prediction := simulation.predict_player_pit_loss(_selected_pit_service(caution_service_selector))
+	caution_prediction_label.text = "MODEL: %.1fs loss | lose %d-%d positions | likely P%d | confidence %d%%" % [float(prediction.get("time_loss", 0.0)), int(prediction.get("minimum_positions_lost", 0)), int(prediction.get("maximum_positions_lost", 0)), int(prediction.get("likely_rejoin_position", 0)), int(prediction.get("confidence", 0))]
+
+
+func _request_engineer_update() -> void:
+	if simulation != null:
+		simulation.request_engineer_update()
+		_refresh_engineer()
+
+
+func _on_engineer_advice_ready(_advice: Dictionary) -> void:
+	_refresh_engineer()
+
+
+func _refresh_engineer() -> void:
+	if simulation == null or simulation.latest_engineer_advice.is_empty():
+		engineer_label.text = "[color=#8793a3]Engineer is reviewing the opening stint.[/color]"
+		return
+	var advice := simulation.latest_engineer_advice
+	var confidence := int(advice.get("confidence", 0))
+	var confidence_color := "#56d690" if confidence >= 80 else ("#f0c84b" if confidence >= 60 else "#ff8a65")
+	engineer_label.text = "[b]%s  |  QUALITY %d[/b]\n[color=%s]CONFIDENCE %d%%[/color]\n%s" % [str(advice.get("category", "update")).to_upper(), int(advice.get("staff_quality", 0)), confidence_color, confidence, str(advice.get("message", "No recommendation."))]
 
 
 func _apply_setup() -> void:
@@ -225,15 +308,17 @@ func _refresh_display() -> void:
 	_refresh_tower()
 	_refresh_telemetry()
 	_refresh_feed()
+	_refresh_engineer()
+	_refresh_pit_prediction()
 	track_map.queue_redraw()
 
 
 func _refresh_header() -> void:
 	if simulation == null:
 		return
-	race_title.text = "%s — LAP %d / %d" % [simulation.race.race_name.to_upper(), simulation.current_lap, simulation.race.lap_count]
 	flag_label.text = "●  %s" % simulation.race_state
 	flag_label.modulate = Color("55d68b") if simulation.race_state == "GREEN FLAG" else (Color("f0c84b") if simulation.race_state in ["SAFETY CAR", "RESTART"] else Color("f4f6fa"))
+	race_title.text = "%s - LAP %d / %d%s" % [simulation.race.race_name.to_upper(), simulation.current_lap, simulation.get_total_laps(), " (OVERTIME)" if simulation.overtime_attempts > 0 else ""]
 	var speed := SPEEDS[speed_selector.selected] if speed_selector.selected >= 0 else 1
 	speed_label.text = ("PAUSED  •  " if is_paused else "LIVE  •  ") + "%d× SPEED" % speed
 
@@ -281,6 +366,13 @@ func _refresh_telemetry() -> void:
 		"[cell][color=#778493]TRACK[/color]\n[b]%s · %d%% GRIP[/b][/cell]" % [simulation.weather_state, roundi(simulation.track_grip * 100.0)] + \
 		"[cell][color=#778493]COMMANDS[/color]\n[b]%s FUEL · %s[/b][/cell][/table]" % [player.fuel_target_mode, player.racecraft_command]
 
+	var component_lines: Array[String] = []
+	for component in Car.DAMAGE_COMPONENTS:
+		var health := roundi(float(player.component_health.get(component, 100.0)))
+		var color := "#56d690" if health >= 85 else ("#f0c84b" if health >= 60 else "#ff6b62")
+		component_lines.append("[color=%s]%s %d%%[/color]" % [color, component.left(4).to_upper(), health])
+	telemetry.text += "\n[color=#778493]COMPONENT HEALTH[/color]\n" + "  |  ".join(component_lines)
+
 
 func _refresh_feed() -> void:
 	var first := maxi(0, simulation.event_log.size() - 8)
@@ -303,6 +395,8 @@ func _finish_race() -> void:
 	apply_setup_button.disabled = true
 	apply_command_button.disabled = true
 	apply_team_order_button.disabled = true
+	engineer_request_button.disabled = true
+	caution_overlay.visible = false
 	next_lap_button.disabled = true
 	message_label.text = "Race complete — preparing official results"
 	var result := RaceManager.finalize_live_race(simulation, GameManager.selected_car, str(weekend_data.get("strategy_id", "balanced")), weekend_data)
