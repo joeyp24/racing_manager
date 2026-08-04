@@ -35,6 +35,12 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 @onready var caution_pit_button: Button = %caution_pit_button
 @onready var caution_stay_button: Button = %caution_stay_button
 @onready var caution_wave_button: Button = %caution_wave_button
+@onready var stint_chart: LiveTelemetryChart = %analysis_tabs.get_node("Stints")
+@onready var lap_time_chart: LiveTelemetryChart = %analysis_tabs.get_node("Lap Times")
+@onready var tyre_fuel_chart: LiveTelemetryChart = %analysis_tabs.get_node("Tyre & Fuel")
+@onready var passing_summary: RichTextLabel = %analysis_tabs.get_node("Passing")
+@onready var caution_timeline: RichTextLabel = %analysis_tabs.get_node("Cautions")
+@onready var comparison_summary: RichTextLabel = %analysis_tabs.get_node("Comparisons")
 
 var simulation: RaceSimulation
 var lap_timer := Timer.new()
@@ -100,6 +106,8 @@ func _ready() -> void:
 	speed_selector.select(1)
 	_update_timer_speed()
 	track_map.set_simulation(simulation)
+	for chart in [stint_chart, lap_time_chart, tyre_fuel_chart]:
+		chart.set_simulation(simulation)
 	caution_overlay.visible = false
 	_refresh_display()
 
@@ -308,9 +316,42 @@ func _refresh_display() -> void:
 	_refresh_tower()
 	_refresh_telemetry()
 	_refresh_feed()
+	_refresh_analysis()
 	_refresh_engineer()
 	_refresh_pit_prediction()
 	track_map.queue_redraw()
+
+
+func _refresh_analysis() -> void:
+	for chart in [stint_chart, lap_time_chart, tyre_fuel_chart]:
+		chart.queue_redraw()
+	var player := simulation.get_player_entry()
+	if player == null:
+		return
+	var pass_lines := PackedStringArray(["[b]PASSING SUMMARY[/b]", "Made %d passes · Lost %d positions · Net %+d" % [player.overtakes, player.overtaken, player.overtakes - player.overtaken]])
+	for event in simulation.race_events:
+		if str(event.get("type", "")) == "pass":
+			pass_lines.append("L%d · %s" % [int(event.get("lap", 0)), str(event.get("detail", "Pass"))])
+	if pass_lines.size() == 2:
+		pass_lines.append("No recorded passing battles yet.")
+	passing_summary.text = "\n".join(pass_lines)
+	var caution_lines := PackedStringArray(["[b]CAUTION TIMELINE[/b]"])
+	for event in simulation.race_events:
+		if str(event.get("type", "")) in ["caution", "caution_outcome"]:
+			caution_lines.append("L%d · %s\n%s" % [int(event.get("lap", 0)), str(event.get("title", "Caution")), str(event.get("detail", ""))])
+	if caution_lines.size() == 1:
+		caution_lines.append("No cautions to report.")
+	caution_timeline.text = "\n\n".join(caution_lines)
+	var comparison_lines := PackedStringArray(["[b]TEAMMATE & RIVAL COMPARISON[/b]"])
+	for entry in simulation.entries:
+		if entry == player or (entry.team_name != player.team_name and abs(entry.position - player.position) > 1):
+			continue
+		var relation := "TEAMMATE" if entry.team_name == player.team_name else ("CAR AHEAD" if entry.position < player.position else "CAR BEHIND")
+		var signed_gap := entry.elapsed_time - player.elapsed_time
+		comparison_lines.append("%s · P%d %s\nGap %+.2fs · Last %.3fs · Best %.3fs · Tyre %d%% · Fuel %d%%" % [relation, entry.position, entry.driver_name, signed_gap, entry.last_lap_time, entry.best_lap_time, roundi(entry.tyre_condition), roundi(entry.fuel_remaining)])
+	if comparison_lines.size() == 1:
+		comparison_lines.append("No teammate or adjacent rival comparison is available yet.")
+	comparison_summary.text = "\n\n".join(comparison_lines)
 
 
 func _refresh_header() -> void:

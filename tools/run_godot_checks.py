@@ -33,6 +33,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_sponsorship_system.gd"),
     ),
     (
+        "multi-team progression tests",
+        ("--headless", "--path", ".", "--script", "tests/test_multi_team_progression.gd"),
+    ),
+    (
         "reputation system tests",
         ("--headless", "--path", ".", "--script", "tests/test_reputation_system.gd"),
     ),

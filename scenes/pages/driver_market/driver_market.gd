@@ -148,7 +148,8 @@ func create_driver_details(driver: Driver) -> String:
 	var salary_change := roundi((float(prestige_terms.salary_multiplier) - 1.0) * 100.0)
 	var report := GameManager.team.scouting_reports.get(driver.driver_id, {}) as Dictionary
 	var potential_display := str(driver.get_potential_overall()) if report.get("revealed_potential", false) or GameManager.team.contracted_driver_ids.has(driver.driver_id) else "???"
-	return "Age %d | OVR %d | Potential OVR %s | Recommended prestige L%d | Terms %+d%% | Team seasons %d | Race pace %d | Qualifying %d | Tyre management %d | Salary $%s/race | Signing fee $%s" % [
+	var commercial_terms := " | PAY DRIVER +$%s/race" % format_number(GameManager.team.get_effective_sponsor_value(driver.sponsorship_contribution_per_race)) if driver.is_pay_driver else ""
+	return ("Age %d | OVR %d | Potential OVR %s | Recommended prestige L%d | Terms %+d%% | Team seasons %d | Race pace %d | Qualifying %d | Tyre management %d | Salary $%s/race | Signing fee $%s" % [
 		driver.age,
 		driver.get_overall_rating(),
 		potential_display,
@@ -160,7 +161,7 @@ func create_driver_details(driver: Driver) -> String:
 		driver.tyre_management,
 		format_number(GameManager.team.get_effective_salary(driver.salary)),
 		format_number(signing_cost)
-	]
+	]) + commercial_terms
 
 
 func _on_hire_pressed(driver: Driver) -> void:
@@ -179,11 +180,12 @@ func _on_hire_pressed(driver: Driver) -> void:
 		return
 	confirmation_dialog.title = "Confirm driver contract"
 	confirmation_dialog.dialog_text = (
-		"Do you want to sign %s to your multi-team roster?\n\nSigning fee: $%s (charged now)\nSalary: $%s after every race"
+		"Do you want to sign %s to your multi-team roster?\n\nSigning fee: $%s (charged now)\nSalary: $%s after every race%s"
 		% [
 			driver.driver_name,
 			format_number(GameManager.team.get_discounted_cost(driver.signing_fee)),
-			format_number(GameManager.team.get_effective_salary(driver.salary))
+			format_number(GameManager.team.get_effective_salary(driver.salary)),
+			"\nCommercial backing: +$%s per entered race and +$%s on signing" % [format_number(GameManager.team.get_effective_sponsor_value(driver.sponsorship_contribution_per_race)), format_number(GameManager.team.get_effective_sponsor_value(driver.sponsorship_signing_bonus))] if driver.is_pay_driver else ""
 		]
 	)
 	confirmation_dialog.get_ok_button().text = "Confirm Hire"

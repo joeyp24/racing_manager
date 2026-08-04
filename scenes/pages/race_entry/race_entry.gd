@@ -187,11 +187,12 @@ func update_forecast() -> void:
 	var wear := maxi(1, roundi(float(base_wear) * float(strategy.get("wear_modifier", 1.0))))
 	var expected_prize := _prize_for_position(race, expected_position)
 	SponsorManager.ensure_state(GameManager.team)
-	var sponsor_income := (
-		int(GameManager.team.active_sponsor_contract.get("payment_per_race", 0))
-		if not GameManager.team.active_sponsor_contract.is_empty()
-		else 0
-	)
+	var sponsor_income := 0
+	var entered_driver_ids: Array[String] = []
+	for race_team in selected_race_teams:
+		sponsor_income += race_team.get_sponsor_income_per_race()
+		entered_driver_ids.append(race_team.driver_id)
+	var pay_driver_income := GameManager.team.get_pay_driver_income(entered_driver_ids)
 	var commercial_income := int(FinanceManager.get_race_commercial_revenue(GameManager.team, race).total)
 	var driver_payroll := 0
 	for race_team in selected_race_teams:
@@ -204,14 +205,14 @@ func update_forecast() -> void:
 	var repair_per_point := maxi(50, roundi(float(selected_car.value) * 0.006))
 	var expected_wear_cost := wear * repair_per_point
 	var fixed_costs := total_fee + driver_payroll + staff_payroll + expected_wear_cost
-	var best_cash := GameManager.team.money - fixed_costs + _prize_for_position(race, best) + sponsor_income + commercial_income
-	var average_cash := GameManager.team.money - fixed_costs + expected_prize + sponsor_income + commercial_income
-	var worst_cash := GameManager.team.money - fixed_costs + _prize_for_position(race, worst) + sponsor_income + commercial_income
+	var best_cash := GameManager.team.money - fixed_costs + _prize_for_position(race, best) + sponsor_income + pay_driver_income + commercial_income
+	var average_cash := GameManager.team.money - fixed_costs + expected_prize + sponsor_income + pay_driver_income + commercial_income
+	var worst_cash := GameManager.team.money - fixed_costs + _prize_for_position(race, worst) + sponsor_income + pay_driver_income + commercial_income
 	forecast_label.text = (
 		"EXPECTED FINISH  P%d–P%d\n\n"
 		+ "COST PROJECTION\nEntry & operations  −$%s\nDriver salary  −$%s\nStaff payroll  −$%s\nExpected wear  %d%%  ≈ −$%s\nSponsor income  +$%s\nSeries, event & owner income  +$%s\n\n"
 		+ "CASH AFTER RACE\nBest (P%d)  $%s\nAverage (P%d)  $%s\nWorst (P%d)  $%s\n\nSponsor objective chance  %d%%"
-	) % [best, worst, format_number(total_fee), format_number(driver_payroll), format_number(staff_payroll), wear, format_number(expected_wear_cost), format_number(sponsor_income), format_number(commercial_income), best, format_number(best_cash), expected_position, format_number(average_cash), worst, format_number(worst_cash), objective_chance]
+	) % [best, worst, format_number(total_fee), format_number(driver_payroll), format_number(staff_payroll), wear, format_number(expected_wear_cost), format_number(sponsor_income + pay_driver_income), format_number(commercial_income), best, format_number(best_cash), expected_position, format_number(average_cash), worst, format_number(worst_cash), objective_chance]
 	var risks: Array[String] = []
 	if selected_car.condition < 70:
 		risks.append("low car condition")

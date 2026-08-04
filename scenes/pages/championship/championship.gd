@@ -36,7 +36,7 @@ func _build_promotion_controls() -> void:
 	if next_index >= SeriesCatalog.SERIES.size(): return
 	var next: Dictionary = SeriesCatalog.SERIES[next_index]
 	var entry := team.get_discounted_cost(int(next.entry_cost)); var car := int(next.car_price); var reserve := int(next.estimated_race_cost) * 3
-	season_status_label.text += "\n\nPROMOTION REQUIREMENTS — %s\nEntry / license: $%s\nCheapest eligible car: $%s\nThree-race reserve: $%s\nHQ: level %d\nTotal funding required: $%s" % [next.name,format_number(entry),format_number(car),format_number(reserve),int(next.hq_level),format_number(entry+car+reserve)]
+	season_status_label.text += "\n\nPROMOTION REQUIREMENTS — %s\nReputation: level %d\nEntry / license: $%s\nCheapest eligible car: $%s\nThree-race reserve: $%s\nTotal funding required: $%s" % [next.name,int(next.required_level),format_number(entry),format_number(car),format_number(reserve),format_number(entry+car+reserve)]
 	var promote := Button.new(); promote.text = "Promote to %s" % next.name
 	promote.disabled = not team.can_enter_series(str(next.id))
 	promote.tooltip_text = "All requirements met." if not promote.disabled else " ".join(team.get_series_entry_requirements(str(next.id)))

@@ -62,9 +62,12 @@ static func build_forecast(team: Team) -> Dictionary:
 	var race_stub := Race.new()
 	race_stub.series_id = team.current_series_id
 	var commercial := get_race_commercial_revenue(team, race_stub)
-	var sponsor_per_race := 0
-	if not team.active_sponsor_contract.is_empty():
-		sponsor_per_race = int(team.active_sponsor_contract.get("payment_per_race", 0))
+	var sponsor_per_race := team.get_total_sponsor_income_per_race()
+	var pay_driver_ids: Array[String] = []
+	for race_team in team.race_teams:
+		if race_team != null and race_team.active and not race_team.driver_id.is_empty():
+			pay_driver_ids.append(race_team.driver_id)
+	sponsor_per_race += team.get_pay_driver_income(pay_driver_ids)
 	var available_sponsor_estimate := 0
 	for offer_value in team.sponsor_offers:
 		available_sponsor_estimate = maxi(available_sponsor_estimate, int((offer_value as Dictionary).get("payment_per_race", 0)))

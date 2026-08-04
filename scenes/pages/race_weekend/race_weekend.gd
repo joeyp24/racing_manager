@@ -16,16 +16,24 @@ var weekend_data: Dictionary = {}
 
 const PRACTICE_ADJUSTMENTS: Array[Dictionary] = [
 	{"axis": "", "delta": 0, "name": "Baseline run", "description": "Gather clean reference data without changing the car."},
-	{"axis": "aero_balance", "delta": 1, "name": "More aero balance", "description": "Adds cornering stability but can cost straight-line speed."},
-	{"axis": "aero_balance", "delta": -1, "name": "Less aero balance", "description": "Reduces drag but makes the car less settled in corners."},
-	{"axis": "suspension", "delta": 1, "name": "Softer suspension", "description": "Improves compliance and tyre life but slows direction changes."},
-	{"axis": "suspension", "delta": -1, "name": "Stiffer suspension", "description": "Sharpens response but can overwork the tyres."},
 	{"axis": "gearing", "delta": 1, "name": "Shorter gearing", "description": "Improves acceleration but limits maximum speed."},
 	{"axis": "gearing", "delta": -1, "name": "Longer gearing", "description": "Adds top speed but weakens acceleration."},
-	{"axis": "tyre_pressure", "delta": 1, "name": "Raise tyre pressure", "description": "Improves response while narrowing the temperature window."},
-	{"axis": "tyre_pressure", "delta": -1, "name": "Lower tyre pressure", "description": "Adds grip and tyre life but increases rolling resistance."},
-	{"axis": "brake_bias", "delta": 1, "name": "Move brake bias forward", "description": "Adds braking stability but can lock the front tyres."},
-	{"axis": "brake_bias", "delta": -1, "name": "Move brake bias rearward", "description": "Helps rotation but makes braking less forgiving."}
+	{"axis": "front_springs", "delta": 1, "name": "Stiffen front springs", "description": "Sharpens response but can reduce compliance over bumps."},
+	{"axis": "front_springs", "delta": -1, "name": "Soften front springs", "description": "Adds front grip and compliance at the cost of response."},
+	{"axis": "rear_springs", "delta": 1, "name": "Stiffen rear springs", "description": "Helps rotation but can make power delivery nervous."},
+	{"axis": "rear_springs", "delta": -1, "name": "Soften rear springs", "description": "Adds traction but can introduce mid-corner understeer."},
+	{"axis": "downforce", "delta": 1, "name": "Add downforce", "description": "Adds cornering stability while sacrificing straight-line speed."},
+	{"axis": "downforce", "delta": -1, "name": "Trim downforce", "description": "Reduces drag but narrows the cornering window."},
+	{"axis": "left_tyre_pressure", "delta": 1, "name": "Raise left-side pressures", "description": "An oval-specific asymmetric adjustment that changes rotation and warm-up."},
+	{"axis": "left_tyre_pressure", "delta": -1, "name": "Lower left-side pressures", "description": "Builds left-side grip and alters the oval cross-weight balance."},
+	{"axis": "right_tyre_pressure", "delta": 1, "name": "Raise right-side pressures", "description": "Improves response but can overheat the loaded side of the car."},
+	{"axis": "right_tyre_pressure", "delta": -1, "name": "Lower right-side pressures", "description": "Adds loaded-side grip and a wider tyre-temperature window."},
+	{"axis": "camber", "delta": 1, "name": "Add camber", "description": "Improves loaded-corner grip but increases inner-shoulder wear."},
+	{"axis": "camber", "delta": -1, "name": "Reduce camber", "description": "Protects the tyre while giving away peak cornering grip."},
+	{"axis": "toe", "delta": 1, "name": "Add toe-out", "description": "Improves turn-in while increasing drag and tyre scrub."},
+	{"axis": "toe", "delta": -1, "name": "Reduce toe-out", "description": "Stabilizes the car and protects tyres at turn-in."},
+	{"axis": "track_bar", "delta": 1, "name": "Raise track bar", "description": "Adds oval rotation and rear responsiveness."},
+	{"axis": "track_bar", "delta": -1, "name": "Lower track bar", "description": "Adds oval rear stability and traction."}
 ]
 
 const PRACTICE_COMPOUNDS: Array[String] = ["Standard"]

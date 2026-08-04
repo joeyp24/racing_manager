@@ -112,9 +112,10 @@ static func _finance_check(team: Team, race: Race) -> Dictionary:
 
 static func _sponsor_check(team: Team) -> Dictionary:
 	SponsorManager.ensure_state(team)
-	if team.active_sponsor_contract.is_empty():
+	var contracts := team.get_active_sponsor_contracts()
+	if contracts.is_empty():
 		return _check(SUBOPTIMAL, "SPONSOR", "No sponsor is active, so this race has no sponsor income or objective bonus.", "Open Sponsors", "sponsors")
-	var contract := team.active_sponsor_contract
+	var contract := contracts[0]
 	if bool(contract.objective_completed):
 		return _check(READY, "SPONSOR", "%s's objective is already complete." % str(contract.sponsor_name), "", "", "$%s per race" % _money(int(contract.payment_per_race)))
 	var needed := maxi(0, int(contract.objective_target) - int(contract.objective_progress))
@@ -122,7 +123,7 @@ static func _sponsor_check(team: Team) -> Dictionary:
 		return _check(BLOCKED, "SPONSOR", "%s's objective is no longer achievable: %d results needed with %d races left." % [str(contract.sponsor_name), needed, int(contract.races_remaining)], "Open Sponsors", "sponsors")
 	if needed == int(contract.races_remaining):
 		return _check(SUBOPTIMAL, "SPONSOR", "%s requires an objective result in every remaining race." % str(contract.sponsor_name), "Open Sponsors", "sponsors", "%d/%d complete" % [int(contract.objective_progress), int(contract.objective_target)])
-	return _check(READY, "SPONSOR", "%s's objective remains achievable." % str(contract.sponsor_name), "", "", "%d/%d complete" % [int(contract.objective_progress), int(contract.objective_target)])
+	return _check(READY, "SPONSOR", "%d partners provide $%s per race; %s's objective remains achievable." % [contracts.size(), _money(team.get_active_race_team().get_sponsor_income_per_race()), str(contract.sponsor_name)], "", "", "%d/%d complete" % [int(contract.objective_progress), int(contract.objective_target)])
 
 
 static func _check(status: String, title: String, explanation: String, action_label: String = "", action: String = "", threshold: String = "") -> Dictionary:

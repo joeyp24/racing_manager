@@ -31,6 +31,7 @@ var rubber_level: float = 0.0
 var forecast: Dictionary = {}
 var weather_timeline: Array[Dictionary] = []
 var replay_timeline: Array[Dictionary] = []
+var telemetry_history: Array[Dictionary] = []
 var strategy_timeline: Array[Dictionary] = []
 var race_events: Array[Dictionary] = []
 var engineer_advice_history: Array[Dictionary] = []
@@ -86,6 +87,7 @@ func setup(
 	var player := RaceEntryState.new()
 	player.driver_id = player_driver.driver_id
 	player.driver_name = player_driver.driver_name
+	player.team_id = str(player_attributes.get("team_id", "player_team"))
 	player.team_name = player_team_name
 	player.is_player = true
 	player.consistency = player_driver.consistency
@@ -112,7 +114,9 @@ func setup(
 		var teammate := RaceEntryState.new()
 		teammate.driver_id = str(data.get("driver_id", ""))
 		teammate.driver_name = str(data.get("driver_name", "Team Driver"))
+		teammate.team_id = str(data.get("team_id", ""))
 		teammate.team_name = str(data.get("team_name", player_team_name))
+		teammate.is_player = true
 		teammate.consistency = int(data.get("consistency", 50))
 		teammate.attributes = data.get("attributes", {}).duplicate()
 		teammate.base_pace = float(data.get("score", 50.0))
@@ -120,7 +124,7 @@ func setup(
 		teammate.reliability = float(data.get("reliability", player.reliability))
 		teammate.fuel_efficiency = float(data.get("fuel_efficiency", player.fuel_efficiency))
 		teammate.tyre_preservation = float(data.get("tyre_preservation", 50.0))
-		teammate.strategy_skill = player.strategy_skill
+		teammate.strategy_skill = float(data.get("strategy_skill", player.strategy_skill))
 		teammate.difficulty_scale = player.difficulty_scale
 		teammate.setup_profile = practice_setup.duplicate(true)
 		grid.insert(clampi(int(data.get("starting_position", grid.size() + 1)) - 1, 0, grid.size()), teammate)
@@ -218,6 +222,7 @@ func simulate_lap() -> void:
 	if player != null and current_lap % maxi(4, race_distance_laps / 8) == 0:
 		event_log.append("LAP %d  Crew chief: tyres %d%%, fuel %.1f laps, car %d%%, systems %d%%." % [current_lap, roundi(player.tyre_condition), player.fuel_laps / maxf(0.1, race.fuel_consumption_factor), roundi(player.car_condition), roundi(player.mechanical_health)])
 		_generate_engineer_advice("interval")
+	_record_player_telemetry()
 	_record_replay_snapshot()
 	elapsed_race_time = entries[0].elapsed_time
 	lap_completed.emit(current_lap)
@@ -266,6 +271,42 @@ func _record_replay_snapshot() -> void:
 	for entry in entries:
 		positions.append({"driver_id":entry.driver_id, "driver":entry.driver_name, "position":entry.position, "status":entry.status, "compound":entry.tyre_compound, "pit_stops":entry.pit_stops})
 	replay_timeline.append({"lap":current_lap, "flag":race_state, "weather":weather_state, "grip":track_grip, "positions":positions})
+
+
+func _record_player_telemetry() -> void:
+	var player := get_player_entry()
+	if player == null:
+		return
+	var comparisons: Array[Dictionary] = []
+	for entry in entries:
+		if entry == player:
+			continue
+		if entry.team_name == player.team_name or abs(entry.position - player.position) <= 1:
+			comparisons.append({
+				"driver_id":entry.driver_id,
+				"driver_name":entry.driver_name,
+				"team_name":entry.team_name,
+				"position":entry.position,
+				"gap":entry.elapsed_time - player.elapsed_time,
+				"lap_time":entry.last_lap_time,
+				"best_lap":entry.best_lap_time,
+				"tyre":entry.tyre_condition,
+				"fuel":entry.fuel_remaining,
+				"teammate":entry.team_name == player.team_name
+			})
+	telemetry_history.append({
+		"lap":current_lap,
+		"lap_time":player.last_lap_time,
+		"position":player.position,
+		"tyre":player.tyre_condition,
+		"tyre_temperature":player.tyre_temperature,
+		"fuel":player.fuel_remaining,
+		"fuel_laps":player.fuel_laps / maxf(0.1, race.fuel_consumption_factor),
+		"stint":player.pit_stops,
+		"stint_laps":player.stint_laps,
+		"flag":race_state,
+		"comparisons":comparisons
+	})
 
 
 func _update_track_state() -> void:

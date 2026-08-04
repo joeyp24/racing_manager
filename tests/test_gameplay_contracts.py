@@ -151,7 +151,8 @@ def test_series_ladder_has_progression_cars_and_full_rosters():
     assert catalog.count('"roster_size":') == 8
     for series_id in ("local_short_track", "regional_short_track", "national_short_track", "continental_east_west", "continental_national", "national_truck", "national_grand", "premier_cup"):
         assert series_id in catalog
-    assert "hq_level >= int(series.hq_level)" in team
+    assert "get_reputation_level() >= get_required_level_for_series(series_id)" in team
+    assert "hq_level >= int(series.hq_level)" not in team
     assert "index != current_index + 1" in team
     assert "func ensure_series_rosters()" in team
     assert "SeriesCatalog.create_car_templates(series_id)" in dealership
@@ -304,7 +305,7 @@ def test_finance_and_living_paddock_systems_are_integrated():
     race_simulation = (ROOT / "resources/races/race_simulation.gd").read_text()
     career_hub = (ROOT / "scenes/pages/career_hub/career_hub.gd").read_text()
     calendar = (ROOT / "scenes/pages/race_calendar/race_calendar.gd").read_text()
-    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 16" in team
+    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 17" in team
     assert "return _string_array" in team
     assert "class_name FinanceManager" in finance
     assert "owner_support" in finance and "series_distribution" in finance
@@ -365,3 +366,40 @@ def test_race_operations_analysis_and_team_philosophies_are_integrated():
     assert "const PHILOSOPHIES" in team_catalog
     assert "philosophy_id" in team and "regulation_preference" in team
     assert "engineer_request_button" in live_race
+
+
+def test_multi_team_commercial_and_standings_state_is_persistent():
+    team = (ROOT / "resources/team.gd").read_text()
+    race_team = (ROOT / "resources/race_team.gd").read_text()
+    sponsor_manager = (ROOT / "resources/sponsor_manager.gd").read_text()
+    race_manager = (ROOT / "autoload/race_manager.gd").read_text()
+    driver = (ROOT / "resources/driver.gd").read_text()
+    assert "@export var active_race_team_id" in team
+    assert "@export var sponsor_contracts" in race_team
+    assert "@export var crew_chief_id" in race_team
+    assert "@export var engineer_ids" in race_team
+    assert "func assign_staff_to_race_team" in team
+    assert "get_sponsor_capacity" in team
+    assert "for race_team in team.race_teams" in sponsor_manager
+    assert "set_series_standings(GameManager.team.current_series_id, standings)" in race_manager
+    assert 'championship_entry["starts"]' in race_manager
+    assert "@export var is_pay_driver" in driver
+    assert "sponsorship_contribution_per_race" in driver
+
+
+def test_live_race_analysis_setup_and_venue_geometry_are_integrated():
+    simulation = (ROOT / "resources/races/race_simulation.gd").read_text()
+    live_scene = (ROOT / "scenes/pages/live_race/live_race.tscn").read_text()
+    live_ui = (ROOT / "scenes/pages/live_race/live_race.gd").read_text()
+    practice = (ROOT / "resources/practice_run_simulator.gd").read_text()
+    tracks = (ROOT / "resources/track_presentation_catalog.gd").read_text()
+    assert "telemetry_history" in simulation
+    for tab in ('name="Stints"', 'name="Lap Times"', 'name="Tyre & Fuel"', 'name="Passing"', 'name="Cautions"', 'name="Comparisons"'):
+        assert tab in live_scene
+    assert "_refresh_analysis" in live_ui
+    for setup_axis in ("gearing", "front_springs", "rear_springs", "downforce", "left_tyre_pressure", "right_tyre_pressure", "camber", "toe", "track_bar"):
+        assert f'"{setup_axis}"' in practice
+    assert '"sectors"' in tracks
+    assert '"passing_zones"' in tracks
+    assert '"caution_locations"' in tracks
+    assert '"pit_entry"' in tracks and '"pit_exit"' in tracks

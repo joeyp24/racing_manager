@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scenes/pages/live_race/live_race.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/pages/live_race/live_track_map.gd" id="2_track"]
+[ext_resource type="Script" path="res://scenes/pages/live_race/live_telemetry_chart.gd" id="3_chart"]
 
 [sub_resource type="StyleBoxFlat" id="Header"]
 bg_color = Color(0.035, 0.048, 0.066, 1)
@@ -112,13 +113,13 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="TrackCard" type="PanelContainer" parent="Root/Main/RaceData"]
-custom_minimum_size = Vector2(0, 170)
+custom_minimum_size = Vector2(0, 135)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Card")
 
 [node name="track_map" type="Control" parent="Root/Main/RaceData/TrackCard"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 150)
+custom_minimum_size = Vector2(0, 115)
 layout_mode = 2
 mouse_filter = 2
 script = ExtResource("2_track")
@@ -157,10 +158,53 @@ theme_override_font_sizes/normal_font_size = 13
 theme_override_font_sizes/bold_font_size = 13
 bbcode_enabled = true
 fit_content = false
-scroll_active = false
+scroll_active = true
+
+[node name="AnalysisCard" type="PanelContainer" parent="Root/Main/RaceData"]
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Card")
+
+[node name="analysis_tabs" type="TabContainer" parent="Root/Main/RaceData/AnalysisCard"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Stints" type="Control" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+script = ExtResource("3_chart")
+chart_mode = "Stints"
+
+[node name="Lap Times" type="Control" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+script = ExtResource("3_chart")
+chart_mode = "Lap Times"
+
+[node name="Tyre & Fuel" type="Control" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+script = ExtResource("3_chart")
+chart_mode = "Tyre & Fuel"
+
+[node name="Passing" type="RichTextLabel" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = false
+scroll_active = true
+
+[node name="Cautions" type="RichTextLabel" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = false
+scroll_active = true
+
+[node name="Comparisons" type="RichTextLabel" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = false
+scroll_active = true
 
 [node name="FeedCard" type="PanelContainer" parent="Root/Main/RaceData"]
-custom_minimum_size = Vector2(0, 70)
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Feed")
 
@@ -214,7 +258,7 @@ scroll_active = false
 text = "Waiting for telemetry…"
 
 [node name="EngineerCard" type="PanelContainer" parent="Root/Main/RaceData"]
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Feed")
 
