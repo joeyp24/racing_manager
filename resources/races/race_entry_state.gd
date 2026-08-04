@@ -21,7 +21,7 @@ var fuel_efficiency: float = 50.0
 var tyre_preservation: float = 50.0
 var attributes: Dictionary = {}
 
-var tyre_compound: String = "Medium"
+var tyre_compound: String = "Standard"
 var tyre_condition: float = 100.0
 var tyre_temperature: float = 80.0
 var stint_laps: int = 0
@@ -33,6 +33,7 @@ var mechanical_health: float = 100.0
 var mechanical_warning_level: int = 0
 var pit_stops: int = 0
 var pending_pit_compound: String = ""
+var last_pit_lap: int = -1
 var setup_mode: String = "Balanced"
 var setup_profile: Dictionary = {}
 var brake_bias: String = "Neutral"

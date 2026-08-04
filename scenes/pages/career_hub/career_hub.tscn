@@ -56,6 +56,26 @@ text = "Mark All Read"
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="InboxFilters" type="HBoxContainer" parent="Margin/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FilterLabel" type="Label" parent="Margin/Layout/InboxFilters"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "INBOX FILTERS"
+vertical_alignment = 1
+
+[node name="category_filter" type="OptionButton" parent="Margin/Layout/InboxFilters"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="status_filter" type="OptionButton" parent="Margin/Layout/InboxFilters"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="Rule" type="HSeparator" parent="Margin/Layout"]
 layout_mode = 2
 

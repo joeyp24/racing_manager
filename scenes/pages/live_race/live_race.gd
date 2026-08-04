@@ -23,12 +23,16 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 @onready var apply_command_button: Button = %apply_command_button
 @onready var team_order_selector: OptionButton = %team_order_selector
 @onready var apply_team_order_button: Button = %apply_team_order_button
+@onready var track_map: LiveTrackMap = %track_map
+@onready var caution_dialog: ConfirmationDialog = %caution_dialog
 
 var simulation: RaceSimulation
 var lap_timer := Timer.new()
 var is_paused: bool = true
 var finalized: bool = false
 var weekend_data: Dictionary = {}
+var caution_choice_open: bool = false
+var was_running_before_caution: bool = false
 
 
 func _ready() -> void:
@@ -54,14 +58,16 @@ func _ready() -> void:
 	apply_setup_button.pressed.connect(_apply_setup)
 	apply_command_button.pressed.connect(_apply_commands)
 	apply_team_order_button.pressed.connect(_apply_team_order)
+	simulation.caution_started.connect(_on_caution_started)
+	caution_dialog.confirmed.connect(_pit_under_caution)
+	caution_dialog.canceled.connect(_stay_out_under_caution)
 	for speed in SPEEDS:
 		speed_selector.add_item("%dx" % speed)
 	pace_selector.add_item("Conserve")
 	pace_selector.add_item("Balanced")
 	pace_selector.add_item("Attack")
 	pace_selector.select(1)
-	for compound in ["Soft", "Medium", "Hard", "Intermediate", "Wet"]:
-		tyre_selector.add_item(compound)
+	tyre_selector.add_item("Standard")
 	for setup in ["Forward", "Neutral", "Rearward"]:
 		setup_selector.add_item(setup)
 	for fuel_target in ["Save", "Balanced", "Push"]:
@@ -70,12 +76,13 @@ func _ready() -> void:
 		racecraft_selector.add_item(command)
 	for order in ["Race freely", "Hold position", "Swap positions", "Help lead car", "Conserve equipment"]:
 		team_order_selector.add_item(order)
-	tyre_selector.select(1)
+	tyre_selector.select(0)
 	setup_selector.select(1)
 	fuel_selector.select(1)
 	racecraft_selector.select(1)
 	speed_selector.select(1)
 	_update_timer_speed()
+	track_map.set_simulation(simulation)
 	_refresh_display()
 
 
@@ -89,7 +96,7 @@ func _on_lap_timer_timeout() -> void:
 
 
 func _toggle_pause() -> void:
-	if simulation == null or simulation.is_complete:
+	if simulation == null or simulation.is_complete or caution_choice_open:
 		return
 	is_paused = not is_paused
 	pause_button.text = "Resume Race" if is_paused else "Pause Race"
@@ -124,7 +131,7 @@ func _apply_pace() -> void:
 
 
 func _advance_one_lap() -> void:
-	if simulation == null or simulation.is_complete:
+	if simulation == null or simulation.is_complete or caution_choice_open:
 		return
 	simulation.simulate_lap()
 	_refresh_display()
@@ -137,8 +144,50 @@ func _request_pit_stop() -> void:
 		return
 	var compound := tyre_selector.get_item_text(tyre_selector.selected)
 	if simulation.request_player_pit_stop(compound):
-		message_label.text = "PIT CONFIRMED • Box next lap for %s tyres" % compound
+		message_label.text = "PIT CONFIRMED • Box next lap for fresh tyres"
 		_refresh_display()
+
+
+func _on_caution_started(lap: int) -> void:
+	if finalized or caution_choice_open or lap >= simulation.race.lap_count:
+		return
+	was_running_before_caution = not is_paused
+	caution_choice_open = true
+	is_paused = true
+	lap_timer.stop()
+	pause_button.text = "Resume Race"
+	next_lap_button.disabled = true
+	var player := simulation.get_player_entry()
+	var position_text := ""
+	if player != null:
+		position_text = "\n\nYou are P%d with %d%% tyre life and %.1f fuel laps remaining." % [player.position, roundi(player.tyre_condition), player.fuel_laps / maxf(0.1, simulation.race.fuel_consumption_factor)]
+	caution_dialog.dialog_text = "Caution on lap %d. The field is compressed and pit-lane time loss is reduced.%s\n\nPit for fresh tyres and fuel, or stay out to protect track position?" % [lap, position_text]
+	message_label.text = "YELLOW FLAG • SIMULATION PAUSED FOR PIT DECISION"
+	_refresh_display()
+	caution_dialog.popup_centered(Vector2i(520, 250))
+
+
+func _pit_under_caution() -> void:
+	if simulation != null:
+		simulation.request_player_pit_stop("Standard")
+	_finish_caution_choice("PIT CONFIRMED • Box under caution for fresh tyres and fuel")
+
+
+func _stay_out_under_caution() -> void:
+	_finish_caution_choice("STAYING OUT • Track position protected under caution")
+
+
+func _finish_caution_choice(message: String) -> void:
+	if not caution_choice_open:
+		return
+	caution_choice_open = false
+	next_lap_button.disabled = false
+	message_label.text = message
+	if was_running_before_caution:
+		is_paused = false
+		pause_button.text = "Pause Race"
+		lap_timer.start()
+	_refresh_display()
 
 
 func _apply_setup() -> void:
@@ -176,6 +225,7 @@ func _refresh_display() -> void:
 	_refresh_tower()
 	_refresh_telemetry()
 	_refresh_feed()
+	track_map.queue_redraw()
 
 
 func _refresh_header() -> void:
@@ -183,7 +233,7 @@ func _refresh_header() -> void:
 		return
 	race_title.text = "%s — LAP %d / %d" % [simulation.race.race_name.to_upper(), simulation.current_lap, simulation.race.lap_count]
 	flag_label.text = "●  %s" % simulation.race_state
-	flag_label.modulate = Color("55d68b") if simulation.race_state == "GREEN FLAG" else Color("f4f6fa")
+	flag_label.modulate = Color("55d68b") if simulation.race_state == "GREEN FLAG" else (Color("f0c84b") if simulation.race_state in ["SAFETY CAR", "RESTART"] else Color("f4f6fa"))
 	var speed := SPEEDS[speed_selector.selected] if speed_selector.selected >= 0 else 1
 	speed_label.text = ("PAUSED  •  " if is_paused else "LIVE  •  ") + "%d× SPEED" % speed
 
@@ -193,14 +243,14 @@ func _refresh_tower() -> void:
 		return
 	var leader := simulation.entries[0]
 	var primary_hex := GameManager.team.primary_color.to_html(false)
-	var text := "[table=8][cell][b]POS[/b][/cell][cell][b]DRIVER[/b][/cell][cell][b]CHANGE[/b][/cell][cell][b]GAP[/b][/cell][cell][b]LAST LAP[/b][/cell][cell][b]BEST[/b][/cell][cell][b]TYRE[/b][/cell][cell][b]STATUS[/b][/cell]"
+	var text := "[table=8][cell][b]POS[/b][/cell][cell][b]DRIVER[/b][/cell][cell][b]CHANGE[/b][/cell][cell][b]GAP[/b][/cell][cell][b]LAST LAP[/b][/cell][cell][b]BEST[/b][/cell][cell][b]TYRE LIFE[/b][/cell][cell][b]STATUS[/b][/cell]"
 	for entry in simulation.entries:
 		var change := entry.starting_position - entry.position
 		var change_text := "—" if change == 0 else ("↑%d" % change if change > 0 else "↓%d" % abs(change))
 		var gap := "LEADER" if entry.position == 1 else "+%.3f" % entry.gap_to(leader)
 		var lap := "—" if entry.last_lap_time <= 0.0 else "%.3f" % entry.last_lap_time
 		var best := "—" if entry.best_lap_time <= 0.0 else "%.3f" % entry.best_lap_time
-		var tyre := "%s %d%%" % [entry.tyre_compound.left(1), roundi(entry.tyre_condition)]
+		var tyre := "%d%%" % roundi(entry.tyre_condition)
 		var values := ["P%d" % entry.position, entry.driver_name, change_text, gap, lap, best, tyre, entry.pace_mode if entry.is_player else entry.status]
 		for value in values:
 			if entry.is_player:

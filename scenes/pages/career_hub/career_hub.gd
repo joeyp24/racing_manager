@@ -1,22 +1,37 @@
 extends Control
 
 const TABS: Array[String] = ["Inbox", "Board & Story", "People", "Car & R&D", "Operations", "World", "Stats & Settings"]
+const INBOX_CATEGORIES: Array[String] = ["All categories", "Board", "Championship", "Driver", "Engineering", "Media", "Paddock", "Regulations", "Rivalry", "Sponsor", "Stewarding"]
+const INBOX_STATUSES: Array[String] = ["All messages", "Action required", "Unread", "Resolved"]
 
 @onready var tab_selector: OptionButton = %tab_selector
 @onready var content: VBoxContainer = %content
 @onready var summary: Label = %Summary
 @onready var mark_read_button: Button = %mark_read_button
+@onready var category_filter: OptionButton = %category_filter
+@onready var status_filter: OptionButton = %status_filter
+@onready var inbox_filters: HBoxContainer = $Margin/Layout/InboxFilters
 
 
 func _ready() -> void:
 	for tab in TABS:
 		tab_selector.add_item(tab)
+	for category in INBOX_CATEGORIES:
+		category_filter.add_item(category)
+	for status in INBOX_STATUSES:
+		status_filter.add_item(status)
 	tab_selector.item_selected.connect(_on_tab_selected)
+	category_filter.item_selected.connect(_on_inbox_filter_selected)
+	status_filter.item_selected.connect(_on_inbox_filter_selected)
 	mark_read_button.pressed.connect(_mark_all_read)
 	_render()
 
 
 func _on_tab_selected(_index: int) -> void:
+	_render()
+
+
+func _on_inbox_filter_selected(_index: int) -> void:
 	_render()
 
 
@@ -30,6 +45,7 @@ func _render() -> void:
 	var unread := CareerExpansionManager.get_unread_count(GameManager.team)
 	summary.text = "Season %d · Day %d · %d unread · Board confidence %d%%" % [GameManager.team.current_season_year, GameManager.team.current_season_day, unread, int(state.board.confidence)]
 	mark_read_button.text = "Mark All Read (%d)" % unread
+	inbox_filters.visible = tab_selector.selected == 0
 	match tab_selector.selected:
 		0: _render_inbox(state)
 		1: _render_board(state)
@@ -41,15 +57,33 @@ func _render() -> void:
 
 
 func _render_inbox(state: Dictionary) -> void:
-	_add_section("TEAM PRINCIPAL INBOX", "News, urgent decisions, driver conversations, sponsor requests, paddock events and press conferences appear here.")
+	_add_section("WEEKLY BRIEFING", _weekly_briefing(state))
 	var news_lines := PackedStringArray()
-	for index in mini(10, (state.news_feed as Array).size()):
-		var story := state.news_feed[index] as Dictionary
+	var shown_news := 0
+	for story_value in state.news_feed:
+		if shown_news >= 6:
+			break
+		var story := story_value as Dictionary
+		if category_filter.selected > 0 and str(story.get("category", "")) != INBOX_CATEGORIES[category_filter.selected]:
+			continue
 		var marker := "TOP STORY" if int(story.get("importance", 1)) >= 3 else str(story.get("category", "Paddock")).to_upper()
 		news_lines.append("%s · %s\n%s" % [marker, story.get("headline", "Update"), story.get("body", "")])
+		shown_news += 1
 	_add_section("WEEKLY PADDOCK FEED", "\n\n".join(news_lines) if not news_lines.is_empty() else "Results, transfers, upgrades, rumors, sponsor reactions and championship turning points will appear here.")
-	var shown := 0
+	var filtered_items: Array[Dictionary] = []
 	for value in state.inbox:
+		var candidate := value as Dictionary
+		if _matches_inbox_filters(candidate):
+			filtered_items.append(candidate)
+	filtered_items.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+		var first_rank := _priority_rank(str(first.get("priority", "Low")))
+		var second_rank := _priority_rank(str(second.get("priority", "Low")))
+		if first_rank != second_rank:
+			return first_rank > second_rank
+		return int(first.get("deadline", 9999)) < int(second.get("deadline", 9999))
+	)
+	var shown := 0
+	for value in filtered_items:
 		if shown >= 14:
 			break
 		var item := value as Dictionary
@@ -61,7 +95,9 @@ func _render_inbox(state: Dictionary) -> void:
 				var cost_text := " · $%s" % int(choice.get("cost", 0)) if int(choice.get("cost", 0)) > 0 else ""
 				actions.append({"label":str(choice.get("label", "Respond")) + cost_text, "call":_resolve_mail.bind(str(item.id), index)})
 		var status := "RESOLVED · %s" % item.get("selected", "Filed") if bool(item.get("resolved", false)) else ("ACTION REQUIRED" if not choices.is_empty() else "NEWS")
-		_add_section("%s  /  %s" % [str(item.get("category", "Team")).to_upper(), item.get("subject", "Update")], "%s\n%s · Season %d, day %d" % [item.get("body", ""), status, int(item.get("season", 0)), int(item.get("day", 0))], actions)
+		var deadline_text := _deadline_text(item)
+		var context := "PRIORITY %s · %s · Season %d, day %d" % [str(item.get("priority", "Low")).to_upper(), status, int(item.get("season", 0)), int(item.get("day", 0))]
+		_add_section("%s  /  %s" % [str(item.get("category", "Team")).to_upper(), item.get("subject", "Update")], "%s\n\n%s%s\nWHY THIS CHANGED · %s" % [item.get("body", ""), context, deadline_text, item.get("why_changed", "New information arrived.")], actions)
 		shown += 1
 	if shown == 0:
 		_add_section("INBOX CLEAR", "No messages yet. Race weekends, projects and season changes will generate team news.")
@@ -71,6 +107,73 @@ func _render_inbox(state: Dictionary) -> void:
 		var notice := notices[index] as Dictionary
 		lines.append("%s  %s — %s" % ["●" if not bool(notice.get("read", false)) else "○", notice.get("title", "Update"), notice.get("body", "")])
 	_add_section("NOTIFICATION CENTER", "\n".join(lines) if not lines.is_empty() else "No notifications.", [{"label":"Clear read notices", "call":_clear_read_notices}])
+
+
+func _weekly_briefing(state: Dictionary) -> String:
+	var action_count := 0
+	var due_soon := 0
+	var unread := 0
+	var priorities: Array[Dictionary] = []
+	for value in state.inbox:
+		var item := value as Dictionary
+		if not bool(item.get("read", false)):
+			unread += 1
+		if bool(item.get("resolved", false)) or (item.get("choices", []) as Array).is_empty():
+			continue
+		action_count += 1
+		if int(item.get("deadline", 9999)) <= GameManager.team.current_season_day + 7:
+			due_soon += 1
+		priorities.append(item)
+	priorities.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+		var first_rank := _priority_rank(str(first.get("priority", "Low")))
+		var second_rank := _priority_rank(str(second.get("priority", "Low")))
+		if first_rank != second_rank:
+			return first_rank > second_rank
+		return int(first.get("deadline", 9999)) < int(second.get("deadline", 9999))
+	)
+	var priority_lines := PackedStringArray()
+	for index in mini(3, priorities.size()):
+		var item := priorities[index]
+		priority_lines.append("• %s · %s" % [item.get("subject", "Decision"), _deadline_text(item).strip_edges().trim_prefix("· ")])
+	var finance := CareerExpansionManager.update_finance_forecast(GameManager.team)
+	var reputation_state := ReputationManager.ensure_state(GameManager.team)
+	var latest_change := "No reputation movement recorded yet."
+	if not (reputation_state.history as Array).is_empty():
+		latest_change = str((reputation_state.history[0] as Dictionary).get("reason", latest_change))
+	var next_event := RaceManager.get_next_race(GameManager.team)
+	var next_event_text := "%s · day %d" % [next_event.race_name, next_event.schedule_day] if next_event != null else "No event currently scheduled"
+	return (
+		"THIS WEEK · %d decisions · %d due within seven days · %d unread\n"
+		+ "NEXT EVENT · %s\n"
+		+ "BOARD · %d%% confidence · %d%% job security\n"
+		+ "CASH OUTLOOK · $%s projected at season end\n\n"
+		+ "TOP PRIORITIES\n%s\n\n"
+		+ "WHY THE OUTLOOK CHANGED · %s"
+	) % [action_count, due_soon, unread, next_event_text, int(state.board.confidence), int(state.board.job_security), String.num_int64(int(finance.get("season_end_cash", GameManager.team.money))), "\n".join(priority_lines) if not priority_lines.is_empty() else "No decisions currently require attention.", latest_change]
+
+
+func _matches_inbox_filters(item: Dictionary) -> bool:
+	if category_filter.selected > 0 and str(item.get("category", "")) != INBOX_CATEGORIES[category_filter.selected]:
+		return false
+	match status_filter.selected:
+		1:
+			return not bool(item.get("resolved", false)) and not (item.get("choices", []) as Array).is_empty()
+		2:
+			return not bool(item.get("read", false))
+		3:
+			return bool(item.get("resolved", false))
+	return true
+
+
+func _priority_rank(priority: String) -> int:
+	return int({"High":3, "Normal":2, "Low":1}.get(priority, 1))
+
+
+func _deadline_text(item: Dictionary) -> String:
+	if bool(item.get("resolved", false)) or (item.get("choices", []) as Array).is_empty():
+		return ""
+	var days_left := int(item.get("deadline", GameManager.team.current_season_day)) - GameManager.team.current_season_day
+	return " · DUE DAY %d (%s)" % [int(item.get("deadline", 0)), "today" if days_left == 0 else ("%d days" % days_left if days_left > 0 else "expired")]
 
 
 func _render_board(state: Dictionary) -> void:

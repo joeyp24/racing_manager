@@ -15,8 +15,12 @@ func _run() -> void:
 	root.add_child(page)
 	await process_frame
 	var tab_selector := page.get_node("%tab_selector") as OptionButton
+	var category_filter := page.get_node("%category_filter") as OptionButton
+	var status_filter := page.get_node("%status_filter") as OptionButton
 	var content := page.get_node("%content") as VBoxContainer
 	assert(tab_selector.item_count == 7)
+	assert(category_filter.item_count >= 10)
+	assert(status_filter.item_count == 4)
 	for index in tab_selector.item_count:
 		tab_selector.select(index)
 		tab_selector.item_selected.emit(index)

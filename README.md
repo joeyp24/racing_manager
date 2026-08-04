@@ -424,10 +424,14 @@ python tools/run_godot_checks.py
 - Career HQ with a decision inbox, board confidence and job security, press conferences, persistent rivalries, career story arcs, season awards, records, retired numbers, and a Hall of Fame.
 - Driver academy and junior results, regional scouting uncertainty, teammate chemistry and mentorship, injuries and reserves, staff loyalty and burnout, and contracts with bonuses, options, clauses, role promises, and performance targets.
 - A branching R&D tree, selectable car design philosophies, variable manufacturing quality and prototypes, technical regulation resets, manufacturer support, and preseason testing.
-- Dynamic forecasts and changing rain, drying lines, rubber and grip; dry, intermediate and wet tyres; multiple qualifying formats; live fuel, tyre, aggression, defense and team-order commands; stewarding, appeals, and lap-by-lap race replays.
+- Dynamic road-course forecasts with changing rain, drying lines, rubber and grip; multiple qualifying formats; live fuel, tyre, aggression, defense and team-order commands; stewarding, appeals, and lap-by-lap race replays.
+- Oval weekends are always dry and every series currently uses one standard race tyre, keeping pit decisions focused on wear, fuel and track position.
+- Live track maps show the running order, gaps, flags, pit activity and position changes; cautions pause the simulation for an explicit pit-or-stay-out decision.
 - Expanded headquarters, logistics and spare equipment, multi-car resource politics, sponsor activations, merchandise and regional fan growth, and cash-flow forecasting.
 - Evolving venues and invitation events, historical track and series records, independent entrant changes, AI manufacturer alliances, and international racing programmes.
 - Livery and team-branding choices, guided contextual tutorials, advanced form and trend statistics, configurable notifications, interface scaling, colour modes, reduced-motion preferences, and simulation-speed controls.
+- Persistent reputation progress is visible from every main screen, with level progress, XP-to-next-level guidance and gain/level-up alerts.
+- Career HQ includes a consolidated weekly briefing, priority and deadline ordering, inbox filters, decision context, and a conditional authored paddock-event library.
 - Versioned, verified atomic career saves with automatic backup recovery and collection repair.
 
 ## Implemented but needs balancing
@@ -444,13 +448,13 @@ python tools/run_godot_checks.py
 ## Next milestone
 
 - Balance long-term board pressure, academy growth, facility upkeep, regulation resets, weather strategy and AI alliances over multi-decade saves.
-- Add more authored paddock events and grow deterministic headless coverage into complete career journeys.
+- Grow the authored paddock-event library and deterministic headless coverage into complete career journeys.
 
 ## Known limitations
 
 - Mechanical setup is locked once the race begins; live control focuses on brake bias, pace, fuel, racecraft, tyres, pit calls and team orders.
 - Calendar evolution rotates existing championship slots so save progression remains compatible; invitation races are recorded as world events rather than extra championship rounds.
-- Static race definitions still require manual balancing and visual track maps are not yet available.
+- Static race definitions still require manual balancing; track maps currently use stylized layouts rather than venue-specific geometry.
 
 ---
 

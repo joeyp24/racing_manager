@@ -28,7 +28,7 @@ const PRACTICE_ADJUSTMENTS: Array[Dictionary] = [
 	{"axis": "brake_bias", "delta": -1, "name": "Move brake bias rearward", "description": "Helps rotation but makes braking less forgiving."}
 ]
 
-const PRACTICE_COMPOUNDS: Array[String] = ["Soft", "Medium", "Hard", "Intermediate", "Wet"]
+const PRACTICE_COMPOUNDS: Array[String] = ["Standard"]
 
 const DECISIONS: Array[Dictionary] = [
 	{"title": "CAUTION — Pit window opens", "text": "The field has slowed under caution. Pit now for fresh tyres or protect track position?", "choices": ["Pit now", "Stay out"]},
@@ -194,7 +194,7 @@ func show_strategy() -> void:
 	secondary_label.text = "Tyre and fuel plan"
 	secondary_label.visible = true
 	secondary_selector.visible = true
-	set_string_items(secondary_selector, ["Hard tyres / 68% fuel / long stint", "Medium tyres / 56% fuel / flexible", "Soft tyres / 42% fuel / early stop", "Intermediate tyres / 56% fuel / changeable", "Wet tyres / 60% fuel / heavy rain"])
+	set_string_items(secondary_selector, ["Long fuel load / extended opening stint", "Balanced fuel load / flexible window", "Short fuel load / early stop"])
 	secondary_selector.select(1)
 	outcome_label.text = "Grid: P%d • Setup: %s" % [int(weekend_data["starting_position"]), weekend_data["setup_emphasis"]]
 	action_button.text = "Start Race"
