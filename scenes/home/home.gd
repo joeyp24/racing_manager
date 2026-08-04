@@ -23,6 +23,13 @@ extends Control
 @onready var glossary_button: Button = %glossary_button
 @onready var money_label: Label = %money_label
 @onready var rep_label: Label = %rep_label
+@onready var rep_progress: ProgressBar = %rep_progress
+@onready var rep_progress_label: Label = %rep_progress_label
+@onready var reputation_toast: PanelContainer = %ReputationToast
+@onready var reputation_toast_title: Label = %reputation_toast_title
+@onready var reputation_toast_body: Label = %reputation_toast_body
+@onready var reputation_toast_progress: ProgressBar = %reputation_toast_progress
+@onready var reputation_toast_timer: Timer = %ReputationToastTimer
 @onready var position_label: Label = %position_label
 @onready var next_event_label: Label = %next_event_label
 @onready var team_name_label: Label = %team_name_label
@@ -33,6 +40,8 @@ extends Control
 @onready var command_bar: CommandBar = %CommandBar
 
 var navigation_buttons: Array[Button] = []
+var last_reputation_xp: int = -1
+var last_reputation_level: int = -1
 
 
 func _ready() -> void:
@@ -82,6 +91,7 @@ func _ready() -> void:
 	command_bar.action_requested.connect(_on_command_action_requested)
 	GameManager.page_changed.connect(_on_page_changed)
 	GameManager.fullscreen_changed.connect(_update_fullscreen_button)
+	reputation_toast_timer.timeout.connect(_hide_reputation_toast)
 	_update_fullscreen_button(GameManager.is_fullscreen())
 
 	if not GameManager.team_money_changed.is_connected(
@@ -92,6 +102,9 @@ func _ready() -> void:
 		)
 	if GameManager.team != null and not GameManager.team.changed.is_connected(update_team_display):
 		GameManager.team.changed.connect(update_team_display)
+	if GameManager.team != null:
+		last_reputation_xp = GameManager.team.reputation
+		last_reputation_level = GameManager.team.get_reputation_level()
 
 	update_team_display()
 	update_unlocked_navigation()
@@ -311,14 +324,37 @@ func update_team_display() -> void:
 		return
 
 	var team: Team = GameManager.team
+	var reputation_gain := team.reputation - last_reputation_xp if last_reputation_xp >= 0 else 0
+	var previous_level := last_reputation_level
+	if reputation_gain > 0:
+		_show_reputation_gain(reputation_gain, previous_level, team)
+	last_reputation_xp = team.reputation
+	last_reputation_level = team.get_reputation_level()
 	update_money_label(team.money)
 	team_name_label.text = team.team_name.to_upper()
 	season_label.text = "SEASON %d • TEAM HQ" % team.season_number
 	rep_label.text = "%s  ·  L%d" % [team.get_reputation_tier(), team.get_reputation_level()]
+	rep_progress.max_value = team.get_level_xp_span()
+	rep_progress.value = team.get_current_level_xp()
+	rep_progress_label.text = "%d / %d XP · %d TO NEXT" % [team.get_current_level_xp(), team.get_level_xp_span(), team.get_xp_to_next_level()]
 	next_event_label.text = get_next_event_name(team)
 	position_label.text = get_championship_position(team)
 	command_bar.display(NextActionModel.derive(team))
 	update_unlocked_navigation()
+
+
+func _show_reputation_gain(amount: int, previous_level: int, team: Team) -> void:
+	var level_up := previous_level > 0 and team.get_reputation_level() > previous_level
+	reputation_toast_title.text = "LEVEL UP · REPUTATION +%d" % amount if level_up else "REPUTATION +%d" % amount
+	reputation_toast_body.text = "%s · Level %d\n%d XP to the next level" % [team.get_reputation_tier(), team.get_reputation_level(), team.get_xp_to_next_level()]
+	reputation_toast_progress.max_value = team.get_level_xp_span()
+	reputation_toast_progress.value = team.get_current_level_xp()
+	reputation_toast.visible = true
+	reputation_toast_timer.start()
+
+
+func _hide_reputation_toast() -> void:
+	reputation_toast.visible = false
 
 
 func _on_command_action_requested(action: String) -> void:

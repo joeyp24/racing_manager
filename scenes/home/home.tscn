@@ -304,7 +304,7 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="TopBar" type="PanelContainer" parent="Layout/RightSide/OuterMargin/Stack"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 theme_type_variation = &"TopbarPanel"
 
@@ -355,6 +355,7 @@ size_flags_horizontal = 3
 layout_mode = 2
 
 [node name="RepBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
 theme_override_constants/separation = 0
 
@@ -367,6 +368,19 @@ text = "REPUTATION"
 unique_name_in_owner = true
 layout_mode = 2
 text = "0 PTS"
+
+[node name="rep_progress" type="ProgressBar" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 5)
+layout_mode = 2
+show_percentage = false
+
+[node name="rep_progress_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+theme_override_font_sizes/font_size = 10
+text = "0 / 100 XP"
 
 [node name="Spacer" type="Control" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
 layout_mode = 2
@@ -396,6 +410,55 @@ size_flags_vertical = 3
 unique_name_in_owner = true
 layout_mode = 2
 clip_contents = true
+
+[node name="ReputationToast" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+z_index = 20
+layout_mode = 1
+anchors_preset = 2
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -374.0
+offset_top = 72.0
+offset_right = -18.0
+offset_bottom = 188.0
+grow_horizontal = 0
+theme_type_variation = &"CardPanel"
+
+[node name="Margin" type="MarginContainer" parent="ReputationToast"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="Stack" type="VBoxContainer" parent="ReputationToast/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="reputation_toast_title" type="Label" parent="ReputationToast/Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "REPUTATION GAINED"
+
+[node name="reputation_toast_body" type="Label" parent="ReputationToast/Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "+0 XP"
+
+[node name="reputation_toast_progress" type="ProgressBar" parent="ReputationToast/Margin/Stack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+show_percentage = false
+
+[node name="ReputationToastTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 4.5
+one_shot = true
 
 [node name="settings_dialog" type="ConfirmationDialog" parent="."]
 unique_name_in_owner = true

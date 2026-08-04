@@ -5,6 +5,7 @@ func _initialize() -> void:
 	_test_feature_state_and_persistence()
 	_test_career_actions_and_progression()
 	_test_dynamic_race_environment_and_commands()
+	_test_oval_weather_and_authored_events()
 	print("Career-wide expansion tests passed")
 	quit(0)
 
@@ -36,6 +37,12 @@ func _test_feature_state_and_persistence() -> void:
 	assert(bool((reloaded.career_state.inbox[0] as Dictionary).resolved))
 	assert(reloaded.save_format_version == Team.CURRENT_SAVE_FORMAT_VERSION)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
+	var legacy_team := Team.new()
+	legacy_team.career_state = {"inbox":[{"category":"Board", "subject":"Legacy decision", "body":"Choose.", "choices":[{"label":"Respond", "effects":{}}], "resolved":false, "day":40}]}
+	var migrated_item := (CareerExpansionManager.ensure_state(legacy_team).inbox[0] as Dictionary)
+	assert(migrated_item.has("deadline"))
+	assert(migrated_item.has("priority"))
+	assert(migrated_item.has("why_changed"))
 
 
 func _test_career_actions_and_progression() -> void:
@@ -79,19 +86,47 @@ func _test_dynamic_race_environment_and_commands() -> void:
 	var simulation := RaceSimulation.new()
 	var ai: Array[Dictionary] = [{"driver_id":"ai", "driver_name":"AI Driver", "team_name":"AI Team", "skill":60, "consistency":60, "aggression":55}]
 	var scores: Array[float] = [60.0]
-	simulation.setup(race, driver, "Player Team", 64.0, 1, ai, scores, "Medium", [], 2042)
+	race.track_type = "Road Course"
+	simulation.setup(race, driver, "Player Team", 64.0, 1, ai, scores, "Standard", [], 2042)
 	simulation.configure_environment({"weather":"Wet", "rain_chance":90, "temperature":17})
 	simulation.set_player_fuel_target("Save")
 	simulation.set_player_racecraft_command("Defend")
 	simulation.set_team_order("Hold position", "Player Team")
-	assert(simulation.request_player_pit_stop("Wet"))
+	assert(simulation.request_player_pit_stop("Standard"))
 	while not simulation.is_complete:
 		simulation.simulate_lap()
 	var player := simulation.get_player_entry()
 	assert(player != null)
-	assert(player.tyre_compound == "Wet")
+	assert(player.tyre_compound == "Standard")
 	assert(player.fuel_target_mode == "Save")
 	assert(player.team_order == "Hold position")
 	assert(not simulation.replay_timeline.is_empty())
 	assert(not simulation.weather_timeline.is_empty())
 	assert((simulation.as_final_standings()[0] as Dictionary).has("racecraft_command"))
+
+
+func _test_oval_weather_and_authored_events() -> void:
+	var team := Team.new()
+	var oval := Race.new()
+	oval.race_id = "dry_oval"
+	oval.track_type = "Speedway"
+	oval.weather = "Wet"
+	var weekend := CareerExpansionManager.configure_race_weekend(team, oval)
+	assert(str((weekend.forecast as Dictionary).weather) == "Dry")
+	assert(int((weekend.forecast as Dictionary).rain_chance) == 0)
+	var driver := Driver.new()
+	driver.driver_id = "story_driver"
+	driver.driver_name = "Story Driver"
+	team.drivers.append(driver)
+	team.contracted_driver_ids.append(driver.driver_id)
+	team.active_sponsor_contract = {"sponsor_name":"Story Sponsor"}
+	var state := CareerExpansionManager.ensure_state(team)
+	state.regulations.next = {"name":"Next rules", "focus":"Cost control"}
+	var events := CareerExpansionManager._authored_paddock_events(team)
+	var ids := events.map(func(value: Dictionary) -> String: return str(value.id))
+	assert(ids.has("driver_resource_dispute"))
+	assert(ids.has("sponsor_brand_conflict"))
+	assert(ids.has("regulation_controversy"))
+	for event in events:
+		assert(not str((event as Dictionary).get("why_changed", "")).is_empty())
+		assert(not ((event as Dictionary).get("choices", []) as Array).is_empty())

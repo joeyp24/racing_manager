@@ -62,6 +62,10 @@ func get_weekend_cost() -> int:
 	return get_track_charges() + get_operating_cost()
 
 
+func is_oval() -> bool:
+	return track_type in ["Short Track", "Speedway"]
+
+
 func get_driver_attribute_weights() -> Dictionary:
 	var weights := {"race_pace":0.30, "qualifying_pace":0.08, "tyre_management":0.12, "racecraft":0.12, "wet_weather":0.02, "starts_restarts":0.08, "consistency":0.10, "car_feedback":0.05, "fitness":0.07, "composure":0.06}
 	if track_type == "Short Track":

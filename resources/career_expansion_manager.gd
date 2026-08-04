@@ -1,7 +1,7 @@
 extends RefCounted
 class_name CareerExpansionManager
 
-const STATE_VERSION: int = 2
+const STATE_VERSION: int = 3
 const MAX_INBOX_ITEMS: int = 80
 const MAX_NOTIFICATIONS: int = 120
 const MAX_NEWS_ITEMS: int = 100
@@ -68,6 +68,7 @@ static func defaults() -> Dictionary:
 		"processed_transfers":[],
 		"press_history":[],
 		"story_arcs":[],
+		"story_event_history":[],
 		"awards":[],
 		"hall_of_fame":[],
 		"academy":{"budget":0, "slots":2, "prospects":[], "enrolled":[], "junior_results":[]},
@@ -127,6 +128,7 @@ static func ensure_state(team) -> Dictionary:
 		team.career_state = {}
 	_merge_defaults(team.career_state, defaults())
 	team.career_state["version"] = STATE_VERSION
+	_migrate_inbox_metadata(team)
 	_ensure_board_targets(team)
 	_ensure_academy_prospects(team)
 	_ensure_staff_dynamics(team)
@@ -137,6 +139,20 @@ static func ensure_state(team) -> Dictionary:
 	_update_tutorial_progress(team)
 	update_finance_forecast(team)
 	return team.career_state
+
+
+static func _migrate_inbox_metadata(team) -> void:
+	for value in (team.career_state.inbox as Array):
+		var item := value as Dictionary
+		var requires_action := not bool(item.get("resolved", false)) and not (item.get("choices", []) as Array).is_empty()
+		if not item.has("deadline"):
+			item["deadline"] = mini(SEASON_END_DAY, int(item.get("day", team.current_season_day)) + (7 if requires_action else 0))
+		if not item.has("priority"):
+			item["priority"] = "Normal" if requires_action else "Low"
+		if not item.has("why_changed"):
+			item["why_changed"] = "This message was carried forward from an earlier career save."
+		if not item.has("story_id"):
+			item["story_id"] = ""
 
 
 static func _merge_defaults(target: Dictionary, template: Dictionary) -> void:
@@ -222,19 +238,25 @@ static func _update_tutorial_progress(team) -> void:
 	tutorial["step"] = completed.size()
 
 
-static func add_inbox_item(team, category: String, subject: String, body: String, choices: Array = []) -> void:
+static func add_inbox_item(team, category: String, subject: String, body: String, choices: Array = [], metadata: Dictionary = {}) -> void:
 	var state := ensure_state(team)
 	var inbox := state.inbox as Array
+	var requires_action := not choices.is_empty()
+	var default_priority := "High" if requires_action and category in ["Board", "Medical", "Stewarding", "Regulations"] else ("Normal" if requires_action else "Low")
 	inbox.push_front({
 		"id":"mail_%d_%d" % [Time.get_unix_time_from_system(), inbox.size()],
 		"category":category,
 		"subject":subject,
 		"body":body,
 		"choices":choices.duplicate(true),
-		"resolved":choices.is_empty(),
+		"resolved":not requires_action,
 		"read":false,
 		"season":team.current_season_year,
-		"day":team.current_season_day
+		"day":team.current_season_day,
+		"deadline":mini(SEASON_END_DAY, int(metadata.get("deadline", team.current_season_day + (7 if requires_action else 0)))),
+		"priority":str(metadata.get("priority", default_priority)),
+		"why_changed":str(metadata.get("why_changed", "New information arrived from %s." % category)),
+		"story_id":str(metadata.get("story_id", ""))
 	})
 	if inbox.size() > MAX_INBOX_ITEMS:
 		inbox.resize(MAX_INBOX_ITEMS)
@@ -347,6 +369,7 @@ static func process_day(team, elapsed_days: int) -> Array[String]:
 	_process_special_events(team, summaries)
 	_apply_upkeep(team, elapsed_days, summaries)
 	_process_weekly_merchandise(team, elapsed_days, summaries)
+	_expire_inbox_decisions(team)
 	_generate_paddock_event(team, elapsed_days)
 	update_finance_forecast(team)
 	return summaries
@@ -665,27 +688,161 @@ static func _process_scouting_network(team, elapsed_days: int, summaries: Array[
 	add_inbox_item(team, "Scouting", "Regional discovery", "%s found %s, a young %s prospect with an uncertain ceiling." % [region, prospect.name, prospect.region])
 
 
+static func _expire_inbox_decisions(team) -> void:
+	var state := ensure_state(team)
+	for value in state.inbox:
+		var item := value as Dictionary
+		if bool(item.get("resolved", false)) or (item.get("choices", []) as Array).is_empty():
+			continue
+		var deadline := int(item.get("deadline", 0))
+		if deadline <= 0 or team.current_season_day <= deadline:
+			continue
+		item["resolved"] = true
+		item["selected"] = "Deadline passed"
+		item["read"] = false
+		add_notification(team, "Decision", "Decision deadline passed", "%s was closed without a response." % item.get("subject", "Inbox decision"), true)
+
+
 static func _generate_paddock_event(team, elapsed_days: int) -> void:
-	if elapsed_days < 7 or randf() > 0.22 * float(elapsed_days) / 7.0:
+	if elapsed_days < 7 or randf() > 0.34 * float(elapsed_days) / 7.0:
 		return
+	var state := ensure_state(team)
+	var candidates := _authored_paddock_events(team)
+	if candidates.is_empty():
+		return
+	var recent := state.story_event_history as Array
+	var available: Array[Dictionary] = []
+	for candidate_value in candidates:
+		var candidate := candidate_value as Dictionary
+		if not recent.has(str(candidate.id)):
+			available.append(candidate)
+	if available.is_empty():
+		available = candidates
+	var event := available[randi_range(0, available.size() - 1)] as Dictionary
+	add_inbox_item(team, str(event.category), str(event.subject), str(event.body), event.choices as Array, {
+		"deadline":mini(SEASON_END_DAY, team.current_season_day + int(event.get("deadline_days", 7))),
+		"priority":str(event.get("priority", "Normal")),
+		"why_changed":str(event.get("why_changed", "A new paddock development requires attention.")),
+		"story_id":str(event.id)
+	})
+	add_news_item(team, str(event.category), str(event.subject), str(event.get("news", event.body)), 2 if str(event.get("priority", "Normal")) == "High" else 1)
+	recent.push_front(str(event.id))
+	if recent.size() > 4:
+		recent.resize(4)
+
+
+static func _authored_paddock_events(team) -> Array[Dictionary]:
+	var state := ensure_state(team)
+	var events: Array[Dictionary] = []
 	var contracted: Array[Driver] = team.get_contracted_drivers()
-	var event_index := randi_range(0, 2)
-	if event_index == 0 and not contracted.is_empty():
-		var driver: Driver = contracted[randi_range(0, contracted.size() - 1)]
-		add_inbox_item(team, "Driver", "%s requests a conversation" % driver.driver_name, "The driver wants clarity on their role and the team's development direction.", [
-			{"label":"Promise equal support", "effects":{"driver_morale":5, "confidence":-1}},
-			{"label":"Set firm expectations", "effects":{"driver_morale":-3, "confidence":2}}
-		])
-	elif event_index == 1:
-		add_inbox_item(team, "Sponsor", "Sponsor appearance request", "A partner wants a driver and show car at a regional fan event.", [
-			{"label":"Attend the event", "cost":600, "effects":{"fans":80, "sponsor":3, "driver_morale":-1}},
-			{"label":"Decline and focus on racing", "effects":{"sponsor":-2, "staff_morale":2}}
-		])
-	else:
-		add_inbox_item(team, "Paddock", "Rival team approaches your staff", "A competitor has been seen speaking with a member of your technical department.", [
-			{"label":"Offer loyalty bonuses", "cost":1800, "effects":{"staff_morale":6, "confidence":1}},
-			{"label":"Trust the existing contracts", "effects":{"staff_morale":-2}}
-		])
+	if not contracted.is_empty():
+		var driver := contracted[0]
+		events.append({
+			"id":"driver_resource_dispute", "category":"Driver", "priority":"High", "deadline_days":5,
+			"subject":"%s questions the development plan" % driver.driver_name,
+			"body":"After two difficult debriefs, %s believes the current development direction is costing race pace and wants a clear commitment before the next event." % driver.driver_name,
+			"why_changed":"Driver morale and the team's recent development direction brought the disagreement to a head.",
+			"news":"A disagreement over technical priorities has become the paddock's latest talking point.",
+			"choices":[
+				{"label":"Back the driver's direction", "cost":1200, "effects":{"driver_morale":7, "staff_morale":-2, "confidence":1}},
+				{"label":"Back the engineering group", "effects":{"driver_morale":-5, "staff_morale":4, "professionalism":1}},
+				{"label":"Commission a joint test", "cost":2400, "effects":{"driver_morale":3, "staff_morale":3, "sporting_credibility":1}}
+			]
+		})
+	if not team.active_sponsor_contract.is_empty():
+		var sponsor_name := str(team.active_sponsor_contract.get("sponsor_name", "The title partner"))
+		events.append({
+			"id":"sponsor_brand_conflict", "category":"Sponsor", "priority":"High", "deadline_days":6,
+			"subject":"%s challenges the team's public message" % sponsor_name,
+			"body":"The sponsor says a recent press appearance conflicts with its campaign and wants a corrective activation before the next race.",
+			"why_changed":"A public team statement clashed with the active sponsor's campaign priorities.",
+			"news":"Commercial tension has surfaced between the team and its primary partner.",
+			"choices":[
+				{"label":"Fund a corrective campaign", "cost":1800, "effects":{"sponsor":5, "commercial_appeal":3, "fans":40}},
+				{"label":"Offer a private apology", "effects":{"sponsor":2, "professionalism":2}},
+				{"label":"Defend the team's independence", "effects":{"sponsor":-5, "fans":70, "commercial_appeal":1}}
+			]
+		})
+	var regulations := state.regulations as Dictionary
+	var next_rules := regulations.get("next", {}) as Dictionary
+	if not next_rules.is_empty():
+		events.append({
+			"id":"regulation_controversy", "category":"Regulations", "priority":"High", "deadline_days":9,
+			"subject":"Teams split over %s" % next_rules.get("name", "the next technical rules"),
+			"body":"A paddock working group is divided over the proposed %s focus. Your public position will influence manufacturers, independent teams and the board." % next_rules.get("focus", "cost-control"),
+			"why_changed":"The governing body opened formal consultation on the published technical reset.",
+			"news":"The next technical package has triggered a public dispute between leading organizations.",
+			"choices":[
+				{"label":"Support the reset", "effects":{"professionalism":2, "commercial_appeal":1, "confidence":1}},
+				{"label":"Fight for technical freedom", "effects":{"sporting_credibility":2, "professionalism":-1, "rivalry":4}},
+				{"label":"Call for a cost compromise", "effects":{"professionalism":3, "staff_morale":1}}
+			]
+		})
+	var has_car := false
+	for car_value in team.cars:
+		if car_value != null:
+			has_car = true
+			break
+	if has_car:
+		events.append({
+			"id":"technical_failure_warning", "category":"Engineering", "priority":"High", "deadline_days":4,
+			"subject":"Inspection finds a developing reliability risk",
+			"body":"Workshop inspection found heat damage near a critical assembly. The car can race, but the technical group recommends action before the next start.",
+			"why_changed":"Accumulated mileage and recent component stress pushed the assembly beyond its inspection threshold.",
+			"news":"The team faces an unexpected reliability decision before its next appearance.",
+			"choices":[
+				{"label":"Replace the assembly", "cost":3200, "effects":{"staff_morale":2, "professionalism":2}},
+				{"label":"Run an extended inspection", "cost":1100, "effects":{"staff_morale":1, "confidence":-1}},
+				{"label":"Accept the risk", "effects":{"staff_morale":-4, "confidence":-2}}
+			]
+		})
+	var rivalries := state.rivalries as Dictionary
+	if not rivalries.is_empty():
+		var rival := rivalries[rivalries.keys()[0]] as Dictionary
+		events.append({
+			"id":"rival_accusation", "category":"Rivalry", "priority":"Normal", "deadline_days":7,
+			"subject":"%s questions your team's tactics" % rival.get("name", "A rival driver"),
+			"body":"The rival camp claims your team crossed the line in recent wheel-to-wheel racing and is pushing the story through the media.",
+			"why_changed":"A persistent rivalry reached %d intensity after recent on-track encounters." % int(rival.get("intensity", 0)),
+			"news":"A competitive rivalry has spilled from the circuit into the press room.",
+			"choices":[
+				{"label":"De-escalate publicly", "effects":{"professionalism":3, "rivalry":-7}},
+				{"label":"Answer forcefully", "effects":{"fans":60, "commercial_appeal":2, "rivalry":8}},
+				{"label":"Invite a private meeting", "effects":{"professionalism":2, "rivalry":-3, "driver_morale":1}}
+			]
+		})
+	var completed: int = team.get_completed_races().size()
+	if completed >= 3:
+		var standings: Array[Dictionary] = team.get_sorted_championship_standings()
+		var player_position := 0
+		for index in standings.size():
+			if bool((standings[index] as Dictionary).get("is_player", false)):
+				player_position = index + 1
+				break
+		events.append({
+			"id":"championship_pressure", "category":"Championship", "priority":"High" if player_position <= 3 else "Normal", "deadline_days":7,
+			"subject":"Championship pressure reshapes the season",
+			"body":"With %d races complete and the team P%d, ownership wants the next month framed around a clear competitive priority." % [completed, maxi(1, player_position)],
+			"why_changed":"The championship passed its first major checkpoint and the standings now carry strategic weight.",
+			"news":"The title picture is beginning to influence development and race-weekend decisions.",
+			"choices":[
+				{"label":"Prioritize points consistency", "effects":{"confidence":2, "professionalism":2, "driver_morale":1}},
+				{"label":"Commit to race wins", "effects":{"sporting_credibility":2, "rivalry":4, "staff_morale":-1}},
+				{"label":"Protect the long-term plan", "effects":{"confidence":-1, "staff_morale":3}}
+			]
+		})
+	if events.is_empty():
+		events.append({
+			"id":"community_identity", "category":"Paddock", "priority":"Normal", "deadline_days":10,
+			"subject":"Local supporters ask what the team stands for",
+			"body":"A growing group of supporters wants the team to choose between a community programme and a performance-first public identity.",
+			"why_changed":"Recent fan growth created an opportunity to define the team's public identity.",
+			"choices":[
+				{"label":"Launch a community programme", "cost":900, "effects":{"fans":90, "commercial_appeal":2}},
+				{"label":"Focus every resource on racing", "effects":{"sporting_credibility":1, "fans":-15}}
+			]
+		})
+	return events
 
 
 static func _process_ai_development(team, summaries: Array[String]) -> void:
@@ -1765,11 +1922,14 @@ static func configure_race_weekend(team, race: Race) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var weather: String = str(["Dry", "Dry", "Dry", "Mixed", "Wet"][rng.randi_range(0, 4)])
-	if race.weather == "Wet":
+	if race.is_oval():
+		weather = "Dry"
+	elif race.weather == "Wet":
 		weather = "Wet"
 	var formats := ["Standard", "Knockout", "Groups", "Heat races", "Provisionals"]
 	var format: String = str(formats[(race.season_round + team.current_season_year) % formats.size()])
-	var forecast := {"weather":weather, "rain_chance":15 if weather == "Dry" else (55 if weather == "Mixed" else 88), "temperature":rng.randi_range(14, 34), "confidence":rng.randi_range(62, 94)}
+	var rain_chance := 0 if race.is_oval() else (15 if weather == "Dry" else (55 if weather == "Mixed" else 88))
+	var forecast := {"weather":weather, "rain_chance":rain_chance, "temperature":rng.randi_range(14, 34), "confidence":rng.randi_range(62, 94)}
 	state.race_weekend = {"forecast":forecast, "qualifying_format":format, "team_order":"Race freely"}
 	return state.race_weekend
 

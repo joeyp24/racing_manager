@@ -317,3 +317,24 @@ def test_finance_and_living_paddock_systems_are_integrated():
     assert '"best_lap_time": entry.best_lap_time' in race_simulation
     assert '"AI DEVELOPMENT RACE"' in career_hub and '"WEEKLY PADDOCK FEED"' in career_hub
     assert "create_special_event" in calendar
+
+
+def test_oval_racing_live_decisions_and_career_briefing_are_integrated():
+    race = (ROOT / "resources" / "races" / "race.gd").read_text()
+    simulation = (ROOT / "resources" / "races" / "race_simulation.gd").read_text()
+    weekend = (ROOT / "resources" / "career_expansion_manager.gd").read_text()
+    live_race = (ROOT / "scenes" / "pages" / "live_race" / "live_race.gd").read_text()
+    live_scene = (ROOT / "scenes" / "pages" / "live_race" / "live_race.tscn").read_text()
+    career_hub = (ROOT / "scenes" / "pages" / "career_hub" / "career_hub.gd").read_text()
+    home = (ROOT / "scenes" / "home" / "home.gd").read_text()
+    assert "func is_oval()" in race
+    assert 'forecast["rain_chance"] = 0' in simulation
+    assert 'signal caution_started(lap: int)' in simulation
+    assert 'tyre_selector.add_item("Standard")' in live_race
+    assert 'caution_dialog.popup_centered' in live_race
+    assert "live_track_map.gd" in live_scene
+    assert '"WEEKLY BRIEFING"' in career_hub
+    assert "WHY THIS CHANGED" in career_hub
+    for story_id in ("sponsor_brand_conflict", "driver_resource_dispute", "regulation_controversy", "technical_failure_warning", "rival_accusation", "championship_pressure"):
+        assert story_id in weekend
+    assert "_show_reputation_gain" in home

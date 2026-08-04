@@ -5,7 +5,7 @@ const TERMS := [
 	["Aggression", "Adds overtaking pace, but aggressive race plans increase variance, incident exposure and component wear."],
 	["Setup bonus", "Pace earned during practice by matching the car setup to the circuit. It is added directly to the race score."],
 	["Department bonuses", "Permanent team-wide modifiers created by Headquarters upgrades. Engineering improves parts and reliability; other departments affect drivers, setup, sponsors and operations."],
-	["Tyre compounds", "Soft is fastest but wears quickly. Medium balances pace and life. Hard is slower but lasts longest. Worn tyres lose pace non-linearly."],
+	["Tyres", "Every series currently uses one standard race tyre. Worn tyres lose pace non-linearly, so pit timing and conservation still matter."],
 	["Condition", "The health of a car or part. Low condition reduces effective performance and raises the risk that preparation checks block an entry."],
 	["Strategy variance", "How widely a result can move around its expected value. Conservative narrows the range; aggressive widens it in exchange for pace."],
 	["Staff ratings", "Role-specific attributes feed visible race effects: setup, reliability, repairs, incident prevention, restarts and pit-stop execution."],

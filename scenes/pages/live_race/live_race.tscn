@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/pages/live_race/live_race.gd" id="1"]
+[ext_resource type="Script" path="res://scenes/pages/live_race/live_track_map.gd" id="2_track"]
 
 [sub_resource type="StyleBoxFlat" id="Header"]
 bg_color = Color(0.035, 0.048, 0.066, 1)
@@ -109,6 +110,18 @@ theme_override_constants/separation = 8
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
+
+[node name="TrackCard" type="PanelContainer" parent="Root/Main/RaceData"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Card")
+
+[node name="track_map" type="Control" parent="Root/Main/RaceData/TrackCard"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 130)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("2_track")
 
 [node name="TowerCard" type="PanelContainer" parent="Root/Main/RaceData"]
 layout_mode = 2
@@ -329,3 +342,10 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 text = "Advance One Lap"
+
+[node name="caution_dialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Caution on track"
+dialog_text = "The race is under caution. Pit for fresh tyres and fuel, or stay out to protect track position?"
+ok_button_text = "Pit this lap"
+cancel_button_text = "Stay out"

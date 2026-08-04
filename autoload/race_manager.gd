@@ -297,21 +297,13 @@ func create_live_simulation(
 		detailed["attributes"] = _normalized_ai_attributes(ai_driver)
 		detailed_ai_drivers.append(detailed)
 	var simulation := RaceSimulation.new()
-	var compound := "Medium"
+	var compound := "Standard"
 	var fuel_fraction := 0.56
 	var plan := str(weekend_data.get("pre_race_plan", ""))
-	if plan.begins_with("Hard"):
-		compound = "Hard"
+	if plan.begins_with("Long"):
 		fuel_fraction = 0.68
-	elif plan.begins_with("Soft"):
-		compound = "Soft"
+	elif plan.begins_with("Short"):
 		fuel_fraction = 0.42
-	elif plan.begins_with("Intermediate"):
-		compound = "Intermediate"
-		fuel_fraction = 0.56
-	elif plan.begins_with("Wet"):
-		compound = "Wet"
-		fuel_fraction = 0.60
 	var player_race_attributes := player_car.get_race_attributes()
 	player_race_attributes["consistency"] = player_driver.get_effective_consistency()
 	var expansion_modifiers := _call_career_expansion_manager(&"get_race_modifiers", [GameManager.team]) as Dictionary

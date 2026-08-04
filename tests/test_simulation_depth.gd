@@ -18,8 +18,8 @@ func _test_practice_runs_are_deterministic_and_setup_sensitive() -> void:
 	for axis in poor:
 		poor[axis] = -2 if int(ideal[axis]) >= 0 else 2
 	assert(PracticeRunSimulator.setup_score(race, ideal) > PracticeRunSimulator.setup_score(race, poor))
-	var first := PracticeRunSimulator.simulate_run(race, driver, 65.0, ideal, "Medium", 1, 2026)
-	var repeat := PracticeRunSimulator.simulate_run(race, driver, 65.0, ideal, "Medium", 1, 2026)
+	var first := PracticeRunSimulator.simulate_run(race, driver, 65.0, ideal, "Standard", 1, 2026)
+	var repeat := PracticeRunSimulator.simulate_run(race, driver, 65.0, ideal, "Standard", 1, 2026)
 	assert(is_equal_approx(float(first.lap_time), float(repeat.lap_time)))
 	assert(str(first.feedback) == str(repeat.feedback))
 	assert(float(first.feedback_quality) >= 15.0 and float(first.feedback_quality) <= 98.0)
@@ -36,9 +36,12 @@ func _test_race_strategy_resources_and_caution_compression() -> void:
 		{"driver_id":"ai_2", "driver_name":"B Driver", "team_name":"B Team", "skill":58, "consistency":55, "aggression":55, "strategy_rating":45}
 	]
 	var scores: Array[float] = [62.0, 59.0]
-	simulation.setup(race, _make_driver(), "Player Team", 61.0, 2, ai, scores, "Soft", [], 2026, {"reliability":68.0, "fuel":52.0, "tyres":58.0}, "Balanced", PracticeRunSimulator.get_ideal_setup(race))
+	simulation.setup(race, _make_driver(), "Player Team", 61.0, 2, ai, scores, "Standard", [], 2026, {"reliability":68.0, "fuel":52.0, "tyres":58.0}, "Balanced", PracticeRunSimulator.get_ideal_setup(race))
 	simulation.entries[2].elapsed_time += 12.0
+	var caution_state := {"lap":-1}
+	simulation.caution_started.connect(func(lap: int) -> void: caution_state.lap = lap)
 	simulation._trigger_caution()
+	assert(int(caution_state.lap) == 0)
 	simulation.simulate_lap()
 	assert(simulation.caution_count == 1)
 	assert(simulation.entries[simulation.entries.size() - 1].gap_to(simulation.entries[0]) <= float(simulation.entries.size() - 1) * 0.29)
