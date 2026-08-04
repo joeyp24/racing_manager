@@ -311,17 +311,20 @@ func create_live_simulation(
 	elif plan.begins_with("Short"):
 		fuel_fraction = 0.42
 	var player_race_attributes := player_car.get_race_attributes()
+	var primary_entry := ((weekend_data.get("entries", []) as Array)[0] as Dictionary) if not (weekend_data.get("entries", []) as Array).is_empty() else {}
+	var primary_team_id := str(primary_entry.get("team_id", GameManager.team.active_race_team_id))
 	player_race_attributes["consistency"] = player_driver.get_effective_consistency()
 	var expansion_modifiers := _call_career_expansion_manager(&"get_race_modifiers", [GameManager.team]) as Dictionary
 	var rivalry_modifiers := _call_career_expansion_manager(&"get_rivalry_modifiers", [GameManager.team]) as Dictionary
 	player_race_attributes["reliability"] = clampf(float(player_race_attributes.get("reliability", 75.0)) + float(expansion_modifiers.reliability), 1.0, 100.0)
 	player_race_attributes["fuel"] = clampf(float(player_race_attributes.get("fuel", 50.0)) + float(expansion_modifiers.fuel), 1.0, 100.0)
 	player_race_attributes["tyres"] = clampf(float(player_race_attributes.get("tyres", 50.0)) + float(expansion_modifiers.tyres), 1.0, 100.0)
-	player_race_attributes["strategy_skill"] = clampf(42.0 + GameManager.team.get_crew_chief_performance_boost() * 7.0, 35.0, 98.0)
+	player_race_attributes["strategy_skill"] = clampf(42.0 + GameManager.team.get_crew_chief_performance_boost(primary_team_id) * 7.0, 35.0, 98.0)
 	player_race_attributes["incident_scale"] = float(GameManager.team.get_difficulty_setting("player_incident_multiplier", 1.0)) * float(rivalry_modifiers.get("incident_scale", 1.0))
 	player_race_attributes["pit_time_reduction"] = GameManager.team.get_pit_stop_time_reduction()
 	player_race_attributes["pit_mistake_reduction"] = GameManager.team.get_pit_mistake_reduction()
-	player_race_attributes["engineer_quality"] = GameManager.team.get_race_engineer_quality()
+	player_race_attributes["engineer_quality"] = GameManager.team.get_race_engineer_quality(primary_team_id)
+	player_race_attributes["team_id"] = str(primary_entry.get("team_id", GameManager.team.active_race_team_id))
 	simulation.setup(
 		selected_race,
 		player_driver,
@@ -392,8 +395,11 @@ func _build_additional_team_entries(selected_race: Race, selected_strategy: Stri
 		entries.append({
 			"driver_id": driver.driver_id,
 			"driver_name": driver.driver_name,
+			"team_id": str(entry.get("team_id", "")),
 			"team_name": str(entry.get("team_name", GameManager.team.team_name)),
 			"consistency": driver.consistency,
+			"strategy_skill": GameManager.team.get_race_engineer_quality(str(entry.get("team_id", ""))),
+			"reliability": float(car.get_race_attributes().get("reliability", 75.0)),
 			"attributes": driver.get_attribute_dictionary(),
 			"score": calculate_player_score(car, driver, selected_strategy, selected_race),
 			"starting_position": int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1)) + index
@@ -1051,9 +1057,8 @@ func apply_race_effects(
 
 	update_driver_career_stats(result)
 
-	var player_entry: Dictionary = (
-		GameManager.team
-		.get_player_championship_entry()
+	var player_entry: Dictionary = GameManager.team.get_championship_entry_for_driver(
+		result.player_driver.driver_id if result.player_driver != null else ""
 	)
 
 	result.total_championship_points = int(
@@ -1090,15 +1095,13 @@ func apply_reputation_reward(result: RaceResult) -> void:
 func apply_sponsor_reward(result: RaceResult) -> void:
 	var team: Team = GameManager.team
 	SponsorManager.ensure_state(team)
-	if team.active_sponsor_contract.is_empty():
-		return
-
 	var outcome := SponsorManager.process_race_result(team, result)
 	result.sponsor_name = str(outcome.sponsor_name)
 	result.sponsor_race_payment = int(outcome.race_payment)
-	GameManager.add_team_money(result.sponsor_race_payment)
-	team.record_finance("Sponsor", result.sponsor_race_payment, "%s race payment" % result.sponsor_name)
-	result.net_earnings += result.sponsor_race_payment
+	if result.sponsor_race_payment > 0:
+		GameManager.add_team_money(result.sponsor_race_payment)
+		team.record_finance("Sponsor", result.sponsor_race_payment, "%s race payment" % result.sponsor_name)
+		result.net_earnings += result.sponsor_race_payment
 
 	result.sponsor_objective_completed = bool(outcome.objective_completed)
 	result.sponsor_objective_bonus = int(outcome.objective_bonus)
@@ -1112,6 +1115,15 @@ func apply_sponsor_reward(result: RaceResult) -> void:
 		GameManager.charge_team_money(result.sponsor_failure_penalty)
 		team.record_finance("Sponsor", -result.sponsor_failure_penalty, "%s failed objective" % result.sponsor_name)
 		result.net_earnings -= result.sponsor_failure_penalty
+	var player_driver_ids: Array[String] = []
+	for row in result.standings:
+		if bool(row.get("is_player", false)):
+			player_driver_ids.append(str(row.get("driver_id", "")))
+	result.pay_driver_income = team.get_pay_driver_income(player_driver_ids)
+	if result.pay_driver_income > 0:
+		GameManager.add_team_money(result.pay_driver_income)
+		team.record_finance("Pay Driver", result.pay_driver_income, "Driver-linked commercial backing")
+		result.net_earnings += result.pay_driver_income
 
 
 func update_driver_career_stats(
@@ -1157,13 +1169,16 @@ func initialize_championship_standings(
 	if GameManager.team == null:
 		return
 
-	ensure_championship_entry(
-		player_driver.driver_id,
-		player_driver.driver_name,
-		GameManager.team.team_name,
-		true,
-		"player_team"
-	)
+	GameManager.team.ensure_race_teams()
+	var registered_player_ids: Array[String] = []
+	for race_team in GameManager.team.race_teams:
+		var team_driver: Driver = GameManager.team.get_driver_by_id(race_team.driver_id)
+		if team_driver == null or team_driver.series_id != GameManager.team.current_series_id:
+			continue
+		ensure_championship_entry(team_driver.driver_id, team_driver.driver_name, race_team.team_name, true, race_team.team_id)
+		registered_player_ids.append(team_driver.driver_id)
+	if not registered_player_ids.has(player_driver.driver_id):
+		ensure_championship_entry(player_driver.driver_id, player_driver.driver_name, GameManager.team.team_name, true, "player_team")
 
 	for ai_driver in _get_effective_ai_roster(GameManager.team.current_series_id):
 		ensure_championship_entry(
@@ -1183,18 +1198,6 @@ func initialize_championship_standings(
 			false,
 			str(ai_driver.get("team_id", ""))
 		)
-
-	for entry in (
-		GameManager.team.get_championship_standings()
-	):
-		if bool(entry.get("is_player", false)):
-			entry["driver_name"] = (
-				player_driver.driver_name
-			)
-
-			entry["team_name"] = (
-				GameManager.team.team_name
-			)
 
 	GameManager.team.emit_changed()
 
@@ -1223,7 +1226,8 @@ func ensure_championship_entry(
 			entry["is_player"] = is_player
 			return
 
-	GameManager.team.get_championship_standings().append({
+	var standings: Array[Dictionary] = GameManager.team.get_championship_standings()
+	standings.append({
 		"driver_id": driver_id,
 		"driver_name": driver_name,
 		"team_name": team_name,
@@ -1231,8 +1235,14 @@ func ensure_championship_entry(
 		"points": 0,
 		"wins": 0,
 		"podiums": 0,
+		"starts": 0,
+		"best_finish": 999,
+		"average_finish_total": 0,
 		"is_player": is_player
 	})
+	# get_championship_standings returns a typed view. Persist structural
+	# changes explicitly so a brand-new championship can actually initialize.
+	GameManager.team.set_series_standings(GameManager.team.current_series_id, standings)
 
 
 func normalize_championship_entry(
@@ -1255,6 +1265,15 @@ func normalize_championship_entry(
 
 	if not entry.has("podiums"):
 		entry["podiums"] = 0
+
+	if not entry.has("starts"):
+		entry["starts"] = 0
+
+	if not entry.has("best_finish"):
+		entry["best_finish"] = 999
+
+	if not entry.has("average_finish_total"):
+		entry["average_finish_total"] = 0
 
 	if not entry.has("is_player"):
 		entry["is_player"] = false
@@ -1328,6 +1347,8 @@ func update_championship_standings(
 				+ 1
 			)
 		championship_entry["best_finish"] = mini(finishing_position, int(championship_entry.get("best_finish", 999)))
+		championship_entry["starts"] = int(championship_entry.get("starts", 0)) + 1
+		championship_entry["average_finish_total"] = int(championship_entry.get("average_finish_total", 0)) + finishing_position
 
 	GameManager.team.set_series_standings(GameManager.team.current_series_id, GameManager.team.get_sorted_championship_standings())
 
@@ -1691,6 +1712,7 @@ func complete_offseason() -> bool:
 		active_driver.is_player_driver = true
 	for race_team in GameManager.team.race_teams:
 		if race_team != null:
+			race_team.sponsor_contracts.clear()
 			if not team.contracted_driver_ids.has(race_team.driver_id):
 				race_team.driver_id = ""
 	GameManager.team.active_sponsor_id = ""

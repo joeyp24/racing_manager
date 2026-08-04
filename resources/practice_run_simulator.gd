@@ -4,33 +4,46 @@ extends RefCounted
 const RUN_LIMIT := 3
 const DEFAULT_TYRE_SETS := {"Standard": 6}
 const DEFAULT_SETUP := {
-	"aero_balance": 0,
-	"suspension": 0,
 	"gearing": 0,
-	"tyre_pressure": 0,
-	"brake_bias": 0
+	"front_springs": 0,
+	"rear_springs": 0,
+	"downforce": 0,
+	"left_tyre_pressure": 0,
+	"right_tyre_pressure": 0,
+	"camber": 0,
+	"toe": 0,
+	"track_bar": 0
 }
 const AXIS_LABELS := {
-	"aero_balance": "aero balance",
-	"suspension": "suspension",
 	"gearing": "gearing",
-	"tyre_pressure": "tyre pressure",
-	"brake_bias": "brake bias"
+	"front_springs": "front spring stiffness",
+	"rear_springs": "rear spring stiffness",
+	"downforce": "downforce",
+	"left_tyre_pressure": "left-side tyre pressures",
+	"right_tyre_pressure": "right-side tyre pressures",
+	"camber": "camber",
+	"toe": "toe alignment",
+	"track_bar": "track-bar offset"
 }
 
 
 static func get_ideal_setup(race: Race) -> Dictionary:
 	var setup := DEFAULT_SETUP.duplicate()
-	setup["aero_balance"] = clampi(roundi((race.handling_demand - race.power_demand) * 3.0), -2, 2)
+	setup["downforce"] = clampi(roundi((race.handling_demand - race.power_demand) * 3.0), -2, 2)
 	setup["gearing"] = clampi(roundi((race.power_demand - race.handling_demand) * 3.0), -2, 2)
-	setup["suspension"] = {
+	setup["front_springs"] = {
 		"Short Track": 1,
 		"Speedway": -1,
 		"Road Course": 1,
 		"Street Course": 2
 	}.get(race.track_type, 0)
-	setup["tyre_pressure"] = clampi(roundi((0.9 - race.tyre_wear_factor) * 2.0 - race.heat_factor), -2, 2)
-	setup["brake_bias"] = 1 if race.track_type in ["Road Course", "Street Course"] else 0
+	setup["rear_springs"] = clampi(int(setup.front_springs) + (1 if race.is_oval() else 0), -2, 2)
+	var pressure_target := clampi(roundi((0.9 - race.tyre_wear_factor) * 2.0 - race.heat_factor), -2, 2)
+	setup["left_tyre_pressure"] = clampi(pressure_target - (1 if race.is_oval() else 0), -2, 2)
+	setup["right_tyre_pressure"] = clampi(pressure_target + (1 if race.is_oval() else 0), -2, 2)
+	setup["camber"] = 2 if race.track_type in ["Road Course", "Street Course"] else 1
+	setup["toe"] = 1 if race.handling_demand >= 0.65 else 0
+	setup["track_bar"] = 1 if race.is_oval() else 0
 	return setup
 
 
@@ -101,16 +114,18 @@ static func setup_score(race: Race, setup: Dictionary) -> float:
 
 static func _axis_weight(axis: String, race: Race) -> float:
 	match axis:
-		"aero_balance":
+		"downforce":
 			return 0.12 + race.handling_demand * 0.12
 		"gearing":
 			return 0.12 + race.power_demand * 0.12
-		"suspension":
+		"front_springs", "rear_springs":
 			return 0.14 + race.handling_demand * 0.08
-		"tyre_pressure":
+		"left_tyre_pressure", "right_tyre_pressure":
 			return 0.12 + race.tyre_wear_factor * 0.06
-		"brake_bias":
+		"camber", "toe":
 			return 0.10 + (0.08 if race.track_type in ["Road Course", "Street Course"] else 0.02)
+		"track_bar":
+			return 0.16 if race.is_oval() else 0.04
 	return 0.12
 
 

@@ -92,8 +92,13 @@ const OFFER_PROFILES: Array[Dictionary] = [
 static func ensure_state(team: Team) -> void:
 	if team == null:
 		return
+	team.ensure_race_teams()
 	if not team.active_sponsor_id.is_empty() and team.active_sponsor_contract.is_empty():
 		_migrate_legacy_contract(team)
+	var active_team := team.get_active_race_team()
+	if active_team != null and not team.active_sponsor_contract.is_empty() and active_team.sponsor_contracts.is_empty():
+		active_team.sponsor_contracts.append(team.active_sponsor_contract.duplicate(true))
+	team._sync_active_sponsor_legacy_fields()
 	if (
 		team.sponsor_offer_season != team.season_number
 		or team.sponsor_offer_series_id != team.current_series_id
@@ -171,13 +176,18 @@ static func sign_offer(team: Team, offer_index: int) -> Dictionary:
 	ensure_state(team)
 	if (
 		team == null
-		or not team.active_sponsor_contract.is_empty()
 		or team.is_series_season_complete()
 	):
+		return {}
+	var race_team := team.get_active_race_team()
+	if race_team == null or race_team.sponsor_contracts.size() >= team.get_sponsor_capacity():
 		return {}
 	if offer_index < 0 or offer_index >= team.sponsor_offers.size():
 		return {}
 	var offer := (team.sponsor_offers[offer_index] as Dictionary).duplicate(true)
+	for existing in race_team.sponsor_contracts:
+		if str(existing.get("sponsor_id", "")) == str(offer.get("sponsor_id", "")):
+			return {}
 	var remaining_races := maxi(1, _season_length(team) - team.get_completed_races().size())
 	offer["contract_length"] = remaining_races
 	offer["races_remaining"] = remaining_races
@@ -187,11 +197,12 @@ static func sign_offer(team: Team, offer_index: int) -> Dictionary:
 	offer["signed_season"] = team.season_number
 	offer["signed_series_id"] = team.current_series_id
 	offer["fans_progress"] = 0
-	team.active_sponsor_contract = offer
+	offer["race_team_id"] = race_team.team_id
+	race_team.sponsor_contracts.append(offer)
 	for sponsor_id in team.sponsor_relationships:
 		if str(sponsor_id) != str(offer.sponsor_id) and int(team.sponsor_relationships[sponsor_id]) >= 20:
 			adjust_relationship(team, str(sponsor_id), -3)
-	_sync_legacy_fields(team)
+	team._sync_active_sponsor_legacy_fields()
 	return offer
 
 
@@ -204,58 +215,71 @@ static func process_race_result(team: Team, result: RaceResult) -> Dictionary:
 		"objective_completed": false,
 		"failure_penalty": 0
 	}
-	if team.active_sponsor_contract.is_empty():
-		return outcome
-	var contract := team.active_sponsor_contract
-	outcome.sponsor_name = str(contract.sponsor_name)
-	outcome.race_payment = int(contract.payment_per_race)
+	var sponsor_names: Array[String] = []
+	var entered_team_ids: Array[String] = []
+	for row in result.standings:
+		if bool(row.get("is_player", false)):
+			entered_team_ids.append(str(row.get("team_id", "")))
+	for race_team in team.race_teams:
+		if race_team == null or not race_team.active or (not entered_team_ids.is_empty() and not entered_team_ids.has(race_team.team_id)):
+			continue
+		var renewed_contracts: Array[Dictionary] = []
+		for contract_value in race_team.sponsor_contracts:
+			var contract := contract_value.duplicate(true) as Dictionary
+			var contract_outcome := _process_contract(team, result, contract)
+			sponsor_names.append(str(contract.get("sponsor_name", "Sponsor")))
+			outcome.race_payment = int(outcome.race_payment) + int(contract_outcome.race_payment)
+			outcome.objective_bonus = int(outcome.objective_bonus) + int(contract_outcome.objective_bonus)
+			outcome.failure_penalty = int(outcome.failure_penalty) + int(contract_outcome.failure_penalty)
+			outcome.objective_completed = bool(outcome.objective_completed) or bool(contract_outcome.objective_completed)
+			if not bool(contract_outcome.expired):
+				renewed_contracts.append(contract)
+		race_team.sponsor_contracts = renewed_contracts
+	outcome.sponsor_name = ", ".join(sponsor_names)
+	team._sync_active_sponsor_legacy_fields()
+	return outcome
+
+
+static func _process_contract(team: Team, result: RaceResult, contract: Dictionary) -> Dictionary:
+	var outcome := {"race_payment":int(contract.get("payment_per_race", 0)), "objective_bonus":0, "objective_completed":false, "failure_penalty":0, "expired":false}
 	match str(contract.get("benefit_type", "")):
 		"fan_growth":
 			var bonus_fans := roundi(float(result.fans_earned) * float(contract.get("benefit_value", 0.0)))
 			result.fans_earned += bonus_fans
 			team.fans += bonus_fans
 		"repair_rebate":
-			outcome.race_payment = int(outcome.race_payment) + roundi(
-				float(result.repair_cost) * float(contract.get("benefit_value", 0.0))
-			)
+			outcome.race_payment = int(outcome.race_payment) + roundi(float(result.repair_cost) * float(contract.get("benefit_value", 0.0)))
 		"regional_bonus":
 			if result.race != null and result.race.track_type == "Short Track":
-				outcome.race_payment = int(outcome.race_payment) + roundi(
-					float(contract.payment_per_race) * float(contract.get("benefit_value", 0.0))
-				)
+				outcome.race_payment = int(outcome.race_payment) + roundi(float(contract.get("payment_per_race", 0)) * float(contract.get("benefit_value", 0.0)))
 	var progress_gain := _objective_progress_for_result(contract, result)
-	if not bool(contract.objective_completed) and progress_gain > 0:
-		contract.objective_progress = int(contract.objective_progress) + progress_gain
-		if int(contract.objective_progress) >= int(contract.objective_target):
-			contract.objective_completed = true
+	if not bool(contract.get("objective_completed", false)) and progress_gain > 0:
+		contract["objective_progress"] = int(contract.get("objective_progress", 0)) + progress_gain
+		if int(contract.objective_progress) >= int(contract.get("objective_target", 1)):
+			contract["objective_completed"] = true
 			outcome.objective_completed = true
-			outcome.objective_bonus = int(contract.objective_bonus)
-			adjust_relationship(team, str(contract.sponsor_id), 12)
-			ReputationManager.apply_sponsor_outcome(team, true, str(contract.sponsor_name))
-	contract.races_remaining = maxi(0, int(contract.races_remaining) - 1)
-	team.active_sponsor_contract = contract
+			outcome.objective_bonus = int(contract.get("objective_bonus", 0))
+			adjust_relationship(team, str(contract.get("sponsor_id", "")), 12)
+			ReputationManager.apply_sponsor_outcome(team, true, str(contract.get("sponsor_name", "Sponsor")))
+	contract["races_remaining"] = maxi(0, int(contract.get("races_remaining", 0)) - 1)
 	if int(contract.races_remaining) == 0:
-		if not bool(contract.objective_completed):
-			outcome.failure_penalty = int(contract.failure_penalty)
-			contract.objective_failed = true
-			adjust_relationship(team, str(contract.sponsor_id), -10)
-			ReputationManager.apply_sponsor_outcome(team, false, str(contract.sponsor_name))
-		team.active_sponsor_contract = {}
-	_sync_legacy_fields(team)
+		outcome.expired = true
+		if not bool(contract.get("objective_completed", false)):
+			outcome.failure_penalty = int(contract.get("failure_penalty", 0))
+			adjust_relationship(team, str(contract.get("sponsor_id", "")), -10)
+			ReputationManager.apply_sponsor_outcome(team, false, str(contract.get("sponsor_name", "Sponsor")))
 	return outcome
 
 
 static func add_activation_progress(team: Team, sponsor_id: String) -> void:
-	if team.active_sponsor_contract.is_empty():
-		return
-	var contract := team.active_sponsor_contract
-	if str(contract.sponsor_id) != sponsor_id or str(contract.objective_type) != "sponsor_activations":
-		return
-	contract.objective_progress = int(contract.objective_progress) + 1
-	if int(contract.objective_progress) >= int(contract.objective_target):
-		contract.objective_completed = true
-	team.active_sponsor_contract = contract
-	_sync_legacy_fields(team)
+	for race_team in team.race_teams:
+		for contract in race_team.sponsor_contracts:
+			if str(contract.get("sponsor_id", "")) != sponsor_id or str(contract.get("objective_type", "")) != "sponsor_activations":
+				continue
+			contract["objective_progress"] = int(contract.get("objective_progress", 0)) + 1
+			if int(contract.objective_progress) >= int(contract.get("objective_target", 1)):
+				contract["objective_completed"] = true
+	team._sync_active_sponsor_legacy_fields()
 
 
 static func adjust_relationship(team: Team, sponsor_id: String, amount: int) -> void:

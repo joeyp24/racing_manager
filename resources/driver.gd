@@ -103,6 +103,9 @@ const PERSONALITY_FIELDS: Array[String] = ["ambition", "loyalty", "professionali
 @export_enum("Lead", "Second", "Equal", "Prospect") var expected_role: String = "Equal"
 @export_range(0, 3) var minimum_facility_level: int = 0
 @export_range(0, 99) var desired_competitiveness: int = 40
+@export var is_pay_driver: bool = false
+@export var sponsorship_contribution_per_race: int = 0
+@export var sponsorship_signing_bonus: int = 0
 
 
 func get_overall_rating() -> int:

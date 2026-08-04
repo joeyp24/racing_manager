@@ -26,37 +26,58 @@ func show_sponsors() -> void:
 		status_label.text = "No team is currently loaded."
 		return
 	SponsorManager.ensure_state(team)
+	_create_team_switcher(team)
 	_show_market_header(team)
-	if not team.active_sponsor_contract.is_empty():
-		_create_active_contract(team)
-		_create_relationship_section(team)
-		return
-	_create_offer_comparison_header()
-	for index in team.sponsor_offers.size():
-		_create_offer_card(index, team.sponsor_offers[index], team)
+	for contract in team.get_active_sponsor_contracts():
+		_create_active_contract(team, contract)
+	if team.get_active_sponsor_contracts().size() < team.get_sponsor_capacity():
+		_create_offer_comparison_header()
+		for index in team.sponsor_offers.size():
+			_create_offer_card(index, team.sponsor_offers[index], team)
 	_create_relationship_section(team)
+
+
+func _create_team_switcher(team: Team) -> void:
+	var row := HBoxContainer.new()
+	var label := _label("MANAGING RACE TEAM", &"EyebrowLabel")
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label)
+	for race_team in team.race_teams:
+		var button := Button.new()
+		button.text = race_team.team_name
+		button.toggle_mode = true
+		button.button_pressed = race_team.team_id == team.active_race_team_id
+		button.pressed.connect(_select_race_team.bind(race_team.team_id))
+		row.add_child(button)
+	offers_container.add_child(row)
+
+
+func _select_race_team(team_id: String) -> void:
+	if GameManager.team.set_active_race_team(team_id):
+		GameManager.save_game()
+		show_sponsors()
 
 
 func _show_market_header(team: Team) -> void:
 	var series := SeriesCatalog.get_series(team.current_series_id)
 	var prestige := float(series.get("sponsor_prestige_multiplier", 1.0))
 	var races_left := maxi(0, int(series.get("season_length", 12)) - team.get_completed_races().size())
-	if team.active_sponsor_contract.is_empty():
+	var contracts := team.get_active_sponsor_contracts()
+	var active_team := team.get_active_race_team()
+	if contracts.is_empty():
 		status_label.text = (
-			"PARTNERSHIP MARKET  /  SEASON %d\n"
+			"PARTNERSHIP MARKET  /  %s  /  SEASON %d\n"
 			+ "%s  -  %.1fx media prestige  -  %d race weekends remaining\n"
-			+ "Choose the commercial strategy that matches your team's ambitions."
-		) % [team.season_number, str(series.get("name", "Current Series")), prestige, races_left]
+			+ "%d of %d sponsor slots filled. Reputation levels 7 and 12 add another slot."
+		) % [active_team.team_name if active_team != null else "Race Team", team.season_number, str(series.get("name", "Current Series")), prestige, races_left, contracts.size(), team.get_sponsor_capacity()]
 	else:
-		var contract := team.active_sponsor_contract
 		status_label.text = (
-			"ACTIVE PARTNERSHIP  /  %s\n"
-			+ "%s profile  -  %d race weekends remaining"
-		) % [str(contract.sponsor_name), str(contract.profile), int(contract.races_remaining)]
+			"COMMERCIAL PORTFOLIO  /  %s\n"
+			+ "%d of %d sponsor slots  -  $%s guaranteed each race"
+		) % [active_team.team_name if active_team != null else "Race Team", contracts.size(), team.get_sponsor_capacity(), _format_number(active_team.get_sponsor_income_per_race() if active_team != null else 0)]
 
 
-func _create_active_contract(team: Team) -> void:
-	var contract := team.active_sponsor_contract
+func _create_active_contract(team: Team, contract: Dictionary) -> void:
 	var panel := _new_card(str(contract.profile))
 	var content := VBoxContainer.new()
 	panel.add_child(content)
@@ -132,6 +153,13 @@ func _create_offer_card(index: int, offer: Dictionary, team: Team) -> void:
 		% [renewal_text, _relationship_label(int(offer.relationship))]
 	))
 	sign_button.text = "SIGN PARTNERSHIP"
+	var already_signed := false
+	for contract in team.get_active_sponsor_contracts():
+		if str(contract.get("sponsor_id", "")) == str(offer.get("sponsor_id", "")):
+			already_signed = true
+	sign_button.disabled = already_signed
+	if already_signed:
+		sign_button.text = "ALREADY SIGNED"
 	sign_button.tooltip_text = (
 		"Recommended prestige level %d. Lower standing changes the offer value, but does not block negotiation."
 		% int(offer.required_reputation)

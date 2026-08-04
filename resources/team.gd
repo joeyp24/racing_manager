@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 16
+const CURRENT_SAVE_FORMAT_VERSION: int = 17
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -98,6 +98,7 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var drivers: Array[Driver] = []
 @export var contracted_driver_ids: Array[String] = []
 @export var race_teams: Array[RaceTeam] = []
+@export var active_race_team_id: String = ""
 
 @export var cars: Array = [
 	null,
@@ -293,8 +294,7 @@ func can_enter_series(series_id: String) -> bool:
 	var current_index := SeriesCatalog.get_index(current_series_id)
 	if index < 0 or entered_series_ids.has(series_id) or index != current_index + 1:
 		return false
-	var series := SeriesCatalog.get_series(series_id)
-	return is_series_season_complete(current_series_id) and get_reputation_level() >= get_required_level_for_series(series_id) and hq_level >= int(series.hq_level) and money >= get_series_required_cash(series_id)
+	return is_series_season_complete(current_series_id) and get_reputation_level() >= get_required_level_for_series(series_id) and money >= get_series_required_cash(series_id)
 
 
 func get_series_required_cash(series_id: String) -> int:
@@ -308,8 +308,7 @@ func get_series_entry_requirements(series_id: String) -> Array[String]:
 	var unmet: Array[String] = []
 	var series := SeriesCatalog.get_series(series_id)
 	if not is_series_season_complete(current_series_id): unmet.append("Finish the current season.")
-	if not series.is_empty() and get_reputation_level() < get_required_level_for_series(series_id): unmet.append("Reach team level %d (currently level %d)." % [get_required_level_for_series(series_id), get_reputation_level()])
-	if not series.is_empty() and hq_level < int(series.hq_level): unmet.append("Upgrade Team HQ to level %d." % int(series.hq_level))
+	if not series.is_empty() and get_reputation_level() < get_required_level_for_series(series_id): unmet.append("Reach reputation level %d (currently level %d)." % [get_required_level_for_series(series_id), get_reputation_level()])
 	if not series.is_empty() and money < get_series_required_cash(series_id): unmet.append("Raise $%s for the entry fee, eligible car, and three-race reserve." % String.num_int64(get_series_required_cash(series_id)))
 	return unmet
 
@@ -1355,17 +1354,30 @@ func get_staff_by_id(staff_id: String) -> StaffMember:
 	return null
 
 
-func get_crew_chief() -> StaffMember:
+func get_crew_chief(race_team_id: String = "") -> StaffMember:
+	var race_team := get_race_team_by_id(race_team_id) if not race_team_id.is_empty() else get_active_race_team()
+	if race_team != null and not race_team.crew_chief_id.is_empty():
+		var assigned := get_staff_by_id(race_team.crew_chief_id)
+		if assigned != null and assigned.hired:
+			return assigned
 	for member in staff:
-		if member != null and member.hired and member.role == "Crew Chief":
+		if member != null and member.hired and member.role == "Crew Chief" and member.assigned_race_team_id.is_empty():
 			return member
 	return null
 
 
-func get_engineers() -> Array[StaffMember]:
+func get_engineers(race_team_id: String = "") -> Array[StaffMember]:
 	var engineers: Array[StaffMember] = []
+	var race_team := get_race_team_by_id(race_team_id) if not race_team_id.is_empty() else get_active_race_team()
+	if race_team != null:
+		for engineer_id in race_team.engineer_ids:
+			var assigned := get_staff_by_id(engineer_id)
+			if assigned != null and assigned.hired and not engineers.has(assigned):
+				engineers.append(assigned)
+		if not engineers.is_empty():
+			return engineers
 	for member in staff:
-		if member != null and member.hired and member.role == "Engineer":
+		if member != null and member.hired and member.role == "Engineer" and member.assigned_race_team_id.is_empty():
 			engineers.append(member)
 	return engineers
 
@@ -1379,6 +1391,10 @@ func get_staff_by_role(role: String, hired_only: bool = true) -> Array[StaffMemb
 
 
 func get_role_limit(role: String) -> int:
+	if role == "Crew Chief":
+		return maxi(1, race_teams.size())
+	if role == "Engineer":
+		return MAX_ENGINEERS * maxi(1, race_teams.size())
 	return int(ROLE_LIMITS.get(role, 0))
 
 
@@ -1408,6 +1424,8 @@ func hire_staff(member: StaffMember) -> bool:
 	member.hired = true
 	member.contract_races_remaining = member.get_default_contract_length()
 	member.morale = 70
+	if member.role in ["Crew Chief", "Engineer"]:
+		assign_staff_to_race_team(member, get_active_race_team())
 	record_finance("Staff", -cost, "Signed %s" % member.staff_name)
 	emit_changed()
 	return true
@@ -1423,6 +1441,11 @@ func fire_staff(member: StaffMember) -> bool:
 	record_finance("Staff", -fee, "Terminated %s's contract" % member.staff_name)
 	member.hired = false
 	member.contract_races_remaining = 0
+	member.assigned_race_team_id = ""
+	for race_team in race_teams:
+		if race_team.crew_chief_id == member.staff_id:
+			race_team.crew_chief_id = ""
+		race_team.engineer_ids.erase(member.staff_id)
 	emit_changed()
 	return true
 
@@ -1513,19 +1536,19 @@ func get_finance_total(positive: bool) -> int:
 	return total
 
 
-func get_crew_chief_performance_boost() -> float:
-	var chief := get_crew_chief()
+func get_crew_chief_performance_boost(race_team_id: String = "") -> float:
+	var chief := get_crew_chief(race_team_id)
 	if chief == null:
 		return 0.0
 	var specialty_bonus := 0.75 if chief.specialty == "Race strategy" else 0.0
 	return float(chief.rating) * 0.05 + specialty_bonus
 
 
-func get_race_engineer_quality() -> float:
-	var chief := get_crew_chief()
+func get_race_engineer_quality(race_team_id: String = "") -> float:
+	var chief := get_crew_chief(race_team_id)
 	var strategy_rating := float(chief.primary_rating) if chief != null else 42.0
 	var setup_rating := float(chief.secondary_rating) if chief != null else 42.0
-	var engineers := get_engineers()
+	var engineers := get_engineers(race_team_id)
 	var engineering_rating := 42.0
 	if not engineers.is_empty():
 		engineering_rating = 0.0
@@ -1888,14 +1911,16 @@ func ensure_driver_market() -> void:
 			"archetype": "Aggressive prospect",
 			"skill": 65, "consistency": 54, "aggression": 88,
 			"salary": 2200, "fee": 4000,
-			"age": 21, "potential": 94
+			"age": 21, "potential": 94,
+			"pay_driver": true, "sponsor_per_race": 900, "sponsor_bonus": 3500
 		},
 		{
 			"id": "eli_park", "name": "Eli Park",
 			"archetype": "Cheap rookie",
 			"skill": 48, "consistency": 51, "aggression": 57,
 			"salary": 900, "fee": 1000,
-			"age": 19, "potential": 86
+			"age": 19, "potential": 86,
+			"pay_driver": true, "sponsor_per_race": 1800, "sponsor_bonus": 7000
 		},
 		{
 			"id": "sofia_varga", "name": "Sofia Varga",
@@ -1910,6 +1935,9 @@ func ensure_driver_market() -> void:
 		var existing_driver: Driver = get_driver_by_id(str(data["id"]))
 		if existing_driver != null:
 			migrate_driver_development(existing_driver, data)
+			existing_driver.is_pay_driver = bool(data.get("pay_driver", false))
+			existing_driver.sponsorship_contribution_per_race = int(data.get("sponsor_per_race", 0))
+			existing_driver.sponsorship_signing_bonus = int(data.get("sponsor_bonus", 0))
 			continue
 		var driver := Driver.new()
 		driver.driver_id = str(data["id"])
@@ -1922,6 +1950,9 @@ func ensure_driver_market() -> void:
 		driver.signing_fee = int(data["fee"])
 		driver.age = int(data["age"])
 		driver.potential = int(data["potential"])
+		driver.is_pay_driver = bool(data.get("pay_driver", false))
+		driver.sponsorship_contribution_per_race = int(data.get("sponsor_per_race", 0))
+		driver.sponsorship_signing_bonus = int(data.get("sponsor_bonus", 0))
 		driver.initialize_detailed_ratings(driver.skill, driver.consistency, driver.aggression, driver.potential)
 		_apply_driver_profile(driver)
 		drivers.append(driver)
@@ -2008,6 +2039,10 @@ func hire_driver(driver: Driver) -> bool:
 		return false
 
 	money -= signing_cost
+	if driver.is_pay_driver and driver.sponsorship_signing_bonus > 0:
+		var commercial_bonus := get_effective_sponsor_value(driver.sponsorship_signing_bonus)
+		money += commercial_bonus
+		record_finance("Pay Driver", commercial_bonus, "%s commercial backing" % driver.driver_name)
 	driver.is_player_driver = get_active_driver() == null
 	driver.team_name = team_name
 	driver.contract_races_remaining = maxi(driver.contract_length, int(SeriesCatalog.get_series(current_series_id).get("season_length", 12)))
@@ -2024,6 +2059,11 @@ func hire_driver(driver: Driver) -> bool:
 
 
 func get_active_driver() -> Driver:
+	var race_team := get_active_race_team()
+	if race_team != null and not race_team.driver_id.is_empty():
+		var assigned_driver := get_driver_by_id(race_team.driver_id)
+		if assigned_driver != null:
+			return assigned_driver
 	for driver in drivers:
 		if driver == null:
 			continue
@@ -2054,6 +2094,113 @@ func ensure_race_teams() -> void:
 	for index in range(race_teams.size()):
 		if race_teams[index] != null and race_teams[index].team_id.is_empty():
 			race_teams[index].team_id = "team_%d" % (index + 1)
+	if active_race_team_id.is_empty() or get_race_team_by_id(active_race_team_id) == null:
+		active_race_team_id = race_teams[0].team_id
+	# V16 and older stored one organization-wide sponsor. Preserve it on the
+	# focused race team while the legacy mirror remains available to old UI.
+	var active_team := get_active_race_team()
+	if active_team != null and not active_sponsor_contract.is_empty() and active_team.sponsor_contracts.is_empty():
+		active_team.sponsor_contracts.append(active_sponsor_contract.duplicate(true))
+	for member in staff:
+		if member == null or not member.hired or not member.assigned_race_team_id.is_empty():
+			continue
+		if member.role == "Crew Chief" and active_team != null and active_team.crew_chief_id.is_empty():
+			active_team.crew_chief_id = member.staff_id
+			member.assigned_race_team_id = active_team.team_id
+		elif member.role == "Engineer" and active_team != null and active_team.engineer_ids.size() < MAX_ENGINEERS:
+			active_team.engineer_ids.append(member.staff_id)
+			member.assigned_race_team_id = active_team.team_id
+
+
+func get_race_team_by_id(team_id: String) -> RaceTeam:
+	for race_team in race_teams:
+		if race_team != null and race_team.team_id == team_id:
+			return race_team
+	return null
+
+
+func get_active_race_team() -> RaceTeam:
+	if race_teams.is_empty():
+		return null
+	var active := get_race_team_by_id(active_race_team_id)
+	return active if active != null else race_teams[0]
+
+
+func set_active_race_team(team_id: String) -> bool:
+	var race_team := get_race_team_by_id(team_id)
+	if race_team == null:
+		return false
+	active_race_team_id = team_id
+	_sync_active_sponsor_legacy_fields()
+	emit_changed()
+	return true
+
+
+func get_sponsor_capacity() -> int:
+	var level := get_reputation_level()
+	return 4 if level >= 12 else (3 if level >= 7 else 2)
+
+
+func get_active_sponsor_contracts() -> Array[Dictionary]:
+	var race_team := get_active_race_team()
+	return race_team.sponsor_contracts if race_team != null else []
+
+
+func get_total_sponsor_income_per_race() -> int:
+	var total := 0
+	for race_team in race_teams:
+		if race_team != null and race_team.active:
+			total += race_team.get_sponsor_income_per_race()
+	# Keep forecasts compatible with saves and tests that still populate the
+	# former organization-wide contract directly. Once race-team contracts
+	# exist, the legacy contract is only a mirror and must not be double-counted.
+	if total == 0 and not active_sponsor_contract.is_empty():
+		total = int(active_sponsor_contract.get("payment_per_race", 0))
+	return total
+
+
+func _sync_active_sponsor_legacy_fields() -> void:
+	var contracts := get_active_sponsor_contracts()
+	active_sponsor_contract = contracts[0].duplicate(true) if not contracts.is_empty() else {}
+	active_sponsor_id = str(active_sponsor_contract.get("sponsor_id", ""))
+	sponsor_races_remaining = int(active_sponsor_contract.get("races_remaining", 0))
+	sponsor_objective_progress = int(active_sponsor_contract.get("objective_progress", 0))
+	sponsor_objective_completed = bool(active_sponsor_contract.get("objective_completed", false))
+
+
+func assign_staff_to_race_team(member: StaffMember, race_team: RaceTeam) -> bool:
+	if member == null or race_team == null or not member.hired or not race_teams.has(race_team):
+		return false
+	if member.role == "Engineer" and not race_team.engineer_ids.has(member.staff_id) and race_team.engineer_ids.size() >= MAX_ENGINEERS:
+		return false
+	if member.role != "Crew Chief" and member.role != "Engineer":
+		return false
+	for other in race_teams:
+		if other == null:
+			continue
+		if other.crew_chief_id == member.staff_id:
+			other.crew_chief_id = ""
+		other.engineer_ids.erase(member.staff_id)
+	if member.role == "Crew Chief":
+		var previous := get_staff_by_id(race_team.crew_chief_id)
+		if previous != null:
+			previous.assigned_race_team_id = ""
+		race_team.crew_chief_id = member.staff_id
+	elif member.role == "Engineer":
+		if not race_team.engineer_ids.has(member.staff_id):
+			race_team.engineer_ids.append(member.staff_id)
+	member.assigned_race_team_id = race_team.team_id
+	emit_changed()
+	return true
+
+
+func get_pay_driver_income(driver_ids: Array[String]) -> int:
+	var total := 0
+	for driver_id in driver_ids:
+		var driver := get_driver_by_id(driver_id)
+		if driver != null and driver.is_pay_driver:
+			total += get_effective_sponsor_value(driver.sponsorship_contribution_per_race)
+	return total
 
 
 func add_race_team() -> RaceTeam:
@@ -2110,6 +2257,13 @@ func get_player_championship_entry() -> Dictionary:
 		if bool(entry.get("is_player", false)):
 			return entry
 
+	return {}
+
+
+func get_championship_entry_for_driver(driver_id: String) -> Dictionary:
+	for entry in get_championship_standings():
+		if str(entry.get("driver_id", "")) == driver_id:
+			return entry
 	return {}
 
 

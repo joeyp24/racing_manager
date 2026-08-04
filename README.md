@@ -175,7 +175,7 @@ Implemented:
 - Dedicated offseason hub with player renewals, competing offers, and free-agent signings
 - Persistent AI driver transfers, rookies, retirements, morale, team fit, and career records
 - Transfer rumors, confirmed moves, and season recaps spanning the full racing world
-- Eight-tier career series ladder with entry fees and Team HQ promotion requirements
+- Eight-tier career series ladder with entry fees and reputation-based promotion requirements
 - Series-specific dealership inventories and fictional driver fields sized to real-world grids
 - Sustainable race-by-race finances with series distributions, event revenue, owner support, manufacturer support, upkeep, reserves, and season forecasts
 - Persistent driver form, confidence, morale, contract pressure, and incident-driven rivalries
@@ -190,8 +190,8 @@ Implemented:
 Teams begin in the Local Short Track Series. Promotion proceeds through Regional and
 National Short Track competition, the fictional Continental East/West and Continental
 National levels, then the National Truck, National Grand, and Premier Cup series.
-Upgrading Team HQ and paying the one-time series entry fee are both required before
-promotion. Cars are homologated to one series, and each entered series has its own
+Finishing the current season, reaching the required reputation level, and paying the
+one-time series entry fee are required before promotion. Cars are homologated to one series, and each entered series has its own
 dealership inventory.
 
 ---

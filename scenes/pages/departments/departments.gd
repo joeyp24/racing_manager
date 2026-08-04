@@ -28,7 +28,7 @@ func create_hq_card() -> Control:
 	var content := VBoxContainer.new()
 	var title := Label.new(); title.text = "Team Headquarters"
 	var level := Label.new(); level.text = "Level %d / %d" % [team.hq_level, SeriesCatalog.SERIES.size()]
-	var description := Label.new(); description.text = "HQ level gates promotion so the team builds infrastructure before taking on a more expensive series."; description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; description.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var description := Label.new(); description.text = "Headquarters improves operational capacity and remains an optional investment. Series promotion is earned through reputation, season completion and financial readiness."; description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var action := Button.new()
 	var cost := team.get_hq_upgrade_cost()
 	action.text = "Maximum Level" if cost <= 0 else "Upgrade HQ — $%s" % format_number(cost)

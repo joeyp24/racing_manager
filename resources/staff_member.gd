@@ -25,6 +25,7 @@ const ROLES: Array[String] = ["Crew Chief", "Engineer", "Mechanic", "Spotter", "
 @export_range(0, 100) var burnout: int = 0
 @export var relationship_notes: Dictionary = {}
 @export var succession_candidate_id: String = ""
+@export var assigned_race_team_id: String = ""
 
 
 func get_rating_grade() -> String:

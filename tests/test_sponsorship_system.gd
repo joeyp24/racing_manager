@@ -5,6 +5,7 @@ func _initialize() -> void:
 	_test_series_prestige_scales_sponsor_value()
 	_test_generated_offers_cover_the_remaining_season()
 	_test_contract_terms_are_snapshotted()
+	_test_multiple_sponsors_pay_the_same_race_team()
 	_test_legacy_contract_is_migrated()
 	_test_retirement_does_not_advance_finish_objective()
 	_test_failure_applies_relationship_consequences()
@@ -44,6 +45,20 @@ func _test_contract_terms_are_snapshotted() -> void:
 	team.sponsor_offers[0].payment_per_race = signed_payment * 9
 	assert(int(team.active_sponsor_contract.payment_per_race) == signed_payment)
 	assert(int(team.active_sponsor_contract.races_remaining) == 12)
+
+
+func _test_multiple_sponsors_pay_the_same_race_team() -> void:
+	var team := Team.new()
+	SponsorManager.ensure_state(team)
+	var first := SponsorManager.sign_offer(team, 0)
+	var second := SponsorManager.sign_offer(team, 1)
+	assert(not first.is_empty() and not second.is_empty())
+	assert(team.get_active_sponsor_contracts().size() == 2)
+	var result := RaceResult.new()
+	result.finishing_position = 20
+	result.standings = [{"is_player":true, "team_id":team.active_race_team_id, "status":"Finished"}]
+	var outcome := SponsorManager.process_race_result(team, result)
+	assert(int(outcome.race_payment) >= int(first.payment_per_race) + int(second.payment_per_race))
 
 
 func _test_legacy_contract_is_migrated() -> void:

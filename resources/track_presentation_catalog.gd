@@ -67,11 +67,23 @@ static func get_profile(race: Race) -> Dictionary:
 			"banking": _corner_banking(race, venue_index, index)
 		})
 	var pit_entry := fposmod(0.70 + float(venue_index % 7) * 0.025, 1.0)
+	var sectors: Array[Dictionary] = []
+	for sector_index in 3:
+		sectors.append({"name":"S%d" % (sector_index + 1), "progress":fposmod(float(sector_index) / 3.0 + float(venue_index % 5) * 0.012, 1.0)})
+	var caution_locations: Array[Dictionary] = []
+	for corner in corners:
+		if bool(corner.get("passing", false)) or int(corner.get("banking", 0)) >= 20:
+			caution_locations.append({"name":str(corner.get("name", "Incident zone")), "progress":float(corner.get("progress", 0.0)), "risk":"High" if bool(corner.get("passing", false)) else "Medium"})
+	if caution_locations.size() > 3:
+		caution_locations.resize(3)
 	return {
 		"venue_id": venue.to_snake_case(),
 		"shape_id": shape_id,
 		"points": points,
 		"corners": corners,
+		"sectors": sectors,
+		"passing_zones": corners.filter(func(corner: Dictionary) -> bool: return bool(corner.get("passing", false))),
+		"caution_locations": caution_locations,
 		"pit_entry": pit_entry,
 		"pit_exit": fposmod(pit_entry + (0.16 if race.is_oval() else 0.11), 1.0),
 		"grooves": 3 if race.is_oval() else 2,

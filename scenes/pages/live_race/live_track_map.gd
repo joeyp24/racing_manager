@@ -65,10 +65,16 @@ func _draw_pit_lane(points: PackedVector2Array) -> void:
 	draw_polyline(pit_points, Color("9ca8b7"), 3.0, true)
 	var font := get_theme_default_font()
 	draw_string(font, entry + Vector2(5.0, -5.0), "PIT IN", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, Color("d8dee8"))
+	draw_string(font, exit + Vector2(5.0, 12.0), "PIT OUT", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, Color("d8dee8"))
 
 
 func _draw_track_features(points: PackedVector2Array) -> void:
 	var font := get_theme_default_font()
+	for sector_value in profile.get("sectors", []):
+		var sector := sector_value as Dictionary
+		var sector_point := _point_at_progress(points, float(sector.get("progress", 0.0)))
+		draw_circle(sector_point, 6.0, Color("6fc7ff"), false, 2.0)
+		draw_string(font, sector_point + Vector2(7.0, 11.0), str(sector.get("name", "S")), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, Color("8dd6ff"))
 	for corner_value in profile.get("corners", []):
 		var corner := corner_value as Dictionary
 		var point := _point_at_progress(points, float(corner.get("progress", 0.0)))
@@ -76,6 +82,11 @@ func _draw_track_features(points: PackedVector2Array) -> void:
 		draw_circle(point, 4.2 if passing else 2.8, Color("f0c84b") if passing else Color("7f8da0"))
 		var label := "%s  %d deg%s" % [str(corner.get("name", "Turn")), int(corner.get("banking", 0)), "  PASS" if passing else ""]
 		draw_string(font, point + Vector2(6.0, -4.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 9, Color("f4f6fa") if passing else Color("9aa6b6"))
+	for caution_value in profile.get("caution_locations", []):
+		var caution := caution_value as Dictionary
+		var caution_point := _point_at_progress(points, float(caution.get("progress", 0.0)))
+		var triangle := PackedVector2Array([caution_point + Vector2(0.0, -8.0), caution_point + Vector2(7.0, 5.0), caution_point + Vector2(-7.0, 5.0)])
+		draw_colored_polygon(triangle, Color("f0c84b", 0.82))
 	var camera_point := _point_at_progress(points, float(profile.get("camera_focus", 0.0)))
 	draw_arc(camera_point, 8.0, 0.0, TAU, 16, Color("6fc7ff", 0.8), 1.5, true)
 

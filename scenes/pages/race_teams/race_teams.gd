@@ -153,7 +153,7 @@ func show_operations() -> void:
 	clear_container(detail_container)
 	var team := GameManager.team
 	team.ensure_race_teams()
-	summary_label.text = "%d / %d player entries · $%s expansion cost" % [team.race_teams.size(), Team.MAX_RACE_TEAMS, number(team.get_discounted_cost(Team.RACE_TEAM_EXPANSION_COST))]
+	summary_label.text = "%d / %d race teams · Managing %s · $%s expansion cost" % [team.race_teams.size(), Team.MAX_RACE_TEAMS, team.get_active_race_team().team_name, number(team.get_discounted_cost(Team.RACE_TEAM_EXPANSION_COST))]
 	var add_button := Button.new()
 	add_button.text = "+ Add player race entry"
 	add_button.theme_type_variation = &"PrimaryButton"
@@ -163,23 +163,29 @@ func show_operations() -> void:
 	for race_team in team.race_teams:
 		teams_container.add_child(make_operation_button(race_team))
 	add_section("MY RACE OPERATIONS")
-	add_body("Your organization can field up to four cars in its current series. Every entry needs a unique contracted driver and garage car.")
-	add_muted("Select an entry on the left to change its driver and car assignments.")
+	add_body("Each race team has its own driver, car, crew chief, engineers and sponsor portfolio. Select one team and manage it as a focused operation.")
+	add_muted("The highlighted team becomes the context used by Drivers, Garage, Staff and Sponsors.")
 	if not team.race_teams.is_empty():
-		show_operation_detail(team.race_teams[0])
+		show_operation_detail(team.get_active_race_team())
 
 
 func make_operation_button(race_team: RaceTeam) -> Button:
 	var button := Button.new()
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.text = "%s\n%s" % [race_team.team_name, "READY" if race_team.is_ready(GameManager.team) else "Needs assignments"]
+	button.toggle_mode = true
+	button.button_pressed = race_team.team_id == GameManager.team.active_race_team_id
+	var driver := GameManager.team.get_driver_by_id(race_team.driver_id)
+	var car := GameManager.team.get_car(race_team.car_bay)
+	button.text = "%s\n%s · %s\n%d sponsor%s · %s" % [race_team.team_name, driver.driver_name if driver != null else "No driver", car.name if car != null else "No car", race_team.sponsor_contracts.size(), "s" if race_team.sponsor_contracts.size() != 1 else "", "READY" if race_team.is_ready(GameManager.team) else "Needs assignments"]
 	button.pressed.connect(show_operation_detail.bind(race_team))
 	return button
 
 
 func show_operation_detail(race_team: RaceTeam) -> void:
+	GameManager.team.set_active_race_team(race_team.team_id)
 	clear_container(detail_container)
-	detail_container.add_child(heading(race_team.team_name, "PLAYER ENTRY"))
+	detail_container.add_child(heading(race_team.team_name, "ACTIVE TEAM"))
+	add_muted("Manage this operation's people, equipment and commercial partners without changing another race team.")
 	var name_edit := LineEdit.new()
 	name_edit.text = race_team.team_name
 	name_edit.text_submitted.connect(func(value: String):
@@ -206,15 +212,67 @@ func show_operation_detail(race_team: RaceTeam) -> void:
 	car_select.select(selected_car)
 	add_section("DRIVER")
 	detail_container.add_child(driver_select)
+	var assigned_driver := GameManager.team.get_driver_by_id(race_team.driver_id)
+	if assigned_driver != null and assigned_driver.is_pay_driver:
+		add_muted("PAY DRIVER · Brings $%s in commercial backing per entered race." % number(GameManager.team.get_effective_sponsor_value(assigned_driver.sponsorship_contribution_per_race)))
 	add_section("CAR")
 	detail_container.add_child(car_select)
 	driver_select.item_selected.connect(func(index: int): _assign(race_team, str(driver_select.get_item_metadata(index)) if index > 0 else "", race_team.car_bay))
 	car_select.item_selected.connect(func(index: int): _assign(race_team, race_team.driver_id, int(car_select.get_item_metadata(index)) if index > 0 else -1))
+	add_section("CREW CHIEF")
+	var chief_select := OptionButton.new()
+	chief_select.add_item("Unassigned")
+	for chief in GameManager.team.get_staff_by_role("Crew Chief"):
+		chief_select.add_item("%s · OVR %d" % [chief.staff_name, chief.rating])
+		chief_select.set_item_metadata(chief_select.item_count - 1, chief.staff_id)
+		if chief.staff_id == race_team.crew_chief_id:
+			chief_select.select(chief_select.item_count - 1)
+	chief_select.item_selected.connect(func(index: int):
+		if index > 0:
+			_assign_staff(GameManager.team.get_staff_by_id(str(chief_select.get_item_metadata(index))), race_team)
+	)
+	detail_container.add_child(chief_select)
+	add_section("ENGINEERS")
+	for engineer_id in race_team.engineer_ids:
+		var engineer := GameManager.team.get_staff_by_id(engineer_id)
+		if engineer != null:
+			add_body("%s · OVR %d · %s" % [engineer.staff_name, engineer.rating, engineer.specialty])
+	var engineer_select := OptionButton.new()
+	engineer_select.add_item("Assign an engineer...")
+	for engineer in GameManager.team.get_staff_by_role("Engineer"):
+		if not race_team.engineer_ids.has(engineer.staff_id):
+			engineer_select.add_item("%s · OVR %d" % [engineer.staff_name, engineer.rating])
+			engineer_select.set_item_metadata(engineer_select.item_count - 1, engineer.staff_id)
+	engineer_select.item_selected.connect(func(index: int):
+		if index > 0:
+			_assign_staff(GameManager.team.get_staff_by_id(str(engineer_select.get_item_metadata(index))), race_team)
+	)
+	detail_container.add_child(engineer_select)
+	add_section("SPONSORS · %d / %d" % [race_team.sponsor_contracts.size(), GameManager.team.get_sponsor_capacity()])
+	if race_team.sponsor_contracts.is_empty():
+		add_muted("No partners signed. This race team has no guaranteed sponsor income.")
+	else:
+		for contract in race_team.sponsor_contracts:
+			add_body("%s · $%s/race · %d races left" % [str(contract.get("sponsor_name", "Sponsor")), number(int(contract.get("payment_per_race", 0))), int(contract.get("races_remaining", 0))])
+	var shortcuts := HBoxContainer.new()
+	for item in [["Garage", "res://scenes/pages/garage/garage.tscn"], ["Drivers", "res://scenes/pages/drivers/drivers.tscn"], ["Staff", "res://scenes/pages/staff/staff.tscn"], ["Sponsors", "res://scenes/pages/sponsors/sponsors.tscn"]]:
+		var shortcut := Button.new()
+		shortcut.text = str(item[0])
+		shortcut.pressed.connect(GameManager.load_page.bind(str(item[1])))
+		shortcuts.add_child(shortcut)
+	detail_container.add_child(shortcuts)
+	GameManager.save_game()
 
 
 func _assign(race_team: RaceTeam, driver_id: String, car_bay: int) -> void:
 	GameManager.team.assign_race_team(race_team, driver_id, car_bay)
 	GameManager.save_game()
+	show_operations()
+
+
+func _assign_staff(member: StaffMember, race_team: RaceTeam) -> void:
+	if GameManager.team.assign_staff_to_race_team(member, race_team):
+		GameManager.save_game()
 	show_operations()
 
 

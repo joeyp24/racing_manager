@@ -29,6 +29,7 @@ var sponsor_race_payment: int = 0
 var sponsor_objective_bonus: int = 0
 var sponsor_objective_completed: bool = false
 var sponsor_failure_penalty: int = 0
+var pay_driver_income: int = 0
 var reputation_earned: int = 0
 var reputation_changes: Dictionary = {}
 var fans_earned: int = 0
