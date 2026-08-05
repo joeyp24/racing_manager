@@ -455,3 +455,6 @@ def test_results_lead_with_a_story_and_gate_deep_telemetry():
     assert "Slow pit service gave time back" in results
     assert "_on_detailed_analysis_toggled(false)" in results
     assert 'name="detailed_analysis_button"' in scene
+    assert 'name="details_toggle"' not in scene
+    assert "decisive_factors_label.visible = show_details" in results
+    assert "car_effects_label.visible = show_details" in results
