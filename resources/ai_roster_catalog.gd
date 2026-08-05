@@ -18,7 +18,7 @@ static func get_roster(series_id: String) -> Array[Dictionary]:
 			var seed := SeriesCatalog.get_index(series_id) * 41 + index
 			var rating := clampi(int(performance[0]) + (index * 7 + seed) % (int(performance[1]) - int(performance[0]) + 1), 1, 100)
 			var equipment_effect := roundi((int(team.equipment_rating) - int(series.car_rating)) * 0.65)
-			roster.append({"driver_id":"%s_ai_%02d" % [series_id,index+1], "driver_name":"%s %s" % [FIRST_NAMES[seed%FIRST_NAMES.size()],LAST_NAMES[(seed*3+index)%LAST_NAMES.size()]], "team_id":str(team.team_id), "team_name":str(team.team_name), "team_car_number":team_car_index+1, "skill":rating, "consistency":clampi(rating-4+(index%9),1,100), "aggression":clampi(rating-6+(index*3%13),1,100), "car_performance":clampi(rating+equipment_effect,1,100)})
+			roster.append({"driver_id":"%s_ai_%02d" % [series_id,index+1], "driver_name":"%s %s" % [FIRST_NAMES[seed%FIRST_NAMES.size()],LAST_NAMES[(seed*3+index)%LAST_NAMES.size()]], "team_id":str(team.team_id), "team_name":str(team.team_name), "team_car_number":team_car_index+1, "team_primary_color":str(team.primary_color), "team_secondary_color":str(team.secondary_color), "skill":rating, "consistency":clampi(rating-4+(index%9),1,100), "aggression":clampi(rating-6+(index*3%13),1,100), "car_performance":clampi(rating+equipment_effect,1,100)})
 			driver_index += 1
 	assert(driver_index == count, "Team organizations must provide the configured field size.")
 	return roster

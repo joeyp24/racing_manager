@@ -158,7 +158,19 @@ func load_page(scene_path: String) -> void:
 		child.queue_free()
 	page_container.add_child(page_instance)
 	if page_instance is Control:
-		(page_instance as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var page_control := page_instance as Control
+		page_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var accessibility: Dictionary = {}
+		if team != null:
+			accessibility = team.career_state.get("accessibility", {}) as Dictionary
+		var reduced_motion := bool(accessibility.get("reduced_motion", false))
+		if not reduced_motion:
+			page_control.modulate.a = 0.0
+			page_container.mouse_filter = Control.MOUSE_FILTER_STOP
+			var tween := page_control.create_tween()
+			tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tween.tween_property(page_control, "modulate:a", 1.0, 0.14)
+			tween.finished.connect(func() -> void: page_container.mouse_filter = Control.MOUSE_FILTER_PASS)
 	page_changed.emit(scene_path)
 
 

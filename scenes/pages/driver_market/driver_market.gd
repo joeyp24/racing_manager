@@ -80,13 +80,14 @@ func display_market() -> void:
 
 
 func create_candidate_row(driver: Driver) -> void:
+	PersonalityCatalog.assign_identity(driver)
 	var panel := PanelContainer.new()
 	var margin := MarginContainer.new()
 	var row := HBoxContainer.new()
 	var details := Label.new()
 	var hire_button := Button.new()
 
-	panel.custom_minimum_size = Vector2(0, 92)
+	panel.custom_minimum_size = Vector2(0, 108)
 	panel.theme_type_variation = &"CardPanel"
 	margin.add_theme_constant_override("margin_left", UITokens.CARD_PADDING_HORIZONTAL)
 	margin.add_theme_constant_override("margin_top", UITokens.CARD_PADDING_VERTICAL)
@@ -95,9 +96,11 @@ func create_candidate_row(driver: Driver) -> void:
 	row.add_theme_constant_override("separation", UITokens.SPACE_LG)
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	details.text = "%s — %s\n%s\nDevelopment: %s | Last Season: %s\nCareer: %d starts | %d wins | %d podiums | %d points" % [
+	details.text = "%s — %s\n%s  /  %s\n%s\nDevelopment: %s | Last Season: %s\nCareer: %d starts | %d wins | %d podiums | %d points" % [
 		driver.driver_name,
 		driver.archetype,
+		driver.get_personality_name().to_upper(),
+		driver.personality_tagline,
 		create_driver_details(driver),
 		driver.get_development_rate(),
 		driver.last_season_development,
@@ -128,6 +131,10 @@ func create_candidate_row(driver: Driver) -> void:
 		hire_button.tooltip_text = "Scouting is optional: it reveals more information and can improve negotiating interest."
 	hire_button.pressed.connect(_on_hire_pressed.bind(driver))
 
+	var portrait := DriverPortrait.new()
+	portrait.custom_minimum_size = Vector2(78, 78)
+	portrait.configure(driver, GameManager.team.primary_color, GameManager.team.secondary_color)
+	row.add_child(portrait)
 	row.add_child(details)
 	row.add_child(hire_button)
 	margin.add_child(row)
@@ -197,6 +204,7 @@ func _on_hire_confirmed() -> void:
 		return
 
 	if GameManager.team.hire_driver(pending_driver):
+		PersonalityCatalog.reaction(pending_driver, "signed", {"season":GameManager.team.current_season_year, "event":"initial_signing", "team":GameManager.team.team_name})
 		GameManager.refresh_team_money()
 		GameManager.save_game()
 	pending_driver = null

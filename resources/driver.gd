@@ -58,6 +58,10 @@ const PERSONALITY_FIELDS: Array[String] = ["ambition", "loyalty", "professionali
 @export var unavailable_weeks: int = 0
 @export var development_focus: String = "Balanced"
 @export var relationship_scores: Dictionary = {}
+@export var personality_id: String = ""
+@export var personality_tagline: String = ""
+@export var last_reaction: String = ""
+@export var memorable_moments: Array[Dictionary] = []
 
 @export_category("Attribute Potential Caps")
 @export_range(0, 99) var race_pace_potential: int = 80
@@ -177,6 +181,17 @@ func update_archetype() -> void:
 	archetype = str(names.get(best, "Balanced racer"))
 	if get_overall_rating() >= 90:
 		archetype = "Complete champion"
+	PersonalityCatalog.assign_identity(self)
+
+
+func get_personality_name() -> String:
+	return PersonalityCatalog.get_personality_name(self)
+
+
+func remember_moment(title: String, detail: String, season: int, race_name: String = "") -> void:
+	memorable_moments.push_front({"title":title, "detail":detail, "season":season, "race":race_name})
+	if memorable_moments.size() > 16:
+		memorable_moments.resize(16)
 
 
 func is_available() -> bool:

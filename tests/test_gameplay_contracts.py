@@ -405,6 +405,22 @@ def test_live_race_analysis_setup_and_venue_geometry_are_integrated():
     assert '"pit_entry"' in tracks and '"pit_exit"' in tracks
 
 
+def test_personality_brand_and_readable_live_layout_are_integrated():
+	personality = (ROOT / "resources/personality_catalog.gd").read_text(encoding="utf-8")
+	driver = (ROOT / "resources/driver.gd").read_text(encoding="utf-8")
+	teams = (ROOT / "resources/team_catalog.gd").read_text(encoding="utf-8")
+	live_scene = (ROOT / "scenes/pages/live_race/live_race.tscn").read_text(encoding="utf-8")
+	results = (ROOT / "scenes/pages/race_results/race_results.gd").read_text(encoding="utf-8")
+	project = (ROOT / "project.godot").read_text(encoding="utf-8")
+	assert "class_name PersonalityCatalog" in personality
+	for voice in ("veteran", "firebrand", "analyst", "loyalist", "showman", "ice_cold", "underdog"):
+		assert f'"{voice}"' in personality
+	assert "memorable_moments" in driver and "last_reaction" in driver
+	assert "TEAM_PALETTES" in teams and "TEAM_MOTTOS" in teams
+	assert 'name="TimingColumn"' in live_scene and 'name="PitWallScroll"' in live_scene
+	assert "driver_reaction" in results and "rival_summary" in results
+	assert 'config/icon="res://ui/brand/racing_manager_icon.png"' in project
+	assert (ROOT / "ui/brand/racing_manager_icon.png").exists()
 def test_committed_weekend_cannot_be_abandoned_through_navigation():
     game_manager = (ROOT / "scripts/game_manager.gd").read_text(encoding="utf-8")
     race_entry = (ROOT / "scenes/pages/race_entry/race_entry.gd").read_text(encoding="utf-8")

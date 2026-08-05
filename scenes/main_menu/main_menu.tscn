@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://boc3m4emse3bc"]
+[gd_scene load_steps=4 format=3 uid="uid://boc3m4emse3bc"]
 
 [ext_resource type="Script" path="res://scenes/main_menu/main_menu.gd" id="1"]
 [ext_resource type="Texture2D" path="res://ui/menu_track.svg" id="2"]
+[ext_resource type="Texture2D" path="res://ui/brand/racing_manager_icon.png" id="3_brand"]
 
 [node name="main_menu" type="Control"]
 layout_mode = 3
@@ -59,6 +60,13 @@ layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "PIT WALL // CAREER CONTROL"
 
+[node name="Logo" type="TextureRect" parent="Margin/Layout/Brand"]
+custom_minimum_size = Vector2(108, 108)
+layout_mode = 2
+texture = ExtResource("3_brand")
+expand_mode = 3
+stretch_mode = 5
+
 [node name="Title" type="Label" parent="Margin/Layout/Brand"]
 theme_type_variation = &"PageTitle"
 layout_mode = 2
@@ -68,7 +76,7 @@ text = "RACING\nMANAGER"
 [node name="Description" type="Label" parent="Margin/Layout/Brand"]
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
-text = "Build your team. Master the season.\nEvery career now has its own independent save."
+text = "Build the team. Call the race. Shape a legacy.\nEvery career has its own people, rivals and history."
 
 [node name="Spacer" type="Control" parent="Margin/Layout/Brand"]
 layout_mode = 2

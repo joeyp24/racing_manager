@@ -15,6 +15,12 @@ func set_simulation(value: RaceSimulation) -> void:
 func _draw() -> void:
 	var bounds := Rect2(Vector2(42.0, 14.0), size - Vector2(54.0, 38.0))
 	draw_rect(bounds, Color("101820"), true)
+	for division in range(1, 4):
+		var y := bounds.position.y + bounds.size.y * float(division) / 4.0
+		draw_line(Vector2(bounds.position.x, y), Vector2(bounds.end.x, y), Color("273646"), 1.0)
+	for division in range(1, 5):
+		var x := bounds.position.x + bounds.size.x * float(division) / 5.0
+		draw_line(Vector2(x, bounds.position.y), Vector2(x, bounds.end.y), Color("202e3c"), 1.0)
 	draw_line(Vector2(bounds.position.x, bounds.end.y), bounds.end, Color("536173"), 1.0)
 	draw_line(bounds.position, Vector2(bounds.position.x, bounds.end.y), Color("536173"), 1.0)
 	if simulation == null or simulation.telemetry_history.is_empty():
@@ -85,6 +91,9 @@ func _draw_series(bounds: Rect2, values: Array[float], color: Color, percentage:
 		draw_circle(points[0], 3.0, color)
 	else:
 		draw_polyline(points, color, 2.4, true)
+		draw_circle(points[-1], 3.2, color.lightened(0.18))
+	_draw_label("%d" % roundi(maximum) if percentage else "%.2f" % maximum, Vector2(3.0, bounds.position.y + 8.0), Color("718196"))
+	_draw_label("%d" % roundi(minimum) if percentage else "%.2f" % minimum, Vector2(3.0, bounds.end.y), Color("718196"))
 
 
 func _draw_label(value: String, position: Vector2, color: Color) -> void:

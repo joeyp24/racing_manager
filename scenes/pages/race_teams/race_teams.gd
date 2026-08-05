@@ -55,7 +55,20 @@ func show_team_detail() -> void:
 	if organization.is_empty():
 		return
 	var series := SeriesCatalog.get_series(selected_series_id)
-	detail_container.add_child(heading(str(organization.team_name), "OVR %d" % int(organization.overall_rating)))
+	var identity_row := HBoxContainer.new()
+	var swatch := ColorRect.new()
+	swatch.custom_minimum_size = Vector2(12, 48)
+	swatch.color = Color(str(organization.get("primary_color", "7c3aed")))
+	identity_row.add_child(swatch)
+	var identity_copy := VBoxContainer.new()
+	identity_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity_copy.add_child(heading(str(organization.team_name), "%s  ·  OVR %d" % [str(organization.get("short_name", "TEAM")), int(organization.overall_rating)]))
+	var motto := Label.new()
+	motto.theme_type_variation = &"EyebrowLabel"
+	motto.text = "“%s”" % str(organization.get("motto", "Race every lap"))
+	identity_copy.add_child(motto)
+	identity_row.add_child(identity_copy)
+	detail_container.add_child(identity_row)
 	add_muted("%s  ·  Founded %d  ·  %d championships" % [organization.hometown, organization.founded, organization.championships])
 	add_muted("TREND %+.1f  ·  FINANCES %s%s" % [float(organization.get("trend", 0.0)), str(organization.get("financial_status", "Stable")).to_upper(), "  ·  " + str(organization.movement).to_upper() if not str(organization.get("movement", "")).is_empty() else ""])
 	add_section("TEAM RATINGS")

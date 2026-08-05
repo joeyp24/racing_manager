@@ -33,6 +33,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_race_operations_ui.gd"),
     ),
     (
+        "personality and identity tests",
+        ("--headless", "--path", ".", "--script", "tests/test_personality_and_identity.gd"),
+    ),
+    (
         "sponsorship system tests",
         ("--headless", "--path", ".", "--script", "tests/test_sponsorship_system.gd"),
     ),

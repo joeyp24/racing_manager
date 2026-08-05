@@ -34,7 +34,7 @@ border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.76, 0.25, 0.95, 0.9)
+border_color = Color(1, 0.36, 0.38, 0.92)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -56,7 +56,7 @@ content_margin_right = 10.0
 content_margin_bottom = 6.0
 
 [sub_resource type="StyleBoxFlat" id="Primary"]
-bg_color = Color(0.69, 0.16, 0.82, 1)
+bg_color = Color(0.486, 0.227, 0.929, 1)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -67,7 +67,7 @@ content_margin_right = 12.0
 content_margin_bottom = 7.0
 
 [sub_resource type="StyleBoxFlat" id="PrimaryHover"]
-bg_color = Color(0.82, 0.24, 0.96, 1)
+bg_color = Color(0.545, 0.361, 0.965, 1)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
@@ -108,7 +108,7 @@ content_margin_bottom = 8.0
 [sub_resource type="StyleBoxFlat" id="Hero"]
 bg_color = Color(0.068, 0.066, 0.12, 1)
 border_width_left = 2
-border_color = Color(0.78, 0.22, 0.93, 1)
+border_color = Color(1, 0.36, 0.38, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4

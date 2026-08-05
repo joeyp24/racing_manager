@@ -65,6 +65,7 @@ static func defaults() -> Dictionary:
 			"history":[]
 		},
 		"rivalries":{},
+		"featured_rival_id":"",
 		"processed_transfers":[],
 		"press_history":[],
 		"story_arcs":[],
@@ -1274,6 +1275,7 @@ static func process_race(team, result, simulation = null) -> void:
 	_update_stats(team, result)
 	_update_rivalries(team, result)
 	_update_driver_dynamics(team, result)
+	_write_race_story(team, result)
 	_publish_race_news(team, result)
 	_generate_press_conference(team, result)
 	_generate_story_arc(team, result)
@@ -1390,15 +1392,23 @@ static func _update_stats(team, result) -> void:
 static func _update_rivalries(team, result) -> void:
 	if result.standings.is_empty() or result.finishing_position <= 0:
 		return
+	var featured_id := str(team.career_state.get("featured_rival_id", ""))
 	var nearest_index := clampi(result.finishing_position, 0, result.standings.size() - 1)
 	var rival := result.standings[nearest_index] as Dictionary
 	if bool(rival.get("is_player", false)) and nearest_index > 0:
 		rival = result.standings[nearest_index - 1] as Dictionary
+	if not featured_id.is_empty():
+		for index in result.standings.size():
+			var candidate := result.standings[index] as Dictionary
+			if str(candidate.get("driver_id", "")) == featured_id and absi((index + 1) - result.finishing_position) <= 5:
+				rival = candidate
+				break
 	var rival_id := str(rival.get("driver_id", rival.get("driver_name", "")))
 	if rival_id.is_empty():
 		return
 	var rivalries := team.career_state.rivalries as Dictionary
-	var data := rivalries.get(rival_id, {"name":rival.get("driver_name", "Rival"), "team":rival.get("team_name", ""), "intensity":10, "incidents":0, "defeats":0, "disputes":0, "history":[]}) as Dictionary
+	var data := rivalries.get(rival_id, {"name":rival.get("driver_name", "Rival"), "team":rival.get("team_name", ""), "intensity":10, "incidents":0, "defeats":0, "disputes":0, "encounters":0, "player_wins":0, "rival_wins":0, "streak":0, "history":[]}) as Dictionary
+	_merge_defaults(data, {"encounters":0, "player_wins":0, "rival_wins":0, "streak":0, "history":[]})
 	var player_incident := false
 	for row_value in result.standings:
 		var row := row_value as Dictionary
@@ -1406,18 +1416,33 @@ static func _update_rivalries(team, result) -> void:
 			player_incident = float(row.get("incident_time_loss", 0.0)) > 0.0 or str(row.get("status", "Finished")) != "Finished"
 			break
 	data.intensity = clampi(int(data.intensity) + (10 if player_incident else (4 if result.positions_gained != 0 else 2)), 0, 100)
+	data.encounters = int(data.encounters) + 1
 	if player_incident:
 		data.incidents = int(data.incidents) + 1
 	var rival_position: int = result.standings.find(rival) + 1
 	if rival_position > 0 and result.finishing_position < rival_position:
 		data.defeats = int(data.defeats) + 1
+		data.player_wins = int(data.player_wins) + 1
+		data.streak = maxi(1, int(data.streak) + 1)
+		data.last_result = "Won by %d place%s" % [rival_position - result.finishing_position, "" if rival_position - result.finishing_position == 1 else "s"]
+	else:
+		data.rival_wins = int(data.rival_wins) + 1
+		data.streak = mini(-1, int(data.streak) - 1)
+		data.last_result = "Lost by %d place%s" % [maxi(1, result.finishing_position - rival_position), "" if result.finishing_position - rival_position == 1 else "s"]
 	(data.history as Array).push_front({"season":team.current_season_year, "race":result.race.race_name, "player_finish":result.finishing_position, "incident":player_incident})
 	if (data.history as Array).size() > 16:
 		(data.history as Array).resize(16)
 	rivalries[rival_id] = data
+	var current := rivalries.get(featured_id, {}) as Dictionary
+	var current_score := int(current.get("intensity", 0)) + int(current.get("encounters", 0)) * 4
+	var candidate_score := int(data.intensity) + int(data.encounters) * 4
+	if featured_id.is_empty() or featured_id == rival_id or candidate_score >= current_score + 12:
+		team.career_state["featured_rival_id"] = rival_id
+		featured_id = rival_id
+	result.rival_summary = "%s of %s is now the recurring rival · %s · series score %d–%d · intensity %d/100." % [str(data.name), str(data.team), str(data.last_result), int(data.player_wins), int(data.rival_wins), int(data.intensity)]
 	if player_incident:
-		add_news_item(team, "Rivalry", "%s rivalry boils over" % data.name, "Contact at %s raised the rivalry to %d intensity and put both drivers in the spotlight." % [result.race.track_name, int(data.intensity)], 3)
-		add_inbox_item(team, "Media", "Rivalry response requested", "The press wants a response after the incident with %s." % data.name, [
+		add_news_item(team, "Rivalry", "%s rivalry tightens" % data.name, "A difficult race at %s raised the rivalry to %d intensity and put both drivers back in the spotlight." % [result.race.track_name, int(data.intensity)], 3)
+		add_inbox_item(team, "Media", "Rivalry response requested", "The press wants a response after another tense weekend alongside %s." % data.name, [
 			{"label":"Cool the situation", "effects":{"professionalism":3, "rivalry":-8}},
 			{"label":"Keep the pressure on", "effects":{"commercial_appeal":3, "rivalry":8, "fans":45}}
 		])
@@ -1447,8 +1472,53 @@ static func _update_driver_dynamics(team, result) -> void:
 			status = str(row.get("status", "Finished"))
 			break
 	var change := driver.apply_race_dynamics({"finish":result.finishing_position, "status":status, "incident":incident}, result.expected_finishing_position, result.team_order_summary)
+	PersonalityCatalog.assign_identity(driver)
+	var reaction_kind := "failure"
+	if result.team_order_summary != "Race freely":
+		reaction_kind = "team_order"
+	elif result.finishing_position == 1:
+		reaction_kind = "win"
+	elif result.finishing_position <= result.expected_finishing_position:
+		reaction_kind = "success"
+	result.driver_personality = driver.get_personality_name()
+	result.driver_reaction = PersonalityCatalog.reaction(driver, reaction_kind, {"season":team.current_season_year, "event":result.race.race_id, "race":result.race.race_name, "team":team.team_name})
+	if result.finishing_position == 1 and driver.career_wins == 1:
+		driver.remember_moment("First career win", "Won %s for %s." % [result.race.race_name, team.team_name], team.current_season_year, result.race.race_name)
+	elif result.finishing_position == 1 and driver.age >= 34:
+		driver.remember_moment("Veteran victory", "Won again at age %d." % driver.age, team.current_season_year, result.race.race_name)
+	elif result.positions_gained >= 7:
+		driver.remember_moment("Charge through the field", "Gained %d positions at %s." % [result.positions_gained, result.race.race_name], team.current_season_year, result.race.race_name)
 	if abs(int(change.confidence_change)) >= 4 or bool(change.contract_uncertain):
 		add_notification(team, "Driver", "%s's confidence changed" % driver.driver_name, "Form %d (%+d), confidence %d (%+d), morale %d." % [driver.form, int(change.form_change), driver.confidence, int(change.confidence_change), driver.morale])
+
+
+static func _write_race_story(team, result) -> void:
+	var player_row: Dictionary = {}
+	for value in result.standings:
+		var row := value as Dictionary
+		if bool(row.get("is_player", false)):
+			player_row = row
+			break
+	var status := str(player_row.get("status", "Finished"))
+	var incident_loss := float(player_row.get("incident_time_loss", 0.0))
+	if status != "Finished":
+		result.authored_incident = "THE RADIO WENT QUIET · Warning signs became a retirement before the team could rescue the afternoon."
+	elif incident_loss > 0.0:
+		result.authored_incident = "THE LONG WAY BACK · A mistake in traffic cost %.1f seconds, leaving %s to rebuild the race one position at a time." % [incident_loss, result.player_driver.driver_name]
+	elif result.pit_stop_factor <= -1.0:
+		result.authored_incident = "A STOP TOO LONG · The pit lane turned a competitive run into a recovery drive."
+	elif result.positions_gained >= 6:
+		result.authored_incident = "THE CHARGE · From P%d on the grid, %s kept finding a way through and gained %d positions." % [result.starting_position, result.player_driver.driver_name, result.positions_gained]
+	elif result.finishing_position == 1:
+		result.authored_incident = "THE BREAKTHROUGH · Every decision held under pressure, and the final restart became a victory lap."
+	else:
+		result.authored_incident = "THE SMALL MARGINS · No single moment decided the race; setup, traffic and tyre life accumulated into P%d." % result.finishing_position
+	var arcs := team.career_state.story_arcs as Array
+	for arc_value in arcs:
+		var arc := arc_value as Dictionary
+		if str(arc.get("driver", "")) == result.player_driver.driver_name:
+			result.storyline_summary = "%s · chapter %d · %s remains one of the season's running stories." % [str(arc.get("type", "Season story")), int(arc.get("momentum", 1)), result.player_driver.driver_name]
+			break
 
 
 static func _publish_race_news(team, result) -> void:
@@ -1493,7 +1563,15 @@ static func _generate_story_arc(team, result) -> void:
 		kind = "Wonderkid breakthrough"
 	if kind.is_empty():
 		return
+	for arc_value in arcs:
+		var existing := arc_value as Dictionary
+		if str(existing.get("type", "")) == kind and str(existing.get("driver", "")) == result.player_driver.driver_name and int(existing.get("season", 0)) == team.current_season_year:
+			existing.momentum = int(existing.get("momentum", 1)) + 1
+			existing.race = result.race.race_name
+			result.storyline_summary = "%s · chapter %d · %s added another memorable result at %s." % [kind, int(existing.momentum), result.player_driver.driver_name, result.race.race_name]
+			return
 	arcs.push_front({"type":kind, "driver":result.player_driver.driver_name, "race":result.race.race_name, "season":team.current_season_year, "momentum":1})
+	result.storyline_summary = "%s begins · %s at %s." % [kind, result.player_driver.driver_name, result.race.race_name]
 	add_notification(team, "Story", kind, "%s is becoming a paddock talking point." % result.player_driver.driver_name)
 
 
