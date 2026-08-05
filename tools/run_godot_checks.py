@@ -17,6 +17,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_calendar_system.gd"),
     ),
     (
+        "first-hour experience tests",
+        ("--headless", "--path", ".", "--script", "tests/test_first_hour_experience.gd"),
+    ),
+    (
         "Performance Points behavioral tests",
         ("--headless", "--path", ".", "--script", "tests/test_performance_points.gd"),
     ),
