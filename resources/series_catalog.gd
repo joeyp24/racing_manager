@@ -1,6 +1,17 @@
 extends RefCounted
 class_name SeriesCatalog
 
+const IDENTITIES: Dictionary = {
+	"local_short_track":{"short_name":"LOCAL 100", "color":"e85d45", "tagline":"Friday lights. Volunteer crews. Nothing comes easy."},
+	"regional_short_track":{"short_name":"REGIONAL TOUR", "color":"f09a38", "tagline":"The first road trips and the first real reputations."},
+	"national_short_track":{"short_name":"NATIONAL SHORT", "color":"e6bd39", "tagline":"Bullrings, bruises and the country's best late-model teams."},
+	"continental_east_west":{"short_name":"EAST / WEST", "color":"34b7a0", "tagline":"Two coasts, one field and no familiar way home."},
+	"continental_national":{"short_name":"CONTINENTAL", "color":"3e91e8", "tagline":"A national proving ground for serious organizations."},
+	"national_truck":{"short_name":"TRUCK TOUR", "color":"6e7ff2", "tagline":"Heavy machines, close packs and unforgiving restarts."},
+	"national_grand":{"short_name":"GRAND SERIES", "color":"a55ce8", "tagline":"Factory attention and careers made in public."},
+	"premier_cup":{"short_name":"PREMIER CUP", "color":"e6539c", "tagline":"The biggest teams, the longest season and the final measure."}
+}
+
 const SERIES: Array[Dictionary] = [
 	{"id":"local_short_track", "required_level":1, "name":"Local Short Track Series", "entry_cost":0, "hq_level":1, "roster_size":20, "season_length":12, "maximum_field_size":20, "points_system":"short_track", "championship_payouts":[50000,35000,25000,18000,14000,10000,7500,5000], "championship_prize":50000, "weekend_cost_multiplier":1.0, "sponsor_prestige_multiplier":1.0, "car_price":12000, "car_rating":48, "minimum_car_rating":44, "car_performance_range":[44,52], "track_type_distribution":{"Short Track":0.75,"Speedway":0.25}, "estimated_race_cost":1200},
 	{"id":"regional_short_track", "required_level":2, "name":"Regional Short Track Series", "entry_cost":35000, "hq_level":2, "roster_size":24, "season_length":14, "maximum_field_size":24, "points_system":"short_track", "championship_payouts":[125000,80000,50000,30000,20000], "championship_prize":125000, "weekend_cost_multiplier":1.25, "sponsor_prestige_multiplier":1.2, "car_price":28000, "car_rating":55, "minimum_car_rating":52, "car_performance_range":[52,59], "track_type_distribution":{"Short Track":0.70,"Speedway":0.30}, "estimated_race_cost":2500},
@@ -19,6 +30,10 @@ static func get_series(series_id: String) -> Dictionary:
 		if series.id == series_id:
 			return series
 	return {}
+
+
+static func get_identity(series_id: String) -> Dictionary:
+	return (IDENTITIES.get(series_id, {"short_name":"RACING SERIES", "color":"8b5cf6", "tagline":"Every lap adds to the story."}) as Dictionary).duplicate(true)
 
 static func get_index(series_id: String) -> int:
 	for index in SERIES.size():

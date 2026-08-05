@@ -7,6 +7,7 @@ extends Control
 @onready var rumors_label: Label = %rumors_label
 @onready var transactions_label: Label = %transactions_label
 @onready var recap_label: Label = %recap_label
+@onready var season_story_label: Label = %season_story_label
 @onready var readiness_label: Label = %readiness_label
 @onready var complete_button: Button = %complete_button
 @onready var back_button: Button = %back_button
@@ -46,6 +47,14 @@ func _refresh(message: String = "") -> void:
 		team.contracted_driver_ids.size(),
 		"" if team.contracted_driver_ids.size() == 1 else "s"
 	]
+	var story := data.get("season_story", {}) as Dictionary
+	season_story_label.text = "%s\n%s\n\nDRIVER STORY  %s\nRIVALRY  %s\n\n“%s”" % [
+		str(story.get("headline", "A season becomes team history")).to_upper(),
+		str(story.get("narrative", "The campaign is complete.")),
+		str(story.get("driver_story", "The lineup now turns toward next season.")),
+		str(story.get("rivalry_story", "No recurring rival defined the year.")),
+		str(story.get("reaction", "We will remember this year and build from it."))
+	]
 	status_label.text = message
 	_clear(contracts_container)
 	_clear(market_container)
@@ -84,7 +93,7 @@ func _build_contracts(contracts: Array) -> void:
 		var details := Label.new()
 		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		details.text = "%s  •  %d OVR  •  Fit %d%%  •  %s\nDemand: $%s/race + $%s signing  •  Rival: %s at $%s/race\n%s" % [
+		details.text = "%s  •  %d OVR  •  Fit %d%%  •  %s\nDemand: $%s/race + $%s signing  •  Rival: %s at $%s/race\n%s%s" % [
 			str(contract.driver_name),
 			int(contract.overall),
 			int(contract.team_fit),
@@ -93,7 +102,8 @@ func _build_contracts(contracts: Array) -> void:
 			_format_money(int(contract.demand_signing)),
 			str(contract.rival_team_name),
 			_format_money(int(contract.rival_salary)),
-			str(contract.decision)
+			str(contract.decision),
+			"\n“%s”" % str(contract.get("reaction", "")) if not str(contract.get("reaction", "")).is_empty() else ""
 		]
 		row.add_child(details)
 		if str(contract.status) == "Pending":

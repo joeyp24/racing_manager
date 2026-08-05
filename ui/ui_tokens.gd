@@ -1,19 +1,19 @@
 class_name UITokens
 extends RefCounted
 
-## Compact spacing and sizing tokens shared by dynamically generated interfaces.
+## Four-point spacing scale shared by dynamically generated interfaces.
 const SPACE_XS := 4
-const SPACE_SM := 6
-const SPACE_MD := 8
-const SPACE_LG := 12
-const SPACE_XL := 16
+const SPACE_SM := 8
+const SPACE_MD := 12
+const SPACE_LG := 16
+const SPACE_XL := 24
 
 const PAGE_MARGIN := 12
-const CARD_PADDING_HORIZONTAL := 10
+const CARD_PADDING_HORIZONTAL := 12
 const CARD_PADDING_VERTICAL := 8
 
-const CONTROL_HEIGHT := 32
-const PRIMARY_CONTROL_HEIGHT := 36
+const CONTROL_HEIGHT := 34
+const PRIMARY_CONTROL_HEIGHT := 38
 const COMPACT_ROW_HEIGHT := 52
 
 const FONT_CAPTION := 11

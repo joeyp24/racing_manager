@@ -12,10 +12,10 @@ corner_radius_top_left = 7
 corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
-content_margin_left = 16.0
-content_margin_top = 10.0
-content_margin_right = 16.0
-content_margin_bottom = 10.0
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
 
 [sub_resource type="StyleBoxFlat" id="Card"]
 bg_color = Color(0.065, 0.083, 0.11, 1)
@@ -28,10 +28,10 @@ corner_radius_top_left = 7
 corner_radius_top_right = 7
 corner_radius_bottom_right = 7
 corner_radius_bottom_left = 7
-content_margin_left = 14.0
-content_margin_top = 11.0
-content_margin_right = 14.0
-content_margin_bottom = 11.0
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
 
 [sub_resource type="StyleBoxFlat" id="Feed"]
 bg_color = Color(0.035, 0.048, 0.066, 1)
@@ -39,10 +39,10 @@ border_width_left = 3
 border_color = Color(0.93, 0.22, 0.08, 1)
 corner_radius_top_right = 7
 corner_radius_bottom_right = 7
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
 
 [node name="LiveRace" type="Control"]
 layout_mode = 3
@@ -60,10 +60,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
 [node name="Header" type="PanelContainer" parent="Root"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Header")
 
@@ -76,27 +76,27 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"PageTitle"
-text = "RACE  •  LAP 0 / 0"
+text = "RACE · LAP 0 / 0"
 text_overrun_behavior = 3
 
 [node name="flag_label" type="Label" parent="Root/Header/HeaderRow"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
-text = "●  GREEN FLAG"
+text = "● GREEN FLAG"
 
 [node name="speed_label" type="Label" parent="Root/Header/HeaderRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 0)
+custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 horizontal_alignment = 2
 vertical_alignment = 1
-text = "PAUSED  •  2× SPEED"
+text = "PAUSED · 2× SPEED"
 
 [node name="message_label" type="Label" parent="Root"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "SIMULATION PAUSED"
@@ -107,180 +107,143 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="RaceData" type="VBoxContainer" parent="Root/Main"]
+[node name="TimingColumn" type="VBoxContainer" parent="Root/Main"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
-[node name="TrackCard" type="PanelContainer" parent="Root/Main/RaceData"]
-custom_minimum_size = Vector2(0, 135)
-layout_mode = 2
-theme_override_styles/panel = SubResource("Card")
-
-[node name="track_map" type="Control" parent="Root/Main/RaceData/TrackCard"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 115)
-layout_mode = 2
-mouse_filter = 2
-script = ExtResource("2_track")
-
-[node name="TowerCard" type="PanelContainer" parent="Root/Main/RaceData"]
+[node name="TowerCard" type="PanelContainer" parent="Root/Main/TimingColumn"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("Card")
 
-[node name="Tower" type="VBoxContainer" parent="Root/Main/RaceData/TowerCard"]
+[node name="Tower" type="VBoxContainer" parent="Root/Main/TimingColumn/TowerCard"]
 layout_mode = 2
-theme_override_constants/separation = 7
+theme_override_constants/separation = 5
 
-[node name="TitleRow" type="HBoxContainer" parent="Root/Main/RaceData/TowerCard/Tower"]
+[node name="TitleRow" type="HBoxContainer" parent="Root/Main/TimingColumn/TowerCard/Tower"]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="Root/Main/RaceData/TowerCard/Tower/TitleRow"]
+[node name="Title" type="Label" parent="Root/Main/TimingColumn/TowerCard/Tower/TitleRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"SectionTitle"
-text = "LIVE TIMING"
+text = "LIVE STANDINGS"
 
-[node name="Hint" type="Label" parent="Root/Main/RaceData/TowerCard/Tower/TitleRow"]
+[node name="Hint" type="Label" parent="Root/Main/TimingColumn/TowerCard/Tower/TitleRow"]
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
-text = "UPDATED EACH LAP"
+text = "FULL FIELD · UPDATED EACH LAP"
 
-[node name="Rule" type="HSeparator" parent="Root/Main/RaceData/TowerCard/Tower"]
+[node name="Rule" type="HSeparator" parent="Root/Main/TimingColumn/TowerCard/Tower"]
 layout_mode = 2
 
-[node name="timing_tower" type="RichTextLabel" parent="Root/Main/RaceData/TowerCard/Tower"]
+[node name="timing_tower" type="RichTextLabel" parent="Root/Main/TimingColumn/TowerCard/Tower"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_font_sizes/normal_font_size = 13
-theme_override_font_sizes/bold_font_size = 13
+theme_override_font_sizes/normal_font_size = 11
+theme_override_font_sizes/bold_font_size = 11
 bbcode_enabled = true
 fit_content = false
 scroll_active = true
+scroll_following = false
 
-[node name="AnalysisCard" type="PanelContainer" parent="Root/Main/RaceData"]
-custom_minimum_size = Vector2(0, 160)
-layout_mode = 2
-theme_override_styles/panel = SubResource("Card")
-
-[node name="analysis_tabs" type="TabContainer" parent="Root/Main/RaceData/AnalysisCard"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="Stints" type="Control" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
-layout_mode = 2
-script = ExtResource("3_chart")
-chart_mode = "Stints"
-
-[node name="Lap Times" type="Control" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
-layout_mode = 2
-script = ExtResource("3_chart")
-chart_mode = "Lap Times"
-
-[node name="Tyre & Fuel" type="Control" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
-layout_mode = 2
-script = ExtResource("3_chart")
-chart_mode = "Tyre & Fuel"
-
-[node name="Passing" type="RichTextLabel" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
-layout_mode = 2
-bbcode_enabled = true
-fit_content = false
-scroll_active = true
-
-[node name="Cautions" type="RichTextLabel" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
-layout_mode = 2
-bbcode_enabled = true
-fit_content = false
-scroll_active = true
-
-[node name="Comparisons" type="RichTextLabel" parent="Root/Main/RaceData/AnalysisCard/analysis_tabs"]
-layout_mode = 2
-bbcode_enabled = true
-fit_content = false
-scroll_active = true
-
-[node name="FeedCard" type="PanelContainer" parent="Root/Main/RaceData"]
-custom_minimum_size = Vector2(0, 60)
+[node name="FeedCard" type="PanelContainer" parent="Root/Main/TimingColumn"]
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Feed")
 
-[node name="FeedLayout" type="VBoxContainer" parent="Root/Main/RaceData/FeedCard"]
+[node name="FeedLayout" type="VBoxContainer" parent="Root/Main/TimingColumn/FeedCard"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="Root/Main/RaceData/FeedCard/FeedLayout"]
+[node name="Title" type="Label" parent="Root/Main/TimingColumn/FeedCard/FeedLayout"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
-text = "RACE CONTROL  /  LIVE FEED"
+text = "RACE CONTROL / LIVE FEED"
 
-[node name="event_feed" type="RichTextLabel" parent="Root/Main/RaceData/FeedCard/FeedLayout"]
+[node name="event_feed" type="RichTextLabel" parent="Root/Main/TimingColumn/FeedCard/FeedLayout"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/default_color = Color(0.72, 0.77, 0.84, 1)
-theme_override_font_sizes/normal_font_size = 12
+theme_override_font_sizes/normal_font_size = 11
 bbcode_enabled = true
 text = "Live commentary"
 
-[node name="PitWall" type="VBoxContainer" parent="Root/Main"]
-custom_minimum_size = Vector2(292, 0)
+[node name="PitWallScroll" type="ScrollContainer" parent="Root/Main"]
+custom_minimum_size = Vector2(346, 0)
 layout_mode = 2
-theme_override_constants/separation = 8
+horizontal_scroll_mode = 0
 
-[node name="TelemetryCard" type="PanelContainer" parent="Root/Main/PitWall"]
-custom_minimum_size = Vector2(0, 145)
+[node name="PitWall" type="VBoxContainer" parent="Root/Main/PitWallScroll"]
+custom_minimum_size = Vector2(330, 0)
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="TrackCard" type="PanelContainer" parent="Root/Main/PitWallScroll/PitWall"]
+custom_minimum_size = Vector2(0, 126)
+layout_mode = 2
 theme_override_styles/panel = SubResource("Card")
 
-[node name="TelemetryLayout" type="VBoxContainer" parent="Root/Main/PitWall/TelemetryCard"]
+[node name="track_map" type="Control" parent="Root/Main/PitWallScroll/PitWall/TrackCard"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 106)
 layout_mode = 2
-theme_override_constants/separation = 5
+mouse_filter = 2
+script = ExtResource("2_track")
 
-[node name="Title" type="Label" parent="Root/Main/PitWall/TelemetryCard/TelemetryLayout"]
+[node name="TelemetryCard" type="PanelContainer" parent="Root/Main/PitWallScroll/PitWall"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Card")
+
+[node name="TelemetryLayout" type="VBoxContainer" parent="Root/Main/PitWallScroll/PitWall/TelemetryCard"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Root/Main/PitWallScroll/PitWall/TelemetryCard/TelemetryLayout"]
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
-text = "CAR TELEMETRY"
+text = "YOUR CAR · AT A GLANCE"
 
-[node name="telemetry" type="RichTextLabel" parent="Root/Main/PitWall/TelemetryCard/TelemetryLayout"]
+[node name="telemetry" type="RichTextLabel" parent="Root/Main/PitWallScroll/PitWall/TelemetryCard/TelemetryLayout"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_font_sizes/normal_font_size = 12
-theme_override_font_sizes/bold_font_size = 13
+theme_override_font_sizes/normal_font_size = 11
+theme_override_font_sizes/bold_font_size = 12
 bbcode_enabled = true
 fit_content = false
 scroll_active = false
 text = "Waiting for telemetry…"
 
-[node name="EngineerCard" type="PanelContainer" parent="Root/Main/RaceData"]
-custom_minimum_size = Vector2(0, 80)
+[node name="EngineerCard" type="PanelContainer" parent="Root/Main/PitWallScroll/PitWall"]
+custom_minimum_size = Vector2(0, 104)
 layout_mode = 2
 theme_override_styles/panel = SubResource("Feed")
 
-[node name="EngineerLayout" type="VBoxContainer" parent="Root/Main/RaceData/EngineerCard"]
+[node name="EngineerLayout" type="VBoxContainer" parent="Root/Main/PitWallScroll/PitWall/EngineerCard"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="EngineerHeader" type="HBoxContainer" parent="Root/Main/RaceData/EngineerCard/EngineerLayout"]
+[node name="EngineerHeader" type="HBoxContainer" parent="Root/Main/PitWallScroll/PitWall/EngineerCard/EngineerLayout"]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="Root/Main/RaceData/EngineerCard/EngineerLayout/EngineerHeader"]
+[node name="Title" type="Label" parent="Root/Main/PitWallScroll/PitWall/EngineerCard/EngineerLayout/EngineerHeader"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"SectionTitle"
 text = "RACE ENGINEER / RADIO"
 
-[node name="engineer_request_button" type="Button" parent="Root/Main/RaceData/EngineerCard/EngineerLayout/EngineerHeader"]
+[node name="engineer_request_button" type="Button" parent="Root/Main/PitWallScroll/PitWall/EngineerCard/EngineerLayout/EngineerHeader"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Request Update"
 
-[node name="engineer_label" type="RichTextLabel" parent="Root/Main/RaceData/EngineerCard/EngineerLayout"]
+[node name="engineer_label" type="RichTextLabel" parent="Root/Main/PitWallScroll/PitWall/EngineerCard/EngineerLayout"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -289,142 +252,186 @@ fit_content = false
 scroll_active = false
 text = "Engineer is reviewing the opening stint."
 
-[node name="ControlsCard" type="PanelContainer" parent="Root/Main/PitWall"]
+[node name="ControlsCard" type="PanelContainer" parent="Root/Main/PitWallScroll/PitWall"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("Card")
 
-[node name="Controls" type="VBoxContainer" parent="Root/Main/PitWall/ControlsCard"]
+[node name="Controls" type="VBoxContainer" parent="Root/Main/PitWallScroll/PitWall/ControlsCard"]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="Title" type="Label" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="Title" type="Label" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
 text = "PIT WALL CONTROLS"
 
-[node name="PaceLabel" type="Label" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="PaceLabel" type="Label" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "PACE MODE"
 
-[node name="PaceRow" type="HBoxContainer" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="PaceRow" type="HBoxContainer" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="pace_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/PaceRow"]
+[node name="pace_selector" type="OptionButton" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/PaceRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="apply_pace_button" type="Button" parent="Root/Main/PitWall/ControlsCard/Controls/PaceRow"]
+[node name="apply_pace_button" type="Button" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/PaceRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(86, 0)
+custom_minimum_size = Vector2(82, 0)
 layout_mode = 2
 text = "Apply"
 
-[node name="PitLabel" type="Label" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="PitLabel" type="Label" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "PIT STOP"
 
-[node name="PitRow" type="HBoxContainer" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="PitRow" type="HBoxContainer" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="pit_service_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/PitRow"]
+[node name="pit_service_selector" type="OptionButton" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/PitRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="pit_button" type="Button" parent="Root/Main/PitWall/ControlsCard/Controls/PitRow"]
+[node name="pit_button" type="Button" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/PitRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 0)
+custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
 theme_type_variation = &"PrimaryButton"
 text = "Box This Lap"
 
-[node name="pit_prediction_label" type="Label" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="pit_prediction_label" type="Label" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "Projected pit loss"
 autowrap_mode = 2
 
-[node name="SetupLabel" type="Label" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="SetupLabel" type="Label" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "DRIVER ADJUSTMENT"
 
-[node name="SetupRow" type="HBoxContainer" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="SetupRow" type="HBoxContainer" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="setup_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/SetupRow"]
+[node name="setup_selector" type="OptionButton" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/SetupRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="apply_setup_button" type="Button" parent="Root/Main/PitWall/ControlsCard/Controls/SetupRow"]
+[node name="apply_setup_button" type="Button" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/SetupRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(86, 0)
+custom_minimum_size = Vector2(82, 0)
 layout_mode = 2
 text = "Adjust Bias"
 
-[node name="FuelCommandRow" type="HBoxContainer" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="FuelCommandRow" type="HBoxContainer" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="fuel_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/FuelCommandRow"]
+[node name="fuel_selector" type="OptionButton" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/FuelCommandRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="racecraft_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/FuelCommandRow"]
+[node name="racecraft_selector" type="OptionButton" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/FuelCommandRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="apply_command_button" type="Button" parent="Root/Main/PitWall/ControlsCard/Controls/FuelCommandRow"]
+[node name="apply_command_button" type="Button" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/FuelCommandRow"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Radio"
 
-[node name="TeamOrderRow" type="HBoxContainer" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="TeamOrderRow" type="HBoxContainer" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="team_order_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/TeamOrderRow"]
+[node name="team_order_selector" type="OptionButton" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/TeamOrderRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="apply_team_order_button" type="Button" parent="Root/Main/PitWall/ControlsCard/Controls/TeamOrderRow"]
+[node name="apply_team_order_button" type="Button" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/TeamOrderRow"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Team Order"
 
-[node name="Rule" type="HSeparator" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="Rule" type="HSeparator" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 
-[node name="SpeedRow" type="HBoxContainer" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="SpeedRow" type="HBoxContainer" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="pause_button" type="Button" parent="Root/Main/PitWall/ControlsCard/Controls/SpeedRow"]
+[node name="pause_button" type="Button" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/SpeedRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"PrimaryButton"
 text = "Start Race"
 
-[node name="speed_selector" type="OptionButton" parent="Root/Main/PitWall/ControlsCard/Controls/SpeedRow"]
+[node name="speed_selector" type="OptionButton" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls/SpeedRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(82, 0)
 layout_mode = 2
 
-[node name="next_lap_button" type="Button" parent="Root/Main/PitWall/ControlsCard/Controls"]
+[node name="next_lap_button" type="Button" parent="Root/Main/PitWallScroll/PitWall/ControlsCard/Controls"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Advance One Lap"
+
+[node name="AnalysisCard" type="PanelContainer" parent="Root/Main/PitWallScroll/PitWall"]
+custom_minimum_size = Vector2(0, 210)
+layout_mode = 2
+theme_override_styles/panel = SubResource("Card")
+
+[node name="analysis_tabs" type="TabContainer" parent="Root/Main/PitWallScroll/PitWall/AnalysisCard"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Stints" type="Control" parent="Root/Main/PitWallScroll/PitWall/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+script = ExtResource("3_chart")
+chart_mode = "Stints"
+
+[node name="Lap Times" type="Control" parent="Root/Main/PitWallScroll/PitWall/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+script = ExtResource("3_chart")
+chart_mode = "Lap Times"
+
+[node name="Tyre & Fuel" type="Control" parent="Root/Main/PitWallScroll/PitWall/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+script = ExtResource("3_chart")
+chart_mode = "Tyre & Fuel"
+
+[node name="Passing" type="RichTextLabel" parent="Root/Main/PitWallScroll/PitWall/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = false
+scroll_active = true
+
+[node name="Cautions" type="RichTextLabel" parent="Root/Main/PitWallScroll/PitWall/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = false
+scroll_active = true
+
+[node name="Comparisons" type="RichTextLabel" parent="Root/Main/PitWallScroll/PitWall/AnalysisCard/analysis_tabs"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = false
+scroll_active = true
 
 [node name="caution_overlay" type="ColorRect" parent="."]
 unique_name_in_owner = true

@@ -46,6 +46,33 @@ const PHILOSOPHIES: Array[Dictionary] = [
 	}
 ]
 
+## Stable visual identities make an opponent recognizable before the player
+## reads its name. Palettes repeat only after every organization in a series has
+## received a distinct combination.
+const TEAM_PALETTES: Array[Dictionary] = [
+	{"primary":"e23b3b", "secondary":"211522", "accent":"ffca57"},
+	{"primary":"2f80ed", "secondary":"0b1b35", "accent":"7fd8ff"},
+	{"primary":"f08a24", "secondary":"25170e", "accent":"ffe071"},
+	{"primary":"8b5cf6", "secondary":"17122b", "accent":"e6d5ff"},
+	{"primary":"16a67a", "secondary":"0a2420", "accent":"70f0c6"},
+	{"primary":"d34f9f", "secondary":"291025", "accent":"ffaddd"},
+	{"primary":"d8b323", "secondary":"28220c", "accent":"fff099"},
+	{"primary":"26a7b8", "secondary":"09242a", "accent":"92f4ff"},
+	{"primary":"ef5b3f", "secondary":"2a100d", "accent":"ffc0a9"},
+	{"primary":"5576e8", "secondary":"111932", "accent":"bdc9ff"},
+	{"primary":"8cbf36", "secondary":"17240a", "accent":"dafc8f"},
+	{"primary":"c657e8", "secondary":"24102c", "accent":"f2b7ff"},
+	{"primary":"e85d78", "secondary":"2b1018", "accent":"ffc2cf"},
+	{"primary":"6d93a8", "secondary":"101d24", "accent":"c7e7f5"}
+]
+
+const TEAM_MOTTOS: Array[String] = [
+	"Attack the opening", "Built for the long run", "Nothing given", "Precision under pressure",
+	"Earn every lap", "Make the bold call", "Tradition at full speed", "Calm hands, fast cars",
+	"Race the horizon", "Details decide", "From the shop floor", "Always one step later",
+	"No easy positions", "Finish what we start"
+]
+
 ## Stable, fictional organizations shared by the team browser and race simulation.
 ## Each organization fields multiple cars, as in a NASCAR-style team structure.
 
@@ -185,6 +212,14 @@ static func get_teams(series_id: String) -> Array[Dictionary]:
 		var overall := clampi(base_rating + RATING_OFFSETS[index % RATING_OFFSETS.size()], 35, 99)
 		var team_id := "%s_team_%02d" % [series_id, index + 1]
 		var philosophy := PHILOSOPHIES[(index + SeriesCatalog.get_index(series_id) * 2) % PHILOSOPHIES.size()]
+		var palette := TEAM_PALETTES[(index + SeriesCatalog.get_index(series_id) * 3) % TEAM_PALETTES.size()]
+		var words := str(identity[0]).split(" ")
+		var initials := ""
+		for word in words:
+			if not word.is_empty() and str(word).to_lower() not in ["racing", "motorsports", "autosport", "competition", "performance", "group", "works", "company"]:
+				initials += str(word).left(1)
+		if initials.is_empty():
+			initials = str(identity[0]).left(2)
 		teams.append({
 			"team_id": team_id, "series_id": series_id, "team_name": str(identity[0]),
 			"hometown": str(identity[1]), "founded": int(identity[2]), "championships": int(identity[3]),
@@ -194,6 +229,9 @@ static func get_teams(series_id: String) -> Array[Dictionary]:
 			"pit_crew_rating": clampi(overall + ((index * 7) % 11) - 5, 1, 99),
 			"strategy_rating": clampi(overall + ((index * 2) % 9) - 4, 1, 99),
 			"driver_count": int(car_counts[index]),
+			"short_name":initials.left(3).to_upper(),
+			"motto":TEAM_MOTTOS[(index + SeriesCatalog.get_index(series_id)) % TEAM_MOTTOS.size()],
+			"primary_color":str(palette.primary), "secondary_color":str(palette.secondary), "accent_color":str(palette.accent),
 			"philosophy_id": str(philosophy.id), "philosophy": str(philosophy.name),
 			"philosophy_description": str(philosophy.description),
 			"development_multiplier": float(philosophy.development_multiplier),

@@ -9,12 +9,20 @@ extends Control
 @onready var replay_label: Label = %replay_label
 @onready var analysis_label: Label = %analysis_label
 @onready var continue_button: Button = %continue_button
+@onready var driver_portrait: DriverPortrait = %driver_portrait
+@onready var personality_label: Label = %personality_label
+@onready var reaction_label: Label = %reaction_label
+@onready var incident_story_label: Label = %incident_story_label
+@onready var rival_story_label: Label = %rival_story_label
+@onready var details_toggle: CheckButton = %details_toggle
 
 
 func _ready() -> void:
 	continue_button.pressed.connect(
 		_on_continue_button_pressed
 	)
+	details_toggle.toggled.connect(_toggle_details)
+	_toggle_details(false)
 
 	show_race_result()
 
@@ -43,6 +51,19 @@ func show_race_result() -> void:
 	decisive_factors_label.text = create_decisive_factors_text(result)
 	replay_label.text = create_replay_text(result)
 	analysis_label.text = create_post_race_analysis_text(result)
+	driver_portrait.configure(result.player_driver, GameManager.team.primary_color, GameManager.team.secondary_color)
+	personality_label.text = "%s  /  DRIVER REACTION" % result.driver_personality.to_upper()
+	reaction_label.text = "“%s”" % result.driver_reaction
+	incident_story_label.text = result.authored_incident
+	rival_story_label.text = result.rival_summary + ("\n" + result.storyline_summary if not result.storyline_summary.is_empty() else "")
+
+
+func _toggle_details(visible_now: bool) -> void:
+	analysis_label.visible = visible_now
+	replay_label.visible = visible_now
+	decisive_factors_label.visible = visible_now
+	car_effects_label.visible = visible_now
+	details_toggle.text = "Hide detailed telemetry and replay" if visible_now else "Show detailed telemetry and replay"
 
 
 func create_post_race_analysis_text(result: RaceResult) -> String:

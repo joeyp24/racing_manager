@@ -41,14 +41,17 @@ func _refresh_page() -> void:
 	if GameManager.team == null:
 		status_label.text = "No career is loaded."
 		return
+	var identity := SeriesCatalog.get_identity(selected_series_id)
 	if selected_series_id == GameManager.team.current_series_id:
-		status_label.text = "This is your active championship. Open Championship for your live standings."
+		status_label.text = "%s  /  %s\nThis is your active championship. Open Championship for your live standings." % [str(identity.short_name), str(identity.tagline)]
+		status_label.modulate = Color(str(identity.color))
 		_build_standings(GameManager.team.get_sorted_championship_standings())
 		return
 	var data := GameManager.team.get_world_series_data(selected_series_id)
 	var completed := int(data.get("completed_rounds", 0))
 	var season_length := int(SeriesCatalog.get_series(selected_series_id).season_length)
-	status_label.text = "Season %d  •  %d of %d rounds complete  •  Simulated alongside your career" % [int(data.get("season_number", 1)), completed, season_length]
+	status_label.text = "%s  /  %s\nSeason %d  •  %d of %d rounds complete  •  Simulated alongside your career" % [str(identity.short_name), str(identity.tagline), int(data.get("season_number", 1)), completed, season_length]
+	status_label.modulate = Color(str(identity.color))
 	_build_standings(data.get("standings", []))
 	var results: Array = data.get("results", [])
 	for index in results.size():

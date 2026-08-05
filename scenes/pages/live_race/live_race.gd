@@ -106,6 +106,7 @@ func _ready() -> void:
 	speed_selector.select(1)
 	_update_timer_speed()
 	track_map.set_simulation(simulation)
+	_apply_race_identity()
 	for chart in [stint_chart, lap_time_chart, tyre_fuel_chart]:
 		chart.set_simulation(simulation)
 	caution_overlay.visible = false
@@ -359,7 +360,8 @@ func _refresh_header() -> void:
 		return
 	flag_label.text = "●  %s" % simulation.race_state
 	flag_label.modulate = Color("55d68b") if simulation.race_state == "GREEN FLAG" else (Color("f0c84b") if simulation.race_state in ["SAFETY CAR", "RESTART"] else Color("f4f6fa"))
-	race_title.text = "%s - LAP %d / %d%s" % [simulation.race.race_name.to_upper(), simulation.current_lap, simulation.get_total_laps(), " (OVERTIME)" if simulation.overtime_attempts > 0 else ""]
+	var series_identity := SeriesCatalog.get_identity(simulation.race.series_id)
+	race_title.text = "%s / %s  ·  LAP %d / %d%s" % [str(series_identity.short_name), simulation.race.race_name.to_upper(), simulation.current_lap, simulation.get_total_laps(), " (OVERTIME)" if simulation.overtime_attempts > 0 else ""]
 	var speed := SPEEDS[speed_selector.selected] if speed_selector.selected >= 0 else 1
 	speed_label.text = ("PAUSED  •  " if is_paused else "LIVE  •  ") + "%d× SPEED" % speed
 
@@ -368,22 +370,48 @@ func _refresh_tower() -> void:
 	if simulation.entries.is_empty():
 		return
 	var leader := simulation.entries[0]
-	var primary_hex := GameManager.team.primary_color.to_html(false)
-	var text := "[table=8][cell][b]POS[/b][/cell][cell][b]DRIVER[/b][/cell][cell][b]CHANGE[/b][/cell][cell][b]GAP[/b][/cell][cell][b]LAST LAP[/b][/cell][cell][b]BEST[/b][/cell][cell][b]TYRE LIFE[/b][/cell][cell][b]STATUS[/b][/cell]"
+	var text := "[table=6][cell][b]POS[/b][/cell][cell][b]DRIVER / TEAM[/b][/cell][cell][b]CHANGE[/b][/cell][cell][b]GAP[/b][/cell][cell][b]LAST[/b][/cell][cell][b]TYRE / STATUS[/b][/cell]"
 	for entry in simulation.entries:
 		var change := entry.starting_position - entry.position
 		var change_text := "—" if change == 0 else ("↑%d" % change if change > 0 else "↓%d" % abs(change))
 		var gap := "LEADER" if entry.position == 1 else "+%.3f" % entry.gap_to(leader)
 		var lap := "—" if entry.last_lap_time <= 0.0 else "%.3f" % entry.last_lap_time
-		var best := "—" if entry.best_lap_time <= 0.0 else "%.3f" % entry.best_lap_time
 		var tyre := "%d%%" % roundi(entry.tyre_condition)
-		var values := ["P%d" % entry.position, entry.driver_name, change_text, gap, lap, best, tyre, entry.pace_mode if entry.is_player else entry.status]
+		var identity := _team_identity(entry.team_id, entry.team_name, entry.is_player)
+		var primary_hex := str(identity.primary_color)
+		var driver_cell := "[color=#%s]▌[/color] [b]%s[/b] [color=#8491a3]· %s[/color]" % [primary_hex, entry.driver_name, str(identity.short_name)]
+		var status := entry.pace_mode if entry.is_player else entry.status
+		var values := ["P%d" % entry.position, driver_cell, change_text, gap, lap, "%s · %s" % [tyre, status]]
 		for value in values:
 			if entry.is_player:
-				text += "[cell bg=#%s][color=#ffffff][b]%s[/b][/color][/cell]" % [primary_hex, value]
+				text += "[cell bg=#%s33][color=#ffffff]%s[/color][/cell]" % [primary_hex, value]
 			else:
 				text += "[cell]%s[/cell]" % value
 	timing_tower.text = text + "[/table]"
+
+
+func _team_identity(team_id: String, team_name: String, is_player: bool) -> Dictionary:
+	if is_player:
+		return {"primary_color":GameManager.team.primary_color.to_html(false), "secondary_color":GameManager.team.secondary_color.to_html(false), "short_name":team_name.left(14).to_upper()}
+	var organization := TeamCatalog.get_team(simulation.race.series_id, team_id)
+	if organization.is_empty() and GameManager.team != null:
+		for candidate in GameManager.team.get_ai_organizations_for_series(simulation.race.series_id):
+			if str(candidate.team_id) == team_id:
+				organization = candidate
+				break
+	return {"primary_color":str(organization.get("primary_color", "6d93a8")), "secondary_color":str(organization.get("secondary_color", "101d24")), "short_name":str(organization.get("short_name", team_name.left(14))).to_upper()}
+
+
+func _apply_race_identity() -> void:
+	if simulation == null:
+		return
+	var presentation := TrackPresentationCatalog.get_profile(simulation.race)
+	var accent := presentation.get("accent", Color("e85d45")) as Color
+	var header := $Root/Header as PanelContainer
+	var style := header.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	style.border_color = accent
+	header.add_theme_stylebox_override("panel", style)
+	message_label.modulate = accent.lightened(0.16)
 
 
 func _refresh_telemetry() -> void:

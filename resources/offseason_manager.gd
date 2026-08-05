@@ -33,6 +33,7 @@ static func prepare(team: Team, target_series_id: String, ai_summaries: Array[St
 		"ai_development": ai_summaries.duplicate(),
 		"development": team.last_development_summary.duplicate()
 	}
+	data["season_story"] = PersonalityCatalog.build_season_summary(team)
 	_run_ai_market(team, data)
 	_refresh_free_agents(team, data)
 	team.offseason_data = data
@@ -82,6 +83,7 @@ static func renew_player_driver(team: Team, driver_id: String, match_rival: bool
 	driver.contract_length = int(contract.contract_length)
 	driver.contract_races_remaining = driver.contract_length
 	driver.morale = mini(99, driver.morale + (8 if match_rival else 4))
+	var reaction := PersonalityCatalog.reaction(driver, "renewed", {"season":team.current_season_year, "event":"contract_renewed", "team":team.team_name})
 	driver.team_name = team.team_name
 	driver.is_player_driver = team.get_active_driver() == null or driver.is_player_driver
 	var state := team.ensure_ai_driver_state(driver)
@@ -94,6 +96,7 @@ static func renew_player_driver(team: Team, driver_id: String, match_rival: bool
 	team.ai_driver_career[driver_id] = state
 	contract["status"] = "Retained"
 	contract["decision"] = "Matched rival offer" if match_rival else "Renewed"
+	contract["reaction"] = reaction
 	_update_player_contract(team, contract)
 	team.record_finance("Driver", -total_cost, "Renewed %s" % driver.driver_name)
 	_append_transaction(team, "%s stays with %s on a %d-race agreement." % [driver.driver_name, team.team_name, driver.contract_length], driver_id, "player_team", "renewal")
@@ -116,6 +119,7 @@ static func release_player_driver(team: Team, driver_id: String) -> bool:
 	driver.team_name = str(contract.rival_team_name)
 	driver.salary = int(contract.rival_salary)
 	driver.morale = maxi(0, driver.morale - 6)
+	var reaction := PersonalityCatalog.reaction(driver, "released", {"season":team.current_season_year, "event":"contract_released", "team":team.team_name})
 	var state := team.ensure_ai_driver_state(driver)
 	state["current_team_id"] = str(contract.rival_team_id)
 	state["current_series_id"] = str(team.offseason_data.target_series_id)
@@ -126,6 +130,7 @@ static func release_player_driver(team: Team, driver_id: String) -> bool:
 	_place_driver_on_team(team, state, str(contract.rival_team_id), team.offseason_data)
 	contract["status"] = "Departed"
 	contract["decision"] = "Accepted rival offer"
+	contract["reaction"] = reaction
 	_update_player_contract(team, contract)
 	_append_transaction(team, "%s leaves %s for %s." % [driver.driver_name, team.team_name, str(contract.rival_team_name)], driver_id, str(contract.rival_team_id), "transfer")
 	_assign_primary_player_driver(team)
@@ -156,6 +161,7 @@ static func sign_free_agent(team: Team, driver_id: String) -> Dictionary:
 	driver.contract_races_remaining = driver.contract_length
 	driver.is_player_driver = team.get_active_driver() == null
 	driver.morale = mini(99, driver.morale + 10)
+	PersonalityCatalog.reaction(driver, "signed", {"season":team.current_season_year, "event":"signed", "team":team.team_name})
 	var state := team.ensure_ai_driver_state(driver)
 	state["current_team_id"] = "player_team"
 	state["current_series_id"] = driver.series_id

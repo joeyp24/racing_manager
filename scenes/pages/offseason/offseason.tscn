@@ -66,6 +66,17 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
+[node name="SeasonStory" type="PanelContainer" parent="PageMargin/Layout/Content/Sections"]
+layout_mode = 2
+theme_type_variation = &"HeroPanel"
+
+[node name="season_story_label" type="Label" parent="PageMargin/Layout/Content/Sections/SeasonStory"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "Building the story of the season…"
+autowrap_mode = 2
+
 [node name="ContractsTitle" type="Label" parent="PageMargin/Layout/Content/Sections"]
 layout_mode = 2
 theme_type_variation = &"SectionTitle"

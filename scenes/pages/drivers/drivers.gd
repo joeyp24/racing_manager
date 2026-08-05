@@ -16,7 +16,9 @@ func refresh_roster() -> void:
 		child.queue_free()
 	if drivers.is_empty():
 		var empty := Label.new()
-		empty.text = "No drivers are under contract. Visit Driver Hiring from the Employees section."
+		empty.text = "NO DRIVER SIGNED\nYour first team story starts with a person. Open Driver Hiring and choose who will represent these colours."
+		empty.theme_type_variation = &"MutedLabel"
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		roster_container.add_child(empty)
 		return
 	for driver in drivers:
@@ -53,6 +55,9 @@ func create_driver_profile(driver: Driver) -> Control:
 func _create_header(driver: Driver) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UITokens.SPACE_LG)
+	var portrait := DriverPortrait.new()
+	portrait.custom_minimum_size = Vector2(88, 88)
+	portrait.configure(driver, GameManager.team.primary_color, GameManager.team.secondary_color)
 	var badge := Label.new()
 	badge.text = str(driver.get_overall_rating())
 	badge.tooltip_text = "Overall is the rounded average of all ten performance ratings."
@@ -67,8 +72,19 @@ func _create_header(driver: Driver) -> Control:
 	var subtitle := Label.new()
 	subtitle.theme_type_variation = &"MutedLabel"
 	subtitle.text = "%s  •  %s  •  %s" % [driver.archetype, driver.team_name, driver.nationality]
+	var personality := Label.new()
+	personality.theme_type_variation = &"EyebrowLabel"
+	personality.text = "%s  /  %s" % [driver.get_personality_name().to_upper(), driver.personality_tagline]
+	personality.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	identity.add_child(name)
 	identity.add_child(subtitle)
+	identity.add_child(personality)
+	if not driver.last_reaction.is_empty():
+		var quote := Label.new()
+		quote.theme_type_variation = &"MutedLabel"
+		quote.text = "“%s”" % driver.last_reaction
+		quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		identity.add_child(quote)
 	var ceiling := VBoxContainer.new()
 	var potential_title := Label.new()
 	potential_title.text = "POTENTIAL OVR"
@@ -79,6 +95,7 @@ func _create_header(driver: Driver) -> Control:
 	potential_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ceiling.add_child(potential_title)
 	ceiling.add_child(potential_value)
+	row.add_child(portrait)
 	row.add_child(badge)
 	row.add_child(identity)
 	row.add_child(ceiling)
@@ -177,6 +194,9 @@ func _create_career_history(driver: Driver) -> Control:
 			team_name,
 			str(series.get("name", "Unknown series"))
 		])
+	for moment_value in driver.memorable_moments.slice(0, 3):
+		var moment := moment_value as Dictionary
+		lines.append("%d  •  %s  —  %s" % [int(moment.get("season", 0)), str(moment.get("title", "Career moment")), str(moment.get("detail", ""))])
 	var history_label := Label.new()
 	history_label.theme_type_variation = &"MutedLabel"
 	history_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

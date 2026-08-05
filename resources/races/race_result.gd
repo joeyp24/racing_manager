@@ -53,6 +53,11 @@ var completed_laps: int = 0
 var track_presentation: Dictionary = {}
 var qualifying_format: String = "Standard"
 var team_order_summary: String = "Race freely"
+var driver_personality: String = ""
+var driver_reaction: String = ""
+var rival_summary: String = "No recurring rival shaped this race."
+var authored_incident: String = ""
+var storyline_summary: String = ""
 
 var mileage_added: int = 0
 var condition_lost: int = 0

@@ -179,6 +179,9 @@ Implemented:
 - Series-specific dealership inventories and fictional driver fields sized to real-world grids
 - Sustainable race-by-race finances with series distributions, event revenue, owner support, manufacturer support, upkeep, reserves, and season forecasts
 - Persistent driver form, confidence, morale, contract pressure, and incident-driven rivalries
+- Distinct driver personalities, procedural portraits, authored reactions, memorable career moments, and season-ending stories
+- Persistent featured rivals with head-to-head records, team identities, and series-specific colors and character
+- A compact live pit wall that keeps the full standings visible while track, telemetry, radio, and strategy controls remain accessible
 - In-season AI development packages with scouting intel in Career HQ
 - A weekly paddock news feed with interactive press, sponsor, rivalry, and ownership decisions
 - Annual and multi-season owner expectations with review history

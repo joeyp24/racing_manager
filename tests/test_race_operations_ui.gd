@@ -41,12 +41,14 @@ func _initialize() -> void:
 	assert(live_race.pit_service_selector.item_count == 5)
 	assert(not live_race.simulation.latest_engineer_advice.is_empty())
 	assert(live_race.track_map.profile.get("venue_id", "") == "pine_ridge")
-	var controls_card := live_race.get_node("Root/Main/PitWall/ControlsCard") as Control
-	var engineer_card := live_race.get_node("Root/Main/RaceData/EngineerCard") as Control
-	if controls_card.global_position.y + controls_card.size.y > 648.0 or engineer_card.global_position.y + engineer_card.size.y > 648.0:
-		push_error("Live race panels overflow the 1152x648 viewport: controls pos %s size %s, engineer pos %s size %s" % [controls_card.global_position, controls_card.size, engineer_card.global_position, engineer_card.size])
+	var tower_card := live_race.get_node("Root/Main/TimingColumn/TowerCard") as Control
+	var pit_wall_scroll := live_race.get_node("Root/Main/PitWallScroll") as Control
+	if tower_card.size.y < 360.0 or tower_card.global_position.y + tower_card.size.y > 648.0 or pit_wall_scroll.global_position.y + pit_wall_scroll.size.y > 648.0:
+		push_error("Live standings do not fit the 1152x648 viewport: tower pos %s size %s, pit wall pos %s size %s" % [tower_card.global_position, tower_card.size, pit_wall_scroll.global_position, pit_wall_scroll.size])
 		quit(1)
 		return
+	assert(live_race.timing_tower.size.y >= 300.0)
+	assert("LIVE STANDINGS" in str((tower_card.get_node("Tower/TitleRow/Title") as Label).text))
 	live_race.simulation._trigger_caution()
 	await process_frame
 	assert(live_race.caution_overlay.visible)
