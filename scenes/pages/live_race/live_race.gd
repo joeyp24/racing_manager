@@ -441,7 +441,7 @@ func _finish_race() -> void:
 	next_lap_button.disabled = true
 	message_label.text = "Race complete — preparing official results"
 	var result := RaceManager.finalize_live_race(simulation, GameManager.selected_car, str(weekend_data.get("strategy_id", "balanced")), weekend_data)
-	GameManager.active_race_weekend.clear()
+	GameManager.finish_race_weekend()
 	if result == null:
 		message_label.text = "The race could not be finalized."
 		return

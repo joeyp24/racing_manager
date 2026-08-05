@@ -305,7 +305,7 @@ def test_finance_and_living_paddock_systems_are_integrated():
     race_simulation = (ROOT / "resources/races/race_simulation.gd").read_text()
     career_hub = (ROOT / "scenes/pages/career_hub/career_hub.gd").read_text()
     calendar = (ROOT / "scenes/pages/race_calendar/race_calendar.gd").read_text()
-    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 17" in team
+    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 18" in team
     assert "return _string_array" in team
     assert "class_name FinanceManager" in finance
     assert "owner_support" in finance and "series_distribution" in finance
@@ -403,3 +403,39 @@ def test_live_race_analysis_setup_and_venue_geometry_are_integrated():
     assert '"passing_zones"' in tracks
     assert '"caution_locations"' in tracks
     assert '"pit_entry"' in tracks and '"pit_exit"' in tracks
+
+
+def test_committed_weekend_cannot_be_abandoned_through_navigation():
+    game_manager = (ROOT / "scripts/game_manager.gd").read_text(encoding="utf-8")
+    race_entry = (ROOT / "scenes/pages/race_entry/race_entry.gd").read_text(encoding="utf-8")
+    team = (ROOT / "resources/team.gd").read_text(encoding="utf-8")
+    assert "func is_race_weekend_locked()" in game_manager
+    assert "scene_path = required_path" in game_manager
+    assert "get_active_race_weekend_path" in game_manager
+    assert "GameManager.begin_race_weekend" in race_entry
+    assert "@export var active_race_weekend_state" in team
+    assert "_restore_active_race_weekend" in game_manager
+
+
+def test_guided_opening_and_race_week_decisions_are_integrated():
+    guide = (ROOT / "scripts/first_hour_experience.gd").read_text(encoding="utf-8")
+    dashboard = (ROOT / "scenes/pages/dashboard/dashboard.gd").read_text(encoding="utf-8")
+    dashboard_scene = (ROOT / "scenes/pages/dashboard/dashboard.tscn").read_text(encoding="utf-8")
+    readiness = (ROOT / "resources/races/race_readiness.gd").read_text(encoding="utf-8")
+    for step in ("identity", "driver", "car", "sponsor", "practice", "strategy", "race", "service"):
+        assert f'"{step}"' in guide
+    for question in ("WHAT CAN I AFFORD?", "WHERE CAN I GAIN PERFORMANCE?", "WHAT RISK SHOULD I TAKE?", "WHAT DOES THE BOARD EXPECT?"):
+        assert question in dashboard
+    assert "CONTINUE RACE WEEKEND" in dashboard
+    assert 'name="FirstHourGuide"' in dashboard_scene
+    assert "Opening-race assistance" in readiness
+
+
+def test_results_lead_with_a_story_and_gate_deep_telemetry():
+    results = (ROOT / "scenes/pages/race_results/race_results.gd").read_text(encoding="utf-8")
+    scene = (ROOT / "scenes/pages/race_results/race_results.tscn").read_text(encoding="utf-8")
+    assert "func create_outcome_story" in results
+    assert "Caution and pit timing gained" in results
+    assert "Slow pit service gave time back" in results
+    assert "_on_detailed_analysis_toggled(false)" in results
+    assert 'name="detailed_analysis_button"' in scene

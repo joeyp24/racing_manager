@@ -14,6 +14,14 @@ extends Control
 @onready var advance_race_button: Button = %advance_race_button
 @onready var week_status_label: Label = %week_status_label
 @onready var advance_preview: ConfirmationDialog = %advance_preview
+@onready var first_hour_guide: PanelContainer = %FirstHourGuide
+@onready var first_hour_progress_label: Label = %first_hour_progress_label
+@onready var first_hour_title_label: Label = %first_hour_title_label
+@onready var first_hour_body_label: Label = %first_hour_body_label
+@onready var affordability_label: Label = %affordability_label
+@onready var performance_gain_label: Label = %performance_gain_label
+@onready var risk_label: Label = %risk_label
+@onready var board_expectation_label: Label = %board_expectation_label
 
 const READINESS_ROW_SCENE: PackedScene = preload("res://ui/components/readiness_row.tscn")
 
@@ -103,6 +111,8 @@ func update_dashboard() -> void:
 	update_championship_summary()
 	update_readiness(team)
 	update_week_action(team)
+	update_first_hour_guide(team)
+	update_decision_brief(team)
 
 
 func update_week_action(team: Team) -> void:
@@ -113,8 +123,63 @@ func update_week_action(team: Team) -> void:
 		advance_race_button.text = "ADVANCE TO NEXT RACE  →"
 		week_status_label.text = "%s • Advance the calendar when your team is ready" % CalendarCatalog.format_day(team.current_season_day)
 	else:
-		advance_race_button.text = "PREPARE FOR RACE  →"
+		advance_race_button.text = "CONTINUE RACE WEEKEND  →"
 		week_status_label.text = "%s • Development uses calendar-day deadlines" % CalendarCatalog.format_day(team.current_season_day)
+
+
+func update_first_hour_guide(team: Team) -> void:
+	var step := FirstHourExperience.current_step(team, GameManager.active_race_weekend)
+	first_hour_guide.visible = not FirstHourExperience.is_complete(team)
+	if not first_hour_guide.visible:
+		return
+	first_hour_progress_label.text = "GUIDED OPENING  //  %s" % FirstHourExperience.progress_text(team, GameManager.active_race_weekend)
+	first_hour_title_label.text = str(step.get("title", "Continue the guided opening"))
+	first_hour_body_label.text = str(step.get("body", "Complete the next opening goal."))
+
+
+func update_decision_brief(team: Team) -> void:
+	var forecast := FinanceManager.build_forecast(team)
+	if forecast.is_empty():
+		affordability_label.text = "WHAT CAN I AFFORD?\nNo forecast is available yet."
+	else:
+		var reserve_gap := team.money - int(forecast.get("minimum_reserve", 0))
+		affordability_label.text = "WHAT CAN I AFFORD?\n%s$%s beyond the recommended reserve; expected race net %s$%s." % [
+			"+" if reserve_gap >= 0 else "-",
+			String.num_int64(absi(reserve_gap)),
+			"+" if int(forecast.get("race_net", 0)) >= 0 else "-",
+			String.num_int64(absi(int(forecast.get("race_net", 0)))),
+		]
+	var car := RaceReadiness.get_recommended_car(team, team.current_series_id)
+	if car == null:
+		performance_gain_label.text = "WHERE CAN I GAIN PERFORMANCE?\nBuy an eligible car to establish a baseline."
+	elif car.condition < 85:
+		performance_gain_label.text = "WHERE CAN I GAIN PERFORMANCE?\nRepair %s first: condition is only %d%%." % [car.name, car.condition]
+	else:
+		var weakest := "Engine"
+		var weakest_points := 999
+		for part_type in CarPart.PART_TYPES:
+			var part := car.get_part(part_type)
+			var points := part.base_performance_points if part != null else 0
+			if points < weakest_points:
+				weakest = part_type
+				weakest_points = points
+		performance_gain_label.text = "WHERE CAN I GAIN PERFORMANCE?\nThe %s package is the weakest area at %d base PP." % [weakest.to_lower(), weakest_points]
+	var risk_message := "Balanced strategy preserves flexibility."
+	if car != null and car.condition < 70:
+		risk_message = "Avoid aggressive running until the car is repaired."
+	elif not forecast.is_empty() and int(forecast.get("season_end_cash", team.money)) < 0:
+		risk_message = "Protect cash: use conservative strategy and delay upgrades."
+	elif car != null and car.condition >= 90 and int(forecast.get("upgrade_budget", 0)) > 5000:
+		risk_message = "The car and reserve can support a measured aggressive attempt."
+	risk_label.text = "WHAT RISK SHOULD I TAKE?\n%s" % risk_message
+	var expectation := "Finish races and preserve a $10,000 season-end reserve."
+	var board := team.career_state.get("board", {}) as Dictionary
+	for value in board.get("targets", []):
+		var target := value as Dictionary
+		if str(target.get("status", "Active")) == "Active":
+			expectation = str(target.get("label", expectation))
+			break
+	board_expectation_label.text = "WHAT DOES THE BOARD EXPECT?\n%s" % expectation
 
 
 func update_sponsor_summary(team: Team) -> void:
@@ -283,6 +348,20 @@ func update_readiness(team: Team) -> void:
 
 
 func _on_prepare_race_pressed() -> void:
+	if not FirstHourExperience.is_complete(GameManager.team):
+		var action := str(FirstHourExperience.current_step(GameManager.team, GameManager.active_race_weekend).get("action", "dashboard"))
+		if action == "driver_market":
+			GameManager.load_page("res://scenes/pages/driver_market/driver_market.tscn")
+			return
+		if action == "dealership":
+			GameManager.load_page("res://scenes/pages/dealership/dealership.tscn")
+			return
+		if action == "sponsors":
+			GameManager.load_page("res://scenes/pages/sponsors/sponsors.tscn")
+			return
+		if action == "garage":
+			GameManager.load_page("res://scenes/pages/garage/garage.tscn")
+			return
 	if GameManager.team.is_series_season_complete():
 		GameManager.load_page("res://scenes/pages/championship/championship.tscn")
 		return

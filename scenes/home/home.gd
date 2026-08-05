@@ -91,6 +91,7 @@ func _ready() -> void:
 	command_bar.action_requested.connect(_on_command_action_requested)
 	GameManager.page_changed.connect(_on_page_changed)
 	GameManager.fullscreen_changed.connect(_update_fullscreen_button)
+	GameManager.race_weekend_lock_changed.connect(_on_race_weekend_lock_changed)
 	reputation_toast_timer.timeout.connect(_hide_reputation_toast)
 	_update_fullscreen_button(GameManager.is_fullscreen())
 
@@ -129,6 +130,8 @@ func _exit_tree() -> void:
 		GameManager.fullscreen_changed.disconnect(_update_fullscreen_button)
 	if GameManager.page_changed.is_connected(_on_page_changed):
 		GameManager.page_changed.disconnect(_on_page_changed)
+	if GameManager.race_weekend_lock_changed.is_connected(_on_race_weekend_lock_changed):
+		GameManager.race_weekend_lock_changed.disconnect(_on_race_weekend_lock_changed)
 	if GameManager.team_money_changed.is_connected(
 		_on_team_money_changed
 	):
@@ -301,10 +304,31 @@ func _on_career_hub_button_pressed() -> void:
 
 
 func update_unlocked_navigation() -> void:
-	var unlocked := GameManager.team != null and GameManager.team.get_department_level("scouting") > 0
-	scouting_button.disabled = not unlocked
-	scouting_button.text = "⌕   Scouting" if unlocked else "⌕   Scouting  ·  LOCKED"
-	scouting_button.tooltip_text = "Build the Scouting department at HQ to unlock." if not unlocked else "Find emerging driver talent."
+	var team := GameManager.team
+	var weekend_locked := GameManager.is_race_weekend_locked()
+	var opening_locked := team != null and not FirstHourExperience.is_complete(team)
+	var allowed: Array[Button] = [home_button]
+	if team != null:
+		var step_id := str(FirstHourExperience.current_step(team, GameManager.active_race_weekend).get("id", ""))
+		allowed.append(driver_market_button)
+		if step_id != "driver":
+			allowed.append(dealership_button)
+			allowed.append(shop_button)
+			allowed.append(garage_button)
+		if step_id in ["sponsor", "practice", "strategy", "race", "service", "complete"]:
+			allowed.append(sponsors_button)
+		if step_id in ["practice", "strategy", "race", "service", "complete"]:
+			allowed.append(race_calendar_button)
+	for button in navigation_buttons:
+		button.disabled = weekend_locked or (opening_locked and not allowed.has(button))
+		if weekend_locked:
+			button.tooltip_text = "Finish the committed race weekend before returning to team management."
+		elif opening_locked and not allowed.has(button):
+			button.tooltip_text = "Unlocked after the guided opening and first post-race service."
+	var scouting_unlocked := team != null and team.get_department_level("scouting") > 0 and not opening_locked and not weekend_locked
+	scouting_button.disabled = not scouting_unlocked
+	if not opening_locked and not weekend_locked:
+		scouting_button.tooltip_text = "Build the Scouting department at HQ to unlock." if not scouting_unlocked else "Find emerging driver talent."
 
 
 func _on_reset_game_button_pressed() -> void:
@@ -373,7 +397,11 @@ func _on_command_action_requested(action: String) -> void:
 		"sponsors": "res://scenes/pages/sponsors/sponsors.tscn",
 		"reputation": "res://scenes/pages/reputation/reputation.tscn",
 		"race_entry": "res://scenes/pages/race_entry/race_entry.tscn",
+		"race_results": "res://scenes/pages/race_results/race_results.tscn",
 	}
+	if action == "continue_weekend":
+		GameManager.load_page(GameManager.get_active_race_weekend_path())
+		return
 	if not paths.has(action):
 		return
 	if action == "race_entry":
@@ -398,6 +426,12 @@ func _on_page_changed(scene_path: String) -> void:
 	var page_id := scene_path.get_file().get_basename()
 	set_active_navigation(destinations.get(page_id, null) as Button)
 	command_bar.display(NextActionModel.derive(GameManager.team, scene_path))
+	update_unlocked_navigation()
+
+
+func _on_race_weekend_lock_changed(_locked: bool) -> void:
+	update_unlocked_navigation()
+	command_bar.display(NextActionModel.derive(GameManager.team))
 
 
 func update_money_label(amount: int) -> void:

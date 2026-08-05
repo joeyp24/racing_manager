@@ -215,11 +215,14 @@ func start_race() -> void:
 	weekend_data["pre_race_plan"] = secondary_selector.get_item_text(secondary_selector.selected)
 	weekend_data["race_modifier"] = [0.0, 0.5, 1.4][choice_selector.selected]
 	weekend_data["decision_log"] = []
+	weekend_data["flow_stage"] = "live_race"
 	if choice_selector.selected == 2:
 		weekend_data["wear_modifier"] = float(weekend_data["wear_modifier"]) * 1.08
 	if secondary_selector.selected == 0:
 		weekend_data["wear_modifier"] = float(weekend_data["wear_modifier"]) * 0.92
 	GameManager.active_race_weekend = weekend_data.duplicate(true)
+	FirstHourExperience.mark_strategy_committed(GameManager.team)
+	GameManager.set_race_weekend_stage("live_race")
 	# A crash between the grid and green flag must never lose the paid entry state.
 	GameManager.save_game()
 	GameManager.load_page("res://scenes/pages/live_race/live_race.tscn")
@@ -293,7 +296,7 @@ func finish_race() -> void:
 		str(weekend_data["strategy_id"]),
 		weekend_data
 	)
-	GameManager.active_race_weekend.clear()
+	GameManager.finish_race_weekend()
 	if result == null:
 		briefing_label.text = "The race could not be completed. Your entry fee has been refunded."
 		GameManager.add_team_money(int(weekend_data.get("entry_fee_total", GameManager.selected_race.entry_fee)))

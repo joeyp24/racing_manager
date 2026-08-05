@@ -289,7 +289,7 @@ func _on_confirm_button_pressed() -> void:
 	var entries: Array[Dictionary] = []
 	for race_team in selected_race_teams:
 		entries.append({"team_id": race_team.team_id, "team_name": race_team.team_name, "driver_id": race_team.driver_id, "car_bay": race_team.car_bay})
-	GameManager.active_race_weekend = {"strategy_id": selected_strategy, "entry_fee_paid": true, "entry_fee_total": total_fee, "entries": entries}
+	GameManager.begin_race_weekend({"strategy_id": selected_strategy, "entry_fee_total": total_fee, "entries": entries})
 	GameManager.save_game()
 	GameManager.load_page("res://scenes/pages/race_weekend/race_weekend.tscn")
 

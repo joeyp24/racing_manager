@@ -2,11 +2,13 @@
 
 ## Economy balance simulation
 
-Run `python3 tools/balance_simulation.py --difficulty Club --seasons 500` to exercise the
-career economy with a deterministic Monte Carlo model. It includes series distributions,
-event revenue, first-season owner support, sponsor income, payroll, repairs, and weekend
-operations. The report covers bankruptcy rate, cash after each race, finishing position,
-upgrade timing, and modeled ROI. Use `--seed` to reproduce or compare balance changes.
+Run `python3 tools/balance_simulation.py --difficulty Club --seasons 500 --career-seasons 3`
+to exercise the career economy with a deterministic multi-season Monte Carlo model. It
+includes series distributions, tapering owner support, sponsor growth, payroll, incident
+repairs, weekend operations, reserve-aware upgrades, and championship payouts. The report
+covers bankruptcy, unavoidable loss frequency, recovery after bad results, cash, upgrade
+timing, promotion readiness, runaway wealth, and modeled ROI. Use `--seed` to reproduce or
+compare balance changes. Human first-hour sessions follow `docs/FIRST_HOUR_PLAYTEST.md`.
 
 A stock-car motorsports management game built in Godot 4.x.
 
@@ -433,6 +435,10 @@ python tools/run_godot_checks.py
 - Persistent reputation progress is visible from every main screen, with level progress, XP-to-next-level guidance and gain/level-up alerts.
 - Career HQ includes a consolidated weekly briefing, priority and deadline ordering, inbox filters, decision context, and a conditional authored paddock-event library.
 - Versioned, verified atomic career saves with automatic backup recovery and collection repair.
+- A guided first-hour path from team identity through the first post-race repair or upgrade, with advanced management areas unlocked progressively.
+- Committed race weekends that lock management navigation and resume from saved practice or pre-race state.
+- A race-week dashboard that answers affordability, performance, risk and board-expectation questions and always exposes the next weekend action.
+- Plain-language race outcome stories with detailed telemetry and replay available on demand.
 
 ## Implemented but needs balancing
 

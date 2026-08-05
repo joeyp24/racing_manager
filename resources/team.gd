@@ -14,7 +14,7 @@ const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 17
+const CURRENT_SAVE_FORMAT_VERSION: int = 18
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -95,6 +95,7 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var transfer_history: Array[Dictionary] = []
 @export var season_history: Array[Dictionary] = []
 @export var career_state: Dictionary = {}
+@export var active_race_weekend_state: Dictionary = {}
 @export var drivers: Array[Driver] = []
 @export var contracted_driver_ids: Array[String] = []
 @export var race_teams: Array[RaceTeam] = []
@@ -115,21 +116,21 @@ const SCOUTING_ACTIONS: Dictionary = {
 
 const DIFFICULTY_SETTINGS: Dictionary = {
 	"Rookie": {
-		"starting_cash": 75000, "sponsor_multiplier": 1.20, "ai_growth": 0.45,
+		"starting_cash": 65000, "sponsor_multiplier": 1.20, "ai_growth": 0.45,
 		"repair_multiplier": 0.75, "weekend_cost_multiplier": 0.88,
 		"prize_multiplier": 1.15, "salary_multiplier": 0.90, "market_cost_multiplier": 0.90,
 		"ai_pace_modifier": 0.96, "ai_strategy_modifier": 0.86,
 		"player_incident_multiplier": 0.72
 	},
 	"Club": {
-		"starting_cash": 50000, "sponsor_multiplier": 1.0, "ai_growth": 0.75,
+		"starting_cash": 42000, "sponsor_multiplier": 1.0, "ai_growth": 0.75,
 		"repair_multiplier": 1.0, "weekend_cost_multiplier": 1.0,
 		"prize_multiplier": 1.0, "salary_multiplier": 1.0, "market_cost_multiplier": 1.0,
 		"ai_pace_modifier": 1.0, "ai_strategy_modifier": 1.0,
 		"player_incident_multiplier": 1.0
 	},
 	"Pro": {
-		"starting_cash": 42000, "sponsor_multiplier": 0.88, "ai_growth": 1.10,
+		"starting_cash": 34000, "sponsor_multiplier": 0.88, "ai_growth": 1.10,
 		"repair_multiplier": 1.25, "weekend_cost_multiplier": 1.05,
 		"prize_multiplier": 0.95, "salary_multiplier": 1.05, "market_cost_multiplier": 1.04,
 		"ai_pace_modifier": 1.04, "ai_strategy_modifier": 1.12,
@@ -1229,6 +1230,9 @@ func buy_car(
 
 	money -= purchase_cost
 	cars[bay_index] = purchased_car
+	var starter_team := get_active_race_team()
+	if get_completed_races().is_empty() and starter_team != null and starter_team.car_bay < 0:
+		starter_team.car_bay = bay_index
 	record_finance("Garage", -purchase_cost, "Purchased %s" % purchased_car.name)
 
 	emit_changed()
@@ -1290,6 +1294,7 @@ func install_part(car: Car, part: CarPart) -> bool:
 	var removed_part: CarPart = car.install_part(part)
 	if removed_part != null and removed_part.tier != "Standard":
 		parts_inventory.append(removed_part)
+	record_finance("Parts", 0, "Installed %s on %s" % [part.part_name, car.name])
 	emit_changed()
 	return true
 
@@ -2034,6 +2039,7 @@ func get_driver_roster_limit() -> int:
 func hire_driver(driver: Driver) -> bool:
 	if driver == null or not drivers.has(driver):
 		return false
+	var opening_hire := not driver_hired_for_season and get_completed_races().is_empty()
 	var signing_cost := get_discounted_cost(driver.signing_fee)
 	if not can_hire_driver(driver) or money < signing_cost:
 		return false
@@ -2043,11 +2049,20 @@ func hire_driver(driver: Driver) -> bool:
 		var commercial_bonus := get_effective_sponsor_value(driver.sponsorship_signing_bonus)
 		money += commercial_bonus
 		record_finance("Pay Driver", commercial_bonus, "%s commercial backing" % driver.driver_name)
-	driver.is_player_driver = get_active_driver() == null
+	var previous_driver := get_active_driver()
+	if opening_hire and previous_driver != null and previous_driver != driver:
+		contracted_driver_ids.erase(previous_driver.driver_id)
+		previous_driver.is_player_driver = false
+		previous_driver.team_name = "Free Agent"
+		previous_driver.contract_races_remaining = 0
+	driver.is_player_driver = opening_hire or previous_driver == null
 	driver.team_name = team_name
 	driver.contract_races_remaining = maxi(driver.contract_length, int(SeriesCatalog.get_series(current_series_id).get("season_length", 12)))
 	driver.series_id = current_series_id
 	contracted_driver_ids.append(driver.driver_id)
+	var starter_team := get_active_race_team()
+	if opening_hire and starter_team != null:
+		starter_team.driver_id = driver.driver_id
 	var ai_state := ensure_ai_driver_state(driver)
 	ai_state["current_team_id"] = "player_team"
 	ai_state["current_series_id"] = current_series_id

@@ -18,7 +18,11 @@ static func get_race_commercial_revenue(team: Team, race: Race) -> Dictionary:
 	var estimated_cost := int(series.get("estimated_race_cost", 1200))
 	var distribution := roundi(float(estimated_cost) * 1.10)
 	var gate_share := team.get_effective_sponsor_value(200 + mini(800, roundi(float(team.fans) * 0.25)))
-	var owner_support := roundi(float(estimated_cost) * 0.65) if team.season_number == 1 else 0
+	var owner_support := 0
+	if team.season_number == 1:
+		owner_support = roundi(float(estimated_cost) * 0.65)
+	elif team.season_number == 2:
+		owner_support = roundi(float(estimated_cost) * 0.35)
 	var manufacturer := team.career_state.get("manufacturer", {}) as Dictionary
 	var manufacturer_support := int(manufacturer.get("support", 0)) * 4
 	return {
