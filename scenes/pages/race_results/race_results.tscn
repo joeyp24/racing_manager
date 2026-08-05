@@ -150,11 +150,6 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Show detailed telemetry and race replay"
 
-[node name="details_toggle" type="CheckButton" parent="margin_container/results_container"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Show detailed telemetry and replay"
-
 [node name="continue_button" type="Button" parent="margin_container/results_container" unique_id=950594644]
 unique_name_in_owner = true
 layout_mode = 2
