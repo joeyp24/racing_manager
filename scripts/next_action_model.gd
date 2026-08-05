@@ -5,6 +5,41 @@ extends RefCounted
 static func derive(team: Team, current_page: String = "") -> Dictionary:
 	if team == null:
 		return _action("Set up your race team", "No career is loaded.", "Create or load a career to continue.", "Dashboard", "dashboard")
+	if RaceManager.last_result != null:
+		return _action("Review the race result", "The checkered flag has fallen.", "Understand what gained and cost positions before servicing the car.", "Open race report", "race_results", RaceReadiness.READY)
+	if GameManager.is_race_weekend_locked():
+		var opening_step := FirstHourExperience.current_step(team, GameManager.active_race_weekend)
+		return _action(
+			str(opening_step.get("title", "Continue race weekend")),
+			"The entry fee is committed and this weekend must be completed before returning to team management.",
+			str(opening_step.get("body", "Complete the active session.")),
+			"CONTINUE RACE WEEKEND",
+			"continue_weekend",
+			RaceReadiness.READY
+		)
+	if not FirstHourExperience.is_complete(team):
+		var step := FirstHourExperience.current_step(team)
+		var step_id := str(step.get("id", ""))
+		if step_id in ["practice", "strategy", "race"]:
+			var first_race := RaceManager.get_next_race(team)
+			return _action(
+				"Enter your first race weekend",
+				"Your driver, car, and sponsor are ready for the guided opening event.",
+				"Practice, choose a strategy, and finish the race without leaving the weekend.",
+				"CONTINUE RACE WEEKEND",
+				"race_entry",
+				RaceReadiness.READY,
+				[],
+				first_race
+			)
+		return _action(
+			str(step.get("title", "Continue team setup")),
+			str(step.get("body", "Complete the next opening goal.")),
+			FirstHourExperience.progress_text(team),
+			str(step.get("action_label", "Continue")),
+			str(step.get("action", "dashboard")),
+			RaceReadiness.READY
+		)
 	if team.is_series_season_complete():
 		return _action("Review standings and begin Season %d" % (team.season_number + 1), "Season %d is complete." % team.season_number, "Starting a season resets the calendar and seasonal contracts.", "Championship", "championship", RaceReadiness.READY)
 
@@ -51,7 +86,7 @@ static func _action(title: String, reason: String, consequence: String, label: S
 
 
 static func _destination_name(action: String) -> String:
-	return {"drivers": "Drivers", "garage": "Garage", "dealership": "Marketplace", "staff": "Staff", "finances": "Finances", "sponsors": "Sponsors", "race_entry": "Race Entry", "calendar": "Calendar", "championship": "Championship"}.get(action, "Dashboard")
+	return {"drivers": "Drivers", "garage": "Garage", "dealership": "Marketplace", "staff": "Staff", "finances": "Finances", "sponsors": "Sponsors", "race_entry": "Race Entry", "calendar": "Calendar", "championship": "Championship", "continue_weekend": "Race Weekend", "race_results": "Race Results"}.get(action, "Dashboard")
 
 
 static func _has_a_car(team: Team) -> bool:

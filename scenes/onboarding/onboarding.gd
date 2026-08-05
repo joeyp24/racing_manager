@@ -17,9 +17,9 @@ extends Control
 var current_step: int = 0
 var steps: Array[Dictionary] = [
 	{"title": "Create your team", "body": "Choose the identity that will follow your team through every season. You can change it later from Team Identity at headquarters."},
-	{"title": "Run race operations", "body": "Your dashboard shows race readiness. Hire a driver, buy a car, then use Race Calendar to enter an unlocked event. Every purchase and race result is saved to this career."},
-	{"title": "Build for the championship", "body": "Upgrade headquarters, recruit staff, develop parts, and sign sponsors. Finances matter: entry fees, repairs, and payroll continue throughout the season."},
-	{"title": "Your pit wall is ready", "body": "Start with Drivers to sign your first racer, then visit the Dealership. You can revisit Team Identity from the left navigation whenever you want."}
+	{"title": "Build one step at a time", "body": "The guided opening will lead you through choosing a driver and car, signing a sponsor, and preparing for the first race. Advanced departments stay out of the way until your team is operational."},
+	{"title": "Learn through your first weekend", "body": "Complete a short practice programme, make a meaningful strategy choice, and finish the race. Once entry is committed, the race weekend must be completed before you return to headquarters."},
+	{"title": "Your pit wall is ready", "body": "After the checkered flag, the race report will explain what gained and cost positions. Repair or improve the car to finish the opening and unlock the full management suite."}
 ]
 
 
@@ -62,6 +62,7 @@ func _on_next_pressed() -> void:
 		show_step()
 		return
 	GameManager.team.tutorial_completed = true
+	FirstHourExperience.refresh(GameManager.team)
 	GameManager.save_game()
 	get_tree().change_scene_to_file("res://scenes/home/home.tscn")
 

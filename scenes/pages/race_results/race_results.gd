@@ -9,12 +9,15 @@ extends Control
 @onready var replay_label: Label = %replay_label
 @onready var analysis_label: Label = %analysis_label
 @onready var continue_button: Button = %continue_button
+@onready var outcome_story_label: Label = %outcome_story_label
+@onready var detailed_analysis_button: CheckButton = %detailed_analysis_button
 
 
 func _ready() -> void:
 	continue_button.pressed.connect(
 		_on_continue_button_pressed
 	)
+	detailed_analysis_button.toggled.connect(_on_detailed_analysis_toggled)
 
 	show_race_result()
 
@@ -36,6 +39,7 @@ func show_race_result() -> void:
 		"You Finished: %s"
 		% format_position(result.finishing_position)
 	)
+	outcome_story_label.text = create_outcome_story(result)
 
 	standings_label.text = create_standings_text(result)
 	summary_label.text = create_financial_summary(result)
@@ -43,6 +47,36 @@ func show_race_result() -> void:
 	decisive_factors_label.text = create_decisive_factors_text(result)
 	replay_label.text = create_replay_text(result)
 	analysis_label.text = create_post_race_analysis_text(result)
+	_on_detailed_analysis_toggled(false)
+
+
+func create_outcome_story(result: RaceResult) -> String:
+	var sentences: Array[String] = ["Finished %s." % format_position(result.finishing_position)]
+	if result.positions_gained > 0:
+		sentences.append("Gained %d position%s from the starting grid." % [result.positions_gained, "" if result.positions_gained == 1 else "s"])
+	elif result.positions_gained < 0:
+		sentences.append("Lost %d position%s from the starting grid." % [absi(result.positions_gained), "" if result.positions_gained == -1 else "s"])
+	else:
+		sentences.append("Finished where the car started.")
+	if result.caution_position_gain > 0:
+		sentences.append("Caution and pit timing gained %d position%s." % [result.caution_position_gain, "" if result.caution_position_gain == 1 else "s"])
+	elif result.pit_stop_factor > 0.5:
+		sentences.append("Efficient pit work protected track position.")
+	if result.strategy_factor < -0.5:
+		sentences.append("The strategy cost late-race pace as tyre and fuel targets tightened.")
+	elif result.strategy_factor > 0.5:
+		sentences.append("The chosen strategy created a measurable pace advantage.")
+	if result.pit_stop_factor < -0.5:
+		sentences.append("Slow pit service gave time back to the field.")
+	elif result.incident_factor < -0.5:
+		sentences.append("An incident was the largest avoidable loss.")
+	return " ".join(sentences)
+
+
+func _on_detailed_analysis_toggled(show_details: bool) -> void:
+	analysis_label.visible = show_details
+	replay_label.visible = show_details
+	detailed_analysis_button.text = "Hide detailed telemetry and race replay" if show_details else "Show detailed telemetry and race replay"
 
 
 func create_post_race_analysis_text(result: RaceResult) -> String:
@@ -332,6 +366,7 @@ func format_money_change(amount: int) -> String:
 func show_missing_result() -> void:
 	race_name_label.text = "No Race Result"
 	finishing_position_label.text = ""
+	outcome_story_label.text = ""
 	standings_label.text = ""
 	summary_label.text = (
 		"No race result is currently available."
