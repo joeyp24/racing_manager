@@ -19,6 +19,7 @@ signal action_requested(context: Dictionary)
 @onready var primary_button: Button = %PrimaryButton
 @onready var close_button: Button = %CloseButton
 @onready var cancel_button: Button = %CancelButton
+@onready var review_scroll: ScrollContainer = %ReviewScroll
 
 var current_context: Dictionary = {}
 
@@ -30,6 +31,7 @@ func _ready() -> void:
 
 
 func display(model: Dictionary) -> void:
+	review_scroll.scroll_vertical = 0
 	current_context = model.get("context", {}) as Dictionary
 	eyebrow.text = str(model.get("eyebrow", "DECISION REVIEW"))
 	title.text = str(model.get("title", "Compare options"))
