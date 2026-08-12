@@ -36,7 +36,12 @@ Use the constants in `ui/ui_tokens.gd`:
 - `CardPanel` presents a compact record or grouped controls.
 - `HeroPanel` is reserved for the single most important decision on a page.
 - `TopbarPanel` contains persistent global status.
-- `CommandBar` presents the recommended next action.
+- `status_metric` presents one clickable career signal with a value, context,
+  and optional progress. The management shell uses it for schedule, finance,
+  championship, reputation, board confidence, and pending decisions.
+- `CommandBar` is the full-width decision surface below the status strip. It
+  presents readiness, the recommended next action, its consequence, and one
+  primary route forward.
 - `readiness_row` presents a status, explanation, and corrective action.
 
 Prefer rows and aligned columns over prose-heavy cards. Keep primary actions

@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://dgfgqehc4hl3m"]
+[gd_scene load_steps=5 format=3 uid="uid://dgfgqehc4hl3m"]
 
 [ext_resource type="Script" uid="uid://bnljhcukhcobc" path="res://scenes/home/home.gd" id="1"]
 [ext_resource type="PackedScene" path="res://ui/components/command_bar.tscn" id="2_command"]
 [ext_resource type="Texture2D" path="res://ui/brand/racing_manager_icon.png" id="3_brand"]
+[ext_resource type="PackedScene" path="res://ui/components/status_metric.tscn" id="4_status"]
 
 [node name="home" type="Control"]
 layout_mode = 3
@@ -32,7 +33,7 @@ grow_vertical = 2
 theme_override_constants/separation = 0
 
 [node name="Sidebar" type="PanelContainer" parent="Layout"]
-custom_minimum_size = Vector2(184, 0)
+custom_minimum_size = Vector2(196, 0)
 layout_mode = 2
 theme_type_variation = &"SidebarPanel"
 
@@ -83,17 +84,17 @@ text = "SEASON 1 • TEAM HQ"
 [node name="Rule" type="HSeparator" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 
-[node name="OverviewLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
+[node name="RaceLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
-text = "RACE"
+text = "RACE DESK"
 
 [node name="home_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "▦   Dashboard"
+text = "Dashboard"
 alignment = 0
 
 [node name="race_calendar_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -101,7 +102,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "▤   Calendar"
+text = "Race Calendar"
 alignment = 0
 
 [node name="championship_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -109,15 +110,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "★   Championship"
-alignment = 0
-
-[node name="world_series_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"NavigationButton"
-toggle_mode = true
-text = "◎   World Racing"
+text = "Championship"
 alignment = 0
 
 [node name="TeamLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -130,7 +123,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "◇   Garage"
+text = "Garage"
 alignment = 0
 
 [node name="race_teams_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -138,7 +131,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "▥   Teams"
+text = "Race Teams"
 alignment = 0
 
 [node name="drivers_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -146,28 +139,15 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "●   Drivers"
+text = "Drivers"
 alignment = 0
-
-[node name="engineering_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"NavigationButton"
-toggle_mode = true
-text = "⚙   Engineering"
-alignment = 0
-
-[node name="EmployeesLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
-layout_mode = 2
-theme_type_variation = &"EyebrowLabel"
-text = "EMPLOYEES & HIRING"
 
 [node name="driver_market_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "+   Driver Hiring"
+text = "Driver Market"
 alignment = 0
 
 [node name="staff_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -175,20 +155,28 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "◆   Staff Market"
+text = "Staff"
 alignment = 0
 
-[node name="OperationsLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
+[node name="DevelopmentLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
-text = "BUSINESS"
+text = "DEVELOPMENT"
+
+[node name="engineering_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "Engineering"
+alignment = 0
 
 [node name="shop_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "▧   Marketplace"
+text = "Marketplace"
 alignment = 0
 
 [node name="dealership_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -200,42 +188,12 @@ toggle_mode = true
 text = "Dealership"
 alignment = 0
 
-[node name="sponsors_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"NavigationButton"
-toggle_mode = true
-text = "◈   Sponsors"
-alignment = 0
-
-[node name="reputation_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"NavigationButton"
-toggle_mode = true
-text = "◆   Team Standing"
-alignment = 0
-tooltip_text = "Prestige, momentum, public perception and commercial demand."
-
-[node name="finances_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"NavigationButton"
-toggle_mode = true
-text = "$   Finances"
-alignment = 0
-
-[node name="FacilitiesLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
-layout_mode = 2
-theme_type_variation = &"EyebrowLabel"
-text = "DEVELOPMENT"
-
 [node name="hq_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "▣   Headquarters"
+text = "Headquarters"
 alignment = 0
 
 [node name="scouting_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -243,17 +201,60 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "⌕   Scouting  ·  LOCKED"
+text = "Scouting  ·  LOCKED"
 alignment = 0
+
+[node name="BusinessLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "BUSINESS"
+
+[node name="sponsors_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "Sponsors"
+alignment = 0
+
+[node name="finances_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "Finances"
+alignment = 0
+
+[node name="reputation_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "Team Standing"
+alignment = 0
+tooltip_text = "Prestige, momentum, public perception and commercial demand."
+
+[node name="WorldLabel" type="Label" parent="Layout/Sidebar/Margin/Scroll/Content"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "WORLD"
 
 [node name="career_hub_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "◎   Career HQ"
+text = "Career HQ"
 alignment = 0
 tooltip_text = "Inbox, board, academy, R&D, operations, world, statistics and accessibility."
+
+[node name="world_series_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"NavigationButton"
+toggle_mode = true
+text = "World Racing"
+alignment = 0
 
 [node name="Spacer" type="Control" parent="Layout/Sidebar/Margin/Scroll/Content"]
 layout_mode = 2
@@ -264,7 +265,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"NavigationButton"
 toggle_mode = true
-text = "◉   Team Identity"
+text = "Team Identity"
 alignment = 0
 
 [node name="glossary_button" type="Button" parent="Layout/Sidebar/Margin/Scroll/Content"]
@@ -303,103 +304,52 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="TopBar" type="PanelContainer" parent="Layout/RightSide/OuterMargin/Stack"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 theme_type_variation = &"TopbarPanel"
 
 [node name="Status" type="HBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 4
 
-[node name="MoneyBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/MoneyBox"]
-layout_mode = 2
-theme_type_variation = &"MutedLabel"
-text = "AVAILABLE CASH"
-
-[node name="money_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/MoneyBox"]
+[node name="ScheduleMetric" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status" instance=ExtResource("4_status")]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 50)
 layout_mode = 2
-text = "$0"
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.35
 
-[node name="Divider1" type="VSeparator" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
-layout_mode = 2
-
-[node name="PositionBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/PositionBox"]
-layout_mode = 2
-theme_type_variation = &"MutedLabel"
-text = "CHAMPIONSHIP"
-
-[node name="position_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/PositionBox"]
+[node name="FinanceMetric" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status" instance=ExtResource("4_status")]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(132, 50)
 layout_mode = 2
-text = "—"
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.15
 
-[node name="Divider2" type="VSeparator" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
-layout_mode = 2
-
-[node name="CommandBar" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status" instance=ExtResource("2_command")]
+[node name="ChampionshipMetric" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status" instance=ExtResource("4_status")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Divider3" type="VSeparator" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
-layout_mode = 2
-
-[node name="RepBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
-custom_minimum_size = Vector2(130, 0)
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
-layout_mode = 2
-theme_type_variation = &"MutedLabel"
-text = "REPUTATION"
-
-[node name="rep_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
+[node name="ReputationMetric" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status" instance=ExtResource("4_status")]
 unique_name_in_owner = true
-layout_mode = 2
-text = "0 PTS"
-
-[node name="rep_progress" type="ProgressBar" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 5)
-layout_mode = 2
-show_percentage = false
-
-[node name="rep_progress_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/RepBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"MutedLabel"
-theme_override_font_sizes/font_size = 10
-text = "0 / 100 XP"
-
-[node name="Spacer" type="Control" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
+custom_minimum_size = Vector2(126, 50)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="NextBox" type="VBoxContainer" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="Label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/NextBox"]
-layout_mode = 2
-theme_type_variation = &"MutedLabel"
-text = "NEXT EVENT"
-horizontal_alignment = 2
-
-[node name="next_event_label" type="Label" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status/NextBox"]
+[node name="BoardMetric" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status" instance=ExtResource("4_status")]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Spring 100"
-horizontal_alignment = 2
+size_flags_horizontal = 3
+
+[node name="AttentionMetric" parent="Layout/RightSide/OuterMargin/Stack/TopBar/Status" instance=ExtResource("4_status")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CommandBar" parent="Layout/RightSide/OuterMargin/Stack" instance=ExtResource("2_command")]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="MainPanel" type="PanelContainer" parent="Layout/RightSide/OuterMargin/Stack"]
 layout_mode = 2
