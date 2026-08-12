@@ -5,6 +5,7 @@ signal lap_completed(lap: int)
 signal race_completed
 signal caution_started(lap: int)
 signal engineer_advice_ready(advice: Dictionary)
+signal crew_chief_call_issued(call: Dictionary)
 
 var race: Race
 var current_lap: int = 0
@@ -37,6 +38,8 @@ var race_events: Array[Dictionary] = []
 var engineer_advice_history: Array[Dictionary] = []
 var latest_engineer_advice: Dictionary = {}
 var caution_start_positions: Dictionary = {}
+var automated_player_crew: bool = false
+var crew_chief_calls: Array[Dictionary] = []
 
 
 func setup(
@@ -118,6 +121,7 @@ func setup(
 		teammate.team_name = str(data.get("team_name", player_team_name))
 		teammate.is_player = true
 		teammate.consistency = int(data.get("consistency", 50))
+		teammate.aggression = int(data.get("aggression", 50))
 		teammate.attributes = data.get("attributes", {}).duplicate()
 		teammate.base_pace = float(data.get("score", 50.0))
 		teammate.tyre_compound = "Standard"
@@ -125,7 +129,12 @@ func setup(
 		teammate.fuel_efficiency = float(data.get("fuel_efficiency", player.fuel_efficiency))
 		teammate.tyre_preservation = float(data.get("tyre_preservation", 50.0))
 		teammate.strategy_skill = float(data.get("strategy_skill", player.strategy_skill))
+		teammate.strategy_aggression = float(data.get("strategy_aggression", 0.0))
 		teammate.difficulty_scale = player.difficulty_scale
+		teammate.component_health = (data.get("component_health", {}) as Dictionary).duplicate(true)
+		for component in Car.DAMAGE_COMPONENTS:
+			teammate.component_health[component] = clampf(float(teammate.component_health.get(component, 100.0)), 0.0, 100.0)
+		teammate.mechanical_health = _average_component_health(teammate)
 		teammate.setup_profile = practice_setup.duplicate(true)
 		grid.insert(clampi(int(data.get("starting_position", grid.size() + 1)) - 1, 0, grid.size()), teammate)
 	for index in range(grid.size()):
@@ -169,16 +178,28 @@ func simulate_lap() -> void:
 	_update_track_state()
 	if race_state == "GREEN FLAG":
 		green_flag_laps += 1
-	var player := get_player_entry()
-	var old_player_position := player.position if player != null else 0
+	var previous_player_positions := {}
+	for player_entry in get_player_entries():
+		previous_player_positions[_entry_key(player_entry)] = player_entry.position
 	for entry in entries:
 		if entry.status == "Retired":
 			continue
-		if not entry.is_player:
+		if entry.is_player and automated_player_crew:
+			_update_crew_chief_strategy(entry)
+		elif not entry.is_player:
 			_update_ai_strategy(entry)
 		var pit_loss := 0.0
 		if entry.is_player and not entry.pending_pit_service.is_empty():
 			pit_loss = _perform_pit_stop(entry, entry.pending_pit_service)
+		elif entry.is_player and automated_player_crew and _ai_should_pit(entry):
+			var crew_service := _choose_ai_pit_service(entry)
+			_record_crew_chief_call(
+				entry,
+				"Box this lap",
+				"%s. %s" % [describe_pit_service(crew_service), _crew_pit_reason(entry)],
+				"action"
+			)
+			pit_loss = _perform_pit_stop(entry, crew_service)
 		elif not entry.is_player and _ai_should_pit(entry):
 			pit_loss = _perform_pit_stop(entry, _choose_ai_pit_service(entry))
 		entry.pace_mode = entry.pending_pace_mode
@@ -216,9 +237,11 @@ func simulate_lap() -> void:
 	if race_state == "SAFETY CAR":
 		_compress_field_under_caution()
 		_sort_standings()
-	player = get_player_entry()
-	if player != null and player.status != "Retired" and player.position != old_player_position:
-		event_log.append("LAP %d  %s is now P%d." % [current_lap, player.driver_name, player.position])
+	var player := get_player_entry()
+	for player_entry in get_player_entries():
+		var previous_position := int(previous_player_positions.get(_entry_key(player_entry), player_entry.position))
+		if player_entry.status != "Retired" and player_entry.position != previous_position:
+			event_log.append("LAP %d  %s is now P%d." % [current_lap, player_entry.driver_name, player_entry.position])
 	if player != null and current_lap % maxi(4, race_distance_laps / 8) == 0:
 		event_log.append("LAP %d  Crew chief: tyres %d%%, fuel %.1f laps, car %d%%, systems %d%%." % [current_lap, roundi(player.tyre_condition), player.fuel_laps / maxf(0.1, race.fuel_consumption_factor), roundi(player.car_condition), roundi(player.mechanical_health)])
 		_generate_engineer_advice("interval")
@@ -512,6 +535,79 @@ func _update_ai_strategy(entry: RaceEntryState) -> void:
 		entry.pending_pace_mode = "Balanced"
 
 
+func _update_crew_chief_strategy(entry: RaceEntryState) -> void:
+	var previous_pace := entry.pending_pace_mode
+	var previous_fuel := entry.fuel_target_mode
+	var previous_racecraft := entry.racecraft_command
+	_update_ai_strategy(entry)
+	var remaining := maxi(0, race_distance_laps - current_lap)
+	var projected_need := float(remaining) * race.fuel_consumption_factor
+	if entry.fuel_laps < projected_need + race.fuel_consumption_factor * 0.8:
+		entry.fuel_target_mode = "Save"
+	elif remaining <= maxi(4, race.lap_count / 8) and entry.fuel_laps > projected_need + race.fuel_consumption_factor * 1.8:
+		entry.fuel_target_mode = "Push"
+	else:
+		entry.fuel_target_mode = "Balanced"
+	if entry.mechanical_health < 48.0 or entry.tyre_condition < 24.0:
+		entry.racecraft_command = "Conserve"
+	elif entry.position > 1 and entry.gap_to(entries[entry.position - 2]) < 0.9 and entry.tyre_condition > 34.0:
+		entry.racecraft_command = "Overtake"
+	elif entry.position < entries.size() and entries[entry.position].gap_to(entry) < 0.75:
+		entry.racecraft_command = "Defend"
+	else:
+		entry.racecraft_command = "Race"
+	if current_lap <= 1:
+		return
+	var changes: Array[String] = []
+	if entry.pending_pace_mode != previous_pace:
+		changes.append("pace %s" % entry.pending_pace_mode.to_lower())
+	if entry.fuel_target_mode != previous_fuel:
+		changes.append("fuel %s" % entry.fuel_target_mode.to_lower())
+	if entry.racecraft_command != previous_racecraft:
+		changes.append("driver %s" % entry.racecraft_command.to_lower())
+	if not changes.is_empty():
+		_record_crew_chief_call(entry, "Strategy adjusted", ", ".join(changes).capitalize(), "info")
+
+
+func _crew_pit_reason(entry: RaceEntryState) -> String:
+	var remaining := maxi(0, race_distance_laps - current_lap)
+	if _weakest_component_health(entry) < 60.0:
+		return "%s damage requires attention" % _weakest_component(entry).capitalize()
+	if entry.fuel_laps < float(remaining) * race.fuel_consumption_factor:
+		return "Fuel cannot reach the finish"
+	if race_state == "SAFETY CAR":
+		return "Reduced loss under caution"
+	return "Tyres have reached the planned service window"
+
+
+func _record_crew_chief_call(
+	entry: RaceEntryState,
+	title: String,
+	detail: String,
+	severity: String
+) -> void:
+	var call := {
+		"lap": current_lap,
+		"driver_id": entry.driver_id,
+		"driver_name": entry.driver_name,
+		"team_id": entry.team_id,
+		"title": title,
+		"detail": detail,
+		"severity": severity,
+	}
+	crew_chief_calls.append(call)
+	if crew_chief_calls.size() > 40:
+		crew_chief_calls.pop_front()
+	strategy_timeline.append({
+		"lap": current_lap,
+		"type": "crew_call",
+		"title": "%s: %s" % [entry.driver_name, title],
+		"detail": detail,
+	})
+	event_log.append("LAP %d  CREW CHIEF / %s — %s: %s" % [current_lap, entry.driver_name, title, detail])
+	crew_chief_call_issued.emit(call.duplicate(true))
+
+
 func _resolve_overtaking_battles() -> void:
 	if race_state != "GREEN FLAG":
 		return
@@ -630,6 +726,28 @@ func get_player_entry() -> RaceEntryState:
 		if entry.is_player:
 			return entry
 	return null
+
+
+func get_player_entries() -> Array[RaceEntryState]:
+	var player_entries: Array[RaceEntryState] = []
+	for entry in entries:
+		if entry.is_player:
+			player_entries.append(entry)
+	return player_entries
+
+
+func set_crew_chief_automation(enabled: bool) -> void:
+	var starting_automation := enabled and not automated_player_crew
+	automated_player_crew = enabled
+	if not starting_automation:
+		return
+	for entry in get_player_entries():
+		_record_crew_chief_call(
+			entry,
+			"Race plan active",
+			"The crew chief will manage pace, fuel, traffic, cautions, and pit service.",
+			"info"
+		)
 
 
 func _entry_key(entry: RaceEntryState) -> String:

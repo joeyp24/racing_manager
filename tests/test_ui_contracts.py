@@ -162,3 +162,48 @@ def test_outcome_receipt_is_actionable_and_keyboard_dismissible():
     assert "signal action_requested" in component
     assert 'event.is_action_pressed("ui_cancel")' in component
     assert 'call_deferred("grab_focus")' in component
+
+
+def test_race_weekend_flow_is_visible_on_every_operational_screen():
+    component_path = "res://ui/components/race_flow_progress.tscn"
+    for scene_path in (
+        "race_entry/race_entry.tscn",
+        "race_weekend/race_weekend.tscn",
+        "live_race/live_race.tscn",
+        "race_results/race_results.tscn",
+    ):
+        scene = (PAGES / scene_path).read_text(encoding="utf-8")
+        assert component_path in scene, scene_path
+        assert 'name="RaceFlowProgress"' in scene, scene_path
+
+
+def test_live_race_delegates_tactics_to_ai_crew_chiefs():
+    scene = (PAGES / "live_race/live_race.tscn").read_text(encoding="utf-8")
+    controller = (PAGES / "live_race/live_race.gd").read_text(encoding="utf-8")
+    simulation = (ROOT / "resources/races/race_simulation.gd").read_text(encoding="utf-8")
+    race_manager = (ROOT / "autoload/race_manager.gd").read_text(encoding="utf-8")
+    for removed_control in (
+        "pace_selector",
+        "pit_service_selector",
+        "setup_selector",
+        "fuel_selector",
+        "racecraft_selector",
+        "team_order_selector",
+        "caution_overlay",
+    ):
+        assert removed_control not in scene
+    assert "team_summary" in scene and "crew_chief_feed" in scene
+    assert "func get_player_entries" in simulation
+    assert "func _update_crew_chief_strategy" in simulation
+    assert "func _record_crew_chief_call" in simulation
+    assert "simulation.set_crew_chief_automation(true)" in race_manager
+    assert "simulation.get_player_entries()" in controller
+
+
+def test_race_entry_and_settlement_use_global_outcome_receipts():
+    entry = (PAGES / "race_entry/race_entry.gd").read_text(encoding="utf-8")
+    live = (PAGES / "live_race/live_race.gd").read_text(encoding="utf-8")
+    assert "GameManager.report_decision_outcome" in entry
+    assert '"cash_delta": GameManager.team.money - cash_before' in entry
+    assert "GameManager.report_decision_outcome" in live
+    assert '"cash_delta": GameManager.team.money - cash_before' in live

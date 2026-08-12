@@ -16,7 +16,11 @@ extends Control
 @onready var rival_story_label: Label = %rival_story_label
 @onready var details_toggle: CheckButton = %details_toggle
 @onready var outcome_story_label: Label = %outcome_story_label
-@onready var detailed_analysis_button: CheckButton = %detailed_analysis_button
+@onready var details_container: VBoxContainer = %DetailsContainer
+@onready var next_action_button: Button = %next_action_button
+@onready var race_flow: RaceFlowProgress = %RaceFlowProgress
+
+var next_action_path: String = "res://scenes/pages/race_calendar/race_calendar.tscn"
 
 
 func _ready() -> void:
@@ -25,8 +29,8 @@ func _ready() -> void:
 	)
 	details_toggle.toggled.connect(_toggle_details)
 	_toggle_details(false)
-	detailed_analysis_button.toggled.connect(_on_detailed_analysis_toggled)
-
+	next_action_button.pressed.connect(_on_next_action_pressed)
+	race_flow.set_stage(4, "Review the team result, settlement, car effects, and recommended next action")
 	show_race_result()
 
 
@@ -43,10 +47,7 @@ func show_race_result() -> void:
 
 	race_name_label.text = result.race.race_name
 
-	finishing_position_label.text = (
-		"You Finished: %s"
-		% format_position(result.finishing_position)
-	)
+	finishing_position_label.text = "Primary car · %s" % format_position(result.finishing_position)
 	outcome_story_label.text = create_outcome_story(result)
 
 	standings_label.text = create_standings_text(result)
@@ -60,15 +61,14 @@ func show_race_result() -> void:
 	reaction_label.text = "“%s”" % result.driver_reaction
 	incident_story_label.text = result.authored_incident
 	rival_story_label.text = result.rival_summary + ("\n" + result.storyline_summary if not result.storyline_summary.is_empty() else "")
+	var next_action := _get_result_action(result)
+	next_action_button.text = str(next_action.label)
+	next_action_path = str(next_action.path)
 
 
 func _toggle_details(visible_now: bool) -> void:
-	analysis_label.visible = visible_now
-	replay_label.visible = visible_now
-	decisive_factors_label.visible = visible_now
-	car_effects_label.visible = visible_now
-	details_toggle.text = "Hide detailed telemetry and replay" if visible_now else "Show detailed telemetry and replay"
-	_on_detailed_analysis_toggled(false)
+	details_container.visible = visible_now
+	details_toggle.text = "Hide telemetry & replay" if visible_now else "Show telemetry & replay"
 
 
 func create_outcome_story(result: RaceResult) -> String:
@@ -94,12 +94,6 @@ func create_outcome_story(result: RaceResult) -> String:
 	return " ".join(sentences)
 
 
-func _on_detailed_analysis_toggled(show_details: bool) -> void:
-	analysis_label.visible = show_details
-	replay_label.visible = show_details
-	detailed_analysis_button.text = "Hide detailed telemetry and race replay" if show_details else "Show detailed telemetry and race replay"
-
-
 func create_post_race_analysis_text(result: RaceResult) -> String:
 	var lines: Array[String] = ["POST-RACE STRATEGY ANALYSIS"]
 	var distance_text := "%d scheduled / %d completed laps" % [result.scheduled_laps, result.completed_laps]
@@ -111,7 +105,7 @@ func create_post_race_analysis_text(result: RaceResult) -> String:
 	var strategy_count := 0
 	for event_value in result.strategy_timeline:
 		var event := event_value as Dictionary
-		if str(event.get("type", "")) not in ["plan", "call", "stop", "caution_call"]:
+		if str(event.get("type", "")) not in ["plan", "call", "stop", "caution_call", "crew_call"]:
 			continue
 		lines.append("Lap %d  |  %s  |  %s" % [int(event.get("lap", 0)), str(event.get("title", "Decision")), str(event.get("detail", ""))])
 		strategy_count += 1
@@ -204,10 +198,20 @@ func _get_result_recommendation(result: RaceResult) -> String:
 	return "Review the next event and preserve this competitive package."
 
 
+func _get_result_action(result: RaceResult) -> Dictionary:
+	if result.player_car != null and result.player_car.condition < 70:
+		return {"label": "Inspect & repair car", "path": "res://scenes/pages/garage/car_inspection.tscn"}
+	if result.car_factor < 0.0:
+		return {"label": "Compare upgrades", "path": "res://scenes/pages/shop/shop.tscn"}
+	if result.driver_factor < 0.0:
+		return {"label": "Review drivers", "path": "res://scenes/pages/drivers/drivers.tscn"}
+	return {"label": "View next event", "path": "res://scenes/pages/race_calendar/race_calendar.tscn"}
+
+
 func create_standings_text(
 	result: RaceResult
 ) -> String:
-	var standings_text: String = "Final Standings\n\n"
+	var standings_text: String = "TEAM & FIELD STANDINGS\n\n"
 
 	for index in range(result.standings.size()):
 		var entry: Dictionary = result.standings[index]
@@ -229,7 +233,7 @@ func create_standings_text(
 
 		if bool(entry.get("is_player", false)):
 			standings_text += (
-				"%d. %s — %s (Your Driver)  •  %d passes  •  %d stops  •  systems %d%%\n"
+				"%d. %s — %s  [YOUR TEAM]  •  %d passes  •  %d stops  •  systems %d%%\n"
 				% [
 					position,
 					driver_name,
@@ -396,17 +400,24 @@ func show_missing_result() -> void:
 	decisive_factors_label.text = ""
 	replay_label.text = ""
 	analysis_label.text = ""
+	next_action_button.disabled = true
+	details_toggle.disabled = true
 
 
 func _on_continue_button_pressed() -> void:
+	_leave_debrief("res://scenes/pages/garage/garage.tscn")
+
+
+func _on_next_action_pressed() -> void:
+	_leave_debrief(next_action_path)
+
+
+func _leave_debrief(scene_path: String) -> void:
 	RaceManager.clear_last_result()
-
-	GameManager.selected_car = null
 	GameManager.selected_race = null
-
-	GameManager.load_page(
-		"res://scenes/pages/garage/garage.tscn"
-	)
+	if scene_path != "res://scenes/pages/garage/car_inspection.tscn":
+		GameManager.selected_car = null
+	GameManager.load_page(scene_path)
 
 
 func format_number(number: int) -> String:

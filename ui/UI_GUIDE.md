@@ -53,6 +53,18 @@ Use the constants in `ui/ui_tokens.gd`:
   balance, refreshes cockpit context, and offers a direct route to the affected
   car, person, contract, project, or facility. Report outcomes through
   `GameManager.report_decision_outcome` so receipts survive page navigation.
+- `race_flow_progress` keeps the operational journey legible across entry,
+  practice, qualifying, the race, and the debrief. Each state includes a symbol
+  and label so progress never depends on color alone.
+
+## Live race interaction model
+
+The live race is a broadcast and monitoring surface, not a per-car strategy
+form. Every player entry is managed by an AI crew chief that controls pace,
+fuel, traffic instructions, caution response, and pit service. The player may
+pause, change playback speed, or advance a lap while paused, but does not issue
+tactical commands. Always present every player entry together in the team
+monitor and surface automated calls in the crew-chief feed.
 
 Prefer rows and aligned columns over prose-heavy cards. Keep primary actions
 at 36 px high and ordinary controls near 32 px. Do not add scene-level font

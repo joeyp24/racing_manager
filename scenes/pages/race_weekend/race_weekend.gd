@@ -9,9 +9,9 @@ extends Control
 @onready var secondary_selector: OptionButton = %secondary_selector
 @onready var outcome_label: Label = %outcome_label
 @onready var action_button: Button = %action_button
+@onready var race_flow: RaceFlowProgress = %RaceFlowProgress
 
 var phase: int = 0
-var decision_index: int = 0
 var weekend_data: Dictionary = {}
 
 const PRACTICE_ADJUSTMENTS: Array[Dictionary] = [
@@ -38,13 +38,6 @@ const PRACTICE_ADJUSTMENTS: Array[Dictionary] = [
 
 const PRACTICE_COMPOUNDS: Array[String] = ["Standard"]
 
-const DECISIONS: Array[Dictionary] = [
-	{"title": "CAUTION — Pit window opens", "text": "The field has slowed under caution. Pit now for fresh tyres or protect track position?", "choices": ["Pit now", "Stay out"]},
-	{"title": "TYRE WEAR — Driver needs direction", "text": "Wear is climbing as a rival closes in. Ask the driver to push or protect the car?", "choices": ["Push and defend", "Protect the tyres"]},
-	{"title": "FUEL MARGIN — Final stint", "text": "Fuel will be close at the finish. Save fuel now or gamble on outright pace?", "choices": ["Save fuel", "Risk it"]}
-]
-
-
 func _ready() -> void:
 	action_button.pressed.connect(_on_action_pressed)
 	choice_selector.item_selected.connect(_on_choice_changed)
@@ -63,9 +56,8 @@ func show_practice() -> void:
 	phase = 0
 	_ensure_practice_data()
 	var run_number := (weekend_data["practice_runs"] as Array).size() + 1
+	race_flow.set_stage(1, "Run %d of %d · Build a stable setup window" % [run_number, PracticeRunSimulator.RUN_LIMIT])
 	phase_label.text = "PRACTICE"
-	progress_label.text = "Race weekend · Practice run %d of %d · %s forecast" % [run_number, PracticeRunSimulator.RUN_LIMIT, (weekend_data.forecast as Dictionary).weather]
-	progress_label.text = "Race weekend • Practice run %d of %d" % [run_number, PracticeRunSimulator.RUN_LIMIT]
 	briefing_label.text = "Use three timed runs to find the setup window. Feedback becomes clearer with each run, but the driver can still misread the car."
 	progress_label.text = "Race weekend · Practice run %d of %d · %s forecast" % [run_number, PracticeRunSimulator.RUN_LIMIT, (weekend_data.forecast as Dictionary).weather]
 	choice_label.text = "Setup adjustment"
@@ -122,9 +114,8 @@ func complete_practice() -> void:
 
 func show_qualifying() -> void:
 	phase = 1
+	race_flow.set_stage(2, "Commit the grid lap and lock the race setup")
 	phase_label.text = "QUALIFYING"
-	progress_label.text = "Race weekend · %s qualifying" % weekend_data.qualifying_format
-	progress_label.text = "Race weekend • Stage 2 of 4"
 	briefing_label.text = "Commit to a qualifying approach. Aggression can gain grid places, but produces a less predictable lap."
 	progress_label.text = "Race weekend · %s qualifying" % weekend_data.qualifying_format
 	choice_label.text = "Lap approach"
@@ -193,9 +184,10 @@ func complete_qualifying() -> void:
 
 func show_strategy() -> void:
 	phase = 2
+	race_flow.set_stage(2, "Set the opening plan · Crew chiefs take control after the green flag")
 	phase_label.text = "PRE-RACE STRATEGY"
-	progress_label.text = "Race weekend • Stage 3 of 4"
-	briefing_label.text = "Qualified %s. Choose the opening stint plan; you can still react to three pit-wall events during the race." % format_position(int(weekend_data["starting_position"]))
+	progress_label.text = "Race weekend · Grid formed · AI crew control ready"
+	briefing_label.text = "Qualified %s. Choose the opening stint philosophy; each crew chief will manage pace, fuel, cautions, traffic, and pit service during the race." % format_position(int(weekend_data["starting_position"]))
 	choice_label.text = "Starting aggression"
 	set_string_items(choice_selector, ["Conservative", "Balanced", "Aggressive"])
 	choice_selector.select(1)
@@ -228,89 +220,12 @@ func start_race() -> void:
 	GameManager.load_page("res://scenes/pages/live_race/live_race.tscn")
 
 
-func show_decision() -> void:
-	var event: Dictionary = DECISIONS[decision_index]
-	phase_label.text = str(event["title"])
-	progress_label.text = "Live race • Decision %d of %d" % [decision_index + 1, DECISIONS.size()]
-	briefing_label.text = str(event["text"])
-	choice_label.text = "Pit-wall call"
-	var choices: Array = event["choices"] as Array
-	set_string_items(choice_selector, choices)
-	secondary_label.visible = false
-	secondary_selector.visible = false
-	outcome_label.text = "Current projected position: P%d" % projected_position()
-	action_button.text = "Make Call"
-	_update_choice_preview()
-
-
-func complete_decision() -> void:
-	var choice: int = choice_selector.selected
-	var outcome: String = ""
-	var race_modifier: float = float(weekend_data["race_modifier"])
-	var wear_modifier: float = float(weekend_data["wear_modifier"])
-	match decision_index:
-		0:
-			if choice == 0:
-				race_modifier += 1.4
-				wear_modifier *= 0.90
-				outcome = "Pitting under caution saved time and fitted fresh tyres."
-			else:
-				race_modifier += 0.4
-				outcome = "Staying out preserved track position, but leaves older tyres."
-		1:
-			if choice == 0:
-				race_modifier += 1.8
-				wear_modifier *= 1.15
-				outcome = "The driver held the rival off, at the cost of extra wear."
-			else:
-				race_modifier -= 0.3
-				wear_modifier *= 0.88
-				outcome = "The car was protected for a stronger finish."
-		2:
-			if choice == 0:
-				race_modifier += 0.5
-				outcome = "Fuel saving secured a clean run to the flag."
-			else:
-				race_modifier += RaceManager.random_number_generator.randf_range(-2.5, 3.5)
-				wear_modifier *= 1.08
-				outcome = "The fuel gamble created an unpredictable final sprint."
-	weekend_data["race_modifier"] = race_modifier
-	weekend_data["wear_modifier"] = wear_modifier
-	var decision_log: Array = weekend_data["decision_log"] as Array
-	decision_log.append(outcome)
-	weekend_data["decision_log"] = decision_log
-	decision_index += 1
-	if decision_index < DECISIONS.size():
-		show_decision()
-	else:
-		finish_race()
-
-
-func finish_race() -> void:
-	action_button.disabled = true
-	phase_label.text = "CHECKERED FLAG"
-	progress_label.text = "Calculating weekend result..."
-	var result := RaceManager.run_race(
-		GameManager.selected_race,
-		GameManager.selected_car,
-		str(weekend_data["strategy_id"]),
-		weekend_data
-	)
-	GameManager.finish_race_weekend()
-	if result == null:
-		briefing_label.text = "The race could not be completed. Your entry fee has been refunded."
-		GameManager.add_team_money(int(weekend_data.get("entry_fee_total", GameManager.selected_race.entry_fee)))
-		return
-	GameManager.load_page("res://scenes/pages/race_results/race_results.tscn")
-
-
 func _on_action_pressed() -> void:
 	match phase:
 		-1: GameManager.load_page("res://scenes/pages/race_calendar/race_calendar.tscn")
 		0: complete_practice()
 		1: complete_qualifying()
 		2: start_race()
-		3: complete_decision()
 
 
 func _on_choice_changed(_index: int) -> void:
@@ -328,8 +243,6 @@ func _update_choice_preview() -> void:
 		outcome_label.text = ["Safe and consistent, but gives away pace.", "A representative lap with moderate risk.", "Maximum pace with much greater variance."][choice_selector.selected]
 	elif phase == 2:
 		outcome_label.text = ["Protect the car at the start.", "Respond to the race as it develops.", "Attack immediately, increasing pace and wear."][choice_selector.selected]
-	elif phase == 3:
-		outcome_label.text = "Selected call: %s" % choice_selector.get_item_text(choice_selector.selected)
 
 
 func fill_selector(selector: OptionButton, values: Array[Dictionary], key: String) -> void:
@@ -344,12 +257,9 @@ func set_string_items(selector: OptionButton, values: Array) -> void:
 		selector.add_item(str(value))
 
 
-func projected_position() -> int:
-	return clampi(int(weekend_data["starting_position"]) - roundi(float(weekend_data["race_modifier"]) / 2.0), 1, RaceManager.get_maximum_field_size(GameManager.selected_race.series_id))
-
-
 func show_invalid_weekend() -> void:
 	phase = -1
+	race_flow.set_stage(0, "No active race weekend · Return to the calendar")
 	phase_label.text = "No Active Race Weekend"
 	progress_label.text = ""
 	briefing_label.text = "Select a race and car from the race calendar to begin."
