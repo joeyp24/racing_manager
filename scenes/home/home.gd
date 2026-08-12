@@ -21,17 +21,17 @@ extends Control
 @onready var career_hub_button: Button = %career_hub_button
 @onready var identity_button: Button = %identity_button
 @onready var glossary_button: Button = %glossary_button
-@onready var money_label: Label = %money_label
-@onready var rep_label: Label = %rep_label
-@onready var rep_progress: ProgressBar = %rep_progress
-@onready var rep_progress_label: Label = %rep_progress_label
+@onready var schedule_metric: StatusMetric = %ScheduleMetric
+@onready var finance_metric: StatusMetric = %FinanceMetric
+@onready var championship_metric: StatusMetric = %ChampionshipMetric
+@onready var reputation_metric: StatusMetric = %ReputationMetric
+@onready var board_metric: StatusMetric = %BoardMetric
+@onready var attention_metric: StatusMetric = %AttentionMetric
 @onready var reputation_toast: PanelContainer = %ReputationToast
 @onready var reputation_toast_title: Label = %reputation_toast_title
 @onready var reputation_toast_body: Label = %reputation_toast_body
 @onready var reputation_toast_progress: ProgressBar = %reputation_toast_progress
 @onready var reputation_toast_timer: Timer = %ReputationToastTimer
-@onready var position_label: Label = %position_label
-@onready var next_event_label: Label = %next_event_label
 @onready var team_name_label: Label = %team_name_label
 @onready var season_label: Label = %season_label
 @onready var fullscreen_button: Button = %fullscreen_button
@@ -87,7 +87,12 @@ func _ready() -> void:
 	scouting_button.pressed.connect(_on_scouting_button_pressed)
 	career_hub_button.pressed.connect(_on_career_hub_button_pressed)
 	fullscreen_button.pressed.connect(_on_fullscreen_button_pressed)
-	_make_top_bar_actionable()
+	schedule_metric.activated.connect(_on_race_calendar_button_pressed)
+	finance_metric.activated.connect(_on_finances_button_pressed)
+	championship_metric.activated.connect(_on_championship_button_pressed)
+	reputation_metric.activated.connect(_on_reputation_button_pressed)
+	board_metric.activated.connect(_on_career_hub_button_pressed)
+	attention_metric.activated.connect(_on_career_hub_button_pressed)
 	command_bar.action_requested.connect(_on_command_action_requested)
 	GameManager.page_changed.connect(_on_page_changed)
 	GameManager.fullscreen_changed.connect(_update_fullscreen_button)
@@ -153,24 +158,6 @@ func _on_settings_pressed() -> void:
 func _on_reset_requested() -> void:
 	settings_dialog.hide()
 	reset_confirmation.popup_centered(Vector2i(460, 190))
-
-
-func _make_top_bar_actionable() -> void:
-	var actions := {
-		%money_label.get_parent(): _on_finances_button_pressed,
-		%position_label.get_parent(): _on_championship_button_pressed,
-		%next_event_label.get_parent(): _on_race_calendar_button_pressed,
-		%rep_label.get_parent(): _on_reputation_button_pressed,
-	}
-	for box: Control in actions:
-		box.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		box.tooltip_text = "Open details"
-		box.gui_input.connect(_on_status_box_input.bind(actions[box]))
-
-
-func _on_status_box_input(event: InputEvent, action: Callable) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		action.call()
 
 
 func _update_fullscreen_button(is_now_fullscreen: bool) -> void:
@@ -327,24 +314,30 @@ func update_unlocked_navigation() -> void:
 			button.tooltip_text = "Unlocked after the guided opening and first post-race service."
 	var scouting_unlocked := team != null and team.get_department_level("scouting") > 0 and not opening_locked and not weekend_locked
 	scouting_button.disabled = not scouting_unlocked
+	scouting_button.text = "Scouting" if scouting_unlocked else "Scouting  ·  LOCKED"
 	if not opening_locked and not weekend_locked:
 		scouting_button.tooltip_text = "Build the Scouting department at HQ to unlock." if not scouting_unlocked else "Find emerging driver talent."
+	_update_navigation_badges(team)
 
 
 func _on_reset_game_button_pressed() -> void:
 	GameManager.reset_game()
 
 
-func _on_team_money_changed(
-	new_amount: int
-) -> void:
-	update_money_label(new_amount)
+func _on_team_money_changed(_new_amount: int) -> void:
+	update_team_display()
 
 
 func update_team_display() -> void:
 	if GameManager.team == null:
-		money_label.text = "$0"
+		schedule_metric.display("CALENDAR", "NO CAREER", "Create or load a team")
+		finance_metric.display("FINANCE", "$0", "No forecast")
+		championship_metric.display("CHAMPIONSHIP", "—", "No standings")
+		reputation_metric.display("REPUTATION", "UNRANKED", "0 XP")
+		board_metric.display("BOARD", "—", "No review")
+		attention_metric.display("DECISIONS", "CLEAR", "No pending items", &"SuccessLabel")
 		command_bar.display(NextActionModel.derive(null))
+		_update_navigation_badges(null)
 		return
 
 	var team: Team = GameManager.team
@@ -354,17 +347,76 @@ func update_team_display() -> void:
 		_show_reputation_gain(reputation_gain, previous_level, team)
 	last_reputation_xp = team.reputation
 	last_reputation_level = team.get_reputation_level()
-	update_money_label(team.money)
 	team_name_label.text = team.team_name.to_upper()
 	season_label.text = "SEASON %d • TEAM HQ" % team.season_number
-	rep_label.text = "%s  ·  L%d" % [team.get_reputation_tier(), team.get_reputation_level()]
-	rep_progress.max_value = team.get_level_xp_span()
-	rep_progress.value = team.get_current_level_xp()
-	rep_progress_label.text = "%d / %d XP · %d TO NEXT" % [team.get_current_level_xp(), team.get_level_xp_span(), team.get_xp_to_next_level()]
-	next_event_label.text = get_next_event_name(team)
-	position_label.text = get_championship_position(team)
+	_update_status_cockpit(team)
 	command_bar.display(NextActionModel.derive(team))
 	update_unlocked_navigation()
+
+
+func _update_status_cockpit(team: Team) -> void:
+	var next_race := RaceManager.get_next_race(team)
+	if next_race == null:
+		schedule_metric.display("CALENDAR  ·  %s" % CalendarCatalog.format_day(team.current_season_day), "SEASON COMPLETE" if team.is_series_season_complete() else "NO EVENT", "Open the calendar")
+	else:
+		var days_until := maxi(0, next_race.schedule_day - team.current_season_day)
+		var timing := "TODAY" if days_until == 0 else "IN %d DAYS" % days_until
+		schedule_metric.display("CALENDAR  ·  %s" % CalendarCatalog.format_day(team.current_season_day), next_race.race_name.to_upper(), "%s  ·  %s" % [timing, next_race.race_date])
+
+	var forecast := FinanceManager.build_forecast(team)
+	var season_end_cash := int(forecast.get("season_end_cash", team.money))
+	var finance_variation: StringName = &"SuccessLabel" if season_end_cash >= 0 else &"DangerLabel"
+	finance_metric.display("AVAILABLE CASH", _money(team.money), "SEASON END  %s" % _signed_money(season_end_cash), finance_variation)
+
+	championship_metric.display("CHAMPIONSHIP", get_championship_position(team), "%d OF %d RACES" % [team.get_completed_races().size(), int(SeriesCatalog.get_series(team.current_series_id).get("season_length", 12))])
+	reputation_metric.display("REPUTATION", "%s  ·  L%d" % [team.get_reputation_tier().to_upper(), team.get_reputation_level()], "%d XP TO NEXT" % team.get_xp_to_next_level())
+	reputation_metric.set_progress(team.get_current_level_xp(), team.get_level_xp_span())
+
+	var state := CareerExpansionManager.ensure_state(team)
+	var board := state.get("board", {}) as Dictionary
+	var confidence := int(board.get("confidence", 0))
+	board_metric.display("BOARD CONFIDENCE", "%d%%" % confidence, "JOB SECURITY  %d%%" % int(board.get("job_security", 0)), _score_variation(confidence))
+
+	var decisions := _decision_summary(team, state)
+	var open_count := int(decisions.open)
+	var due_soon := int(decisions.due_soon)
+	var unread := int(decisions.unread)
+	var attention_variation: StringName = &"SuccessLabel" if open_count == 0 else (&"DangerLabel" if due_soon > 0 else &"WarningLabel")
+	attention_metric.display("DECISIONS", "CLEAR" if open_count == 0 else "%d OPEN" % open_count, "%d DUE SOON  ·  %d UNREAD" % [due_soon, unread], attention_variation)
+
+
+func _decision_summary(team: Team, state: Dictionary) -> Dictionary:
+	var open_count := 0
+	var due_soon := 0
+	for value in state.get("inbox", []):
+		var item := value as Dictionary
+		var requires_action := not bool(item.get("resolved", false)) and not (item.get("choices", []) as Array).is_empty()
+		if not requires_action:
+			continue
+		open_count += 1
+		if int(item.get("deadline", CalendarCatalog.SEASON_END_DAY)) <= team.current_season_day + 7:
+			due_soon += 1
+	return {"open": open_count, "due_soon": due_soon, "unread": CareerExpansionManager.get_unread_count(team)}
+
+
+func _score_variation(score: int) -> StringName:
+	if score < 40:
+		return &"DangerLabel"
+	if score < 65:
+		return &"WarningLabel"
+	return &"SuccessLabel"
+
+
+func _update_navigation_badges(team: Team) -> void:
+	if team == null:
+		career_hub_button.text = "Career HQ"
+		driver_market_button.text = "Driver Market"
+		sponsors_button.text = "Sponsors"
+		return
+	var unread := CareerExpansionManager.get_unread_count(team)
+	career_hub_button.text = "Career HQ" if unread == 0 else "Career HQ  ·  %d" % unread
+	driver_market_button.text = "Driver Market" if team.driver_hired_for_season else "Driver Market  ·  REQUIRED"
+	sponsors_button.text = "Sponsors" if not team.active_sponsor_contract.is_empty() else "Sponsors  ·  REQUIRED"
 
 
 func _show_reputation_gain(amount: int, previous_level: int, team: Team) -> void:
@@ -422,6 +474,7 @@ func _on_page_changed(scene_path: String) -> void:
 		"departments": hq_button, "team_identity": identity_button,
 		"scouting": scouting_button,
 		"career_hub": career_hub_button,
+		"world_series": world_series_button,
 	}
 	var page_id := scene_path.get_file().get_basename()
 	set_active_navigation(destinations.get(page_id, null) as Button)
@@ -434,24 +487,9 @@ func _on_race_weekend_lock_changed(_locked: bool) -> void:
 	command_bar.display(NextActionModel.derive(GameManager.team))
 
 
-func update_money_label(amount: int) -> void:
-	money_label.text = (
-		"$%s"
-		% format_number(amount)
-	)
-
-
 func set_active_navigation(active_button: Button) -> void:
 	for button in navigation_buttons:
 		button.set_pressed_no_signal(button == active_button)
-
-
-func get_next_event_name(team: Team) -> String:
-	if team.is_series_season_complete():
-		return "Season complete"
-	if team.get_unlocked_races().is_empty():
-		return "No event scheduled"
-	return str(team.get_unlocked_races().back()).capitalize().replace("_", " ")
 
 
 func get_championship_position(team: Team) -> String:
@@ -460,6 +498,14 @@ func get_championship_position(team: Team) -> String:
 		if bool(standings[index].get("is_player", false)):
 			return "P%d • %d PTS" % [index + 1, int(standings[index].get("points", 0))]
 	return "NOT RANKED"
+
+
+func _money(amount: int) -> String:
+	return "%s$%s" % ["-" if amount < 0 else "", format_number(absi(amount))]
+
+
+func _signed_money(amount: int) -> String:
+	return "%s$%s" % ["+" if amount >= 0 else "-", format_number(absi(amount))]
 
 
 func format_number(number: int) -> String:

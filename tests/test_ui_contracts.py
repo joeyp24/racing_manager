@@ -67,3 +67,29 @@ def test_compact_ui_tokens_are_available_to_dynamic_pages():
         "COMPACT_ROW_HEIGHT",
     ):
         assert f"const {name}" in tokens
+
+
+def test_management_shell_exposes_persistent_operating_context():
+    shell = (ROOT / "scenes/home/home.tscn").read_text(encoding="utf-8")
+    for metric in (
+        "ScheduleMetric",
+        "FinanceMetric",
+        "ChampionshipMetric",
+        "ReputationMetric",
+        "BoardMetric",
+        "AttentionMetric",
+    ):
+        assert f'name="{metric}"' in shell
+    assert 'parent="Layout/RightSide/OuterMargin/Stack" instance=ExtResource("2_command")' in shell
+
+
+def test_management_navigation_is_grouped_by_player_intent():
+    shell = (ROOT / "scenes/home/home.tscn").read_text(encoding="utf-8")
+    for group in ("RACE DESK", "TEAM", "DEVELOPMENT", "BUSINESS", "WORLD"):
+        assert f'text = "{group}"' in shell
+
+
+def test_status_metrics_support_mouse_and_keyboard_activation():
+    component = (ROOT / "ui/components/status_metric.gd").read_text(encoding="utf-8")
+    assert 'event.is_action_pressed("ui_accept")' in component
+    assert "signal activated" in component

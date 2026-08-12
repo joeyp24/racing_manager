@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=28 format=3]
+[gd_resource type="Theme" load_steps=31 format=3]
 
 [sub_resource type="SystemFont" id="FontRegular"]
 font_names = PackedStringArray("Inter", "IBM Plex Sans", "Noto Sans", "Segoe UI", "Arial")
@@ -117,6 +117,34 @@ content_margin_left = 12.0
 content_margin_top = 10.0
 content_margin_right = 12.0
 content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="Command"]
+bg_color = Color(0.055, 0.052, 0.102, 1)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.55, 0.28, 0.94, 0.9)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StatusMetric"]
+bg_color = Color(0.035, 0.038, 0.069, 0.72)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StatusMetricHover"]
+bg_color = Color(0.085, 0.086, 0.145, 1)
+border_width_bottom = 2
+border_color = Color(0.55, 0.28, 0.94, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 
 [sub_resource type="StyleBoxFlat" id="Sidebar"]
 bg_color = Color(0.024, 0.027, 0.052, 1)
@@ -352,6 +380,12 @@ CardPanel/base_type = &"PanelContainer"
 CardPanel/styles/panel = SubResource("Card")
 HeroPanel/base_type = &"PanelContainer"
 HeroPanel/styles/panel = SubResource("Hero")
+CommandPanel/base_type = &"PanelContainer"
+CommandPanel/styles/panel = SubResource("Command")
+StatusMetricPanel/base_type = &"PanelContainer"
+StatusMetricPanel/styles/panel = SubResource("StatusMetric")
+StatusMetricHoverPanel/base_type = &"PanelContainer"
+StatusMetricHoverPanel/styles/panel = SubResource("StatusMetricHover")
 SidebarPanel/base_type = &"PanelContainer"
 SidebarPanel/styles/panel = SubResource("Sidebar")
 TopbarPanel/base_type = &"PanelContainer"

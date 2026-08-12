@@ -72,6 +72,10 @@ CHECKS = (
         "UI scene smoke tests",
         ("--headless", "--path", ".", "--script", "tests/test_ui_scenes.gd"),
     ),
+    (
+        "management shell layout tests",
+        ("--headless", "--path", ".", "--script", "tests/test_management_shell.gd"),
+    ),
 )
 
 

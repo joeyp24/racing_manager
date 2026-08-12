@@ -6,6 +6,7 @@ signal action_requested(action: String)
 @onready var next_label: Label = %NextLabel
 @onready var blocker_label: Label = %BlockerLabel
 @onready var consequence_label: Label = %ConsequenceLabel
+@onready var status_label: Label = %StatusLabel
 @onready var primary_button: Button = %PrimaryButton
 @onready var expand_button: Button = %ExpandButton
 @onready var checklist: VBoxContainer = %Checklist
@@ -21,20 +22,23 @@ func _ready() -> void:
 
 func display(model: Dictionary) -> void:
 	current_action = str(model.get("action", ""))
-	next_label.text = "NEXT  ·  " + str(model.get("title", "Review your team"))
-	blocker_label.text = _status_icon(str(model.get("status", ""))) + "  " + str(model.get("reason", ""))
-	consequence_label.text = str(model.get("consequence", ""))
+	var status := str(model.get("status", ""))
+	next_label.text = "NEXT ACTION  ·  " + _destination_name(current_action).to_upper()
+	blocker_label.text = str(model.get("title", "Review your team"))
+	consequence_label.text = "%s  ·  %s" % [str(model.get("reason", "")), str(model.get("consequence", ""))]
+	status_label.text = "%s  %s" % [_status_icon(status), _status_name(status)]
+	status_label.theme_type_variation = _status_variation(status)
 	tooltip_text = consequence_label.text
 	primary_button.text = str(model.get("action_label", "Review"))
 	primary_button.disabled = current_action.is_empty()
-	primary_button.tooltip_text = "Go to %s" % primary_button.text.trim_suffix(" →")
+	primary_button.tooltip_text = "Go to %s" % _destination_name(current_action)
 	_build_checklist(model.get("checks", []) as Array)
 
 
 func toggle_expanded() -> void:
 	expanded = not expanded
 	checklist.visible = expanded
-	expand_button.text = "Hide  ▴" if expanded else "List  ▾"
+	expand_button.text = "HIDE READINESS  ▴" if expanded else "READINESS  ▾"
 
 
 func _build_checklist(checks: Array) -> void:
@@ -48,10 +52,31 @@ func _build_checklist(checks: Array) -> void:
 		row.tooltip_text = str(check.get("explanation", ""))
 		checklist.add_child(row)
 	expand_button.visible = not checks.is_empty()
+	if not checks.is_empty() and not expanded:
+		expand_button.text = "READINESS %d  ▾" % checks.size()
 
 
 func _status_icon(status: String) -> String:
-	return {RaceReadiness.READY: "✓", RaceReadiness.SUBOPTIMAL: "⚠", RaceReadiness.BLOCKED: "✕"}.get(status, "•")
+	return {RaceReadiness.READY: "✓", RaceReadiness.SUBOPTIMAL: "!", RaceReadiness.BLOCKED: "×"}.get(status, "•")
+
+
+func _status_name(status: String) -> String:
+	return {RaceReadiness.READY: "READY", RaceReadiness.SUBOPTIMAL: "ATTENTION", RaceReadiness.BLOCKED: "BLOCKED"}.get(status, "REVIEW")
+
+
+func _status_variation(status: String) -> StringName:
+	return {RaceReadiness.READY: &"SuccessLabel", RaceReadiness.SUBOPTIMAL: &"WarningLabel", RaceReadiness.BLOCKED: &"DangerLabel"}.get(status, &"InfoLabel")
+
+
+func _destination_name(action: String) -> String:
+	return {
+		"dashboard": "Dashboard", "calendar": "Race Calendar", "championship": "Championship",
+		"offseason": "Offseason", "drivers": "Drivers", "driver_market": "Driver Market",
+		"engineering": "Engineering", "garage": "Garage", "dealership": "Marketplace",
+		"staff": "Staff", "finances": "Finances", "sponsors": "Sponsors",
+		"reputation": "Team Standing", "race_entry": "Race Entry",
+		"race_results": "Race Report", "continue_weekend": "Race Weekend",
+	}.get(action, "Team HQ")
 
 
 func _on_primary_pressed() -> void:
