@@ -14,7 +14,10 @@ def test_live_simulation_is_seedable_and_clamps_resources():
     assert "fuel_laps = maxf(0.0" in text; assert 'status == "Retired"' in text
 def test_mechanical_setup_is_not_changed_live():
     text = (ROOT / "scenes/pages/live_race/live_race.gd").read_text()
-    assert "set_player_setup" not in text; assert "set_player_brake_bias" in text
+    simulation = (ROOT / "resources/races/race_simulation.gd").read_text()
+    assert "set_player_setup" not in text
+    assert "set_player_brake_bias" not in text
+    assert "set_player_brake_bias" in simulation
 
 
 def test_car_performance_uses_part_points_and_explains_modifiers():
@@ -320,7 +323,7 @@ def test_finance_and_living_paddock_systems_are_integrated():
     assert "create_special_event" in calendar
 
 
-def test_oval_racing_live_decisions_and_career_briefing_are_integrated():
+def test_oval_racing_live_automation_and_career_briefing_are_integrated():
     race = (ROOT / "resources" / "races" / "race.gd").read_text()
     simulation = (ROOT / "resources" / "races" / "race_simulation.gd").read_text()
     weekend = (ROOT / "resources" / "career_expansion_manager.gd").read_text()
@@ -332,7 +335,8 @@ def test_oval_racing_live_decisions_and_career_briefing_are_integrated():
     assert 'forecast["rain_chance"] = 0' in simulation
     assert 'signal caution_started(lap: int)' in simulation
     assert 'entry.tyre_compound = "Standard"' in simulation
-    assert 'caution_overlay.visible = true' in live_race
+    assert 'Crew chiefs are handling the caution cycle' in live_race
+    assert 'caution_overlay' not in live_scene
     assert "live_track_map.gd" in live_scene
     assert '"WEEKLY BRIEFING"' in career_hub
     assert "WHY THIS CHANGED" in career_hub
@@ -365,7 +369,9 @@ def test_race_operations_analysis_and_team_philosophies_are_integrated():
     assert "WHAT COULD HAVE CHANGED THE RESULT" in results
     assert "const PHILOSOPHIES" in team_catalog
     assert "philosophy_id" in team and "regulation_preference" in team
-    assert "engineer_request_button" in live_race
+    assert "crew_chief_feed" in live_race
+    assert "get_player_entries" in simulation
+    assert "set_crew_chief_automation" in simulation
 
 
 def test_multi_team_commercial_and_standings_state_is_persistent():
@@ -394,9 +400,10 @@ def test_live_race_analysis_setup_and_venue_geometry_are_integrated():
     practice = (ROOT / "resources/practice_run_simulator.gd").read_text()
     tracks = (ROOT / "resources/track_presentation_catalog.gd").read_text()
     assert "telemetry_history" in simulation
-    for tab in ('name="Stints"', 'name="Lap Times"', 'name="Tyre & Fuel"', 'name="Passing"', 'name="Cautions"', 'name="Comparisons"'):
-        assert tab in live_scene
-    assert "_refresh_analysis" in live_ui
+    for removed_tab in ('name="Stints"', 'name="Lap Times"', 'name="Tyre & Fuel"', 'name="Passing"', 'name="Cautions"', 'name="Comparisons"'):
+        assert removed_tab not in live_scene
+    assert 'name="TeamCard"' in live_scene and 'name="CrewCard"' in live_scene
+    assert "_refresh_team_summary" in live_ui
     for setup_axis in ("gearing", "front_springs", "rear_springs", "downforce", "left_tyre_pressure", "right_tyre_pressure", "camber", "toe", "track_bar"):
         assert f'"{setup_axis}"' in practice
     assert '"sectors"' in tracks
@@ -417,7 +424,7 @@ def test_personality_brand_and_readable_live_layout_are_integrated():
 		assert f'"{voice}"' in personality
 	assert "memorable_moments" in driver and "last_reaction" in driver
 	assert "TEAM_PALETTES" in teams and "TEAM_MOTTOS" in teams
-	assert 'name="TimingColumn"' in live_scene and 'name="PitWallScroll"' in live_scene
+	assert 'name="TimingColumn"' in live_scene and 'name="BroadcastScroll"' in live_scene
 	assert "driver_reaction" in results and "rival_summary" in results
 	assert 'config/icon="res://ui/brand/racing_manager_icon.png"' in project
 	assert (ROOT / "ui/brand/racing_manager_icon.png").exists()
@@ -453,5 +460,7 @@ def test_results_lead_with_a_story_and_gate_deep_telemetry():
     assert "func create_outcome_story" in results
     assert "Caution and pit timing gained" in results
     assert "Slow pit service gave time back" in results
-    assert "_on_detailed_analysis_toggled(false)" in results
-    assert 'name="detailed_analysis_button"' in scene
+    assert "details_container.visible = visible_now" in results
+    assert scene.count('name="details_toggle"') == 1
+    assert 'name="detailed_analysis_button"' not in scene
+    assert 'name="next_action_button"' in scene

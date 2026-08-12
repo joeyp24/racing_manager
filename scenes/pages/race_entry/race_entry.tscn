@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://b8f4q7cyf6sku"]
+[gd_scene load_steps=3 format=3 uid="uid://b8f4q7cyf6sku"]
 
 [ext_resource type="Script" uid="uid://dq3kuwvyekasy" path="res://scenes/pages/race_entry/race_entry.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/components/race_flow_progress.tscn" id="2_flow"]
 
 [node name="race_entry" type="Control"]
 layout_mode = 3
@@ -56,6 +57,10 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(132, 32)
 layout_mode = 2
 text = "←  CALENDAR"
+
+[node name="RaceFlowProgress" parent="Scroll/Margin/Content" instance=ExtResource("2_flow")]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="Event" type="PanelContainer" parent="Scroll/Margin/Content"]
 layout_mode = 2

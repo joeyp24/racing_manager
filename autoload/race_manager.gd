@@ -350,6 +350,7 @@ func create_live_simulation(
 	simulation.configure_environment(weekend_environment)
 	var team_order := str(weekend_data.get("team_order", "Race freely"))
 	simulation.set_team_order(team_order, GameManager.team.team_name)
+	simulation.set_crew_chief_automation(true)
 	return simulation
 
 
@@ -392,14 +393,19 @@ func _build_additional_team_entries(selected_race: Race, selected_strategy: Stri
 		var car: Car = GameManager.team.get_car(int(entry.get("car_bay", -1)))
 		if driver == null or car == null or driver.series_id != selected_race.series_id or car.series_id != selected_race.series_id:
 			continue
+		var car_attributes := car.get_race_attributes()
 		entries.append({
 			"driver_id": driver.driver_id,
 			"driver_name": driver.driver_name,
 			"team_id": str(entry.get("team_id", "")),
 			"team_name": str(entry.get("team_name", GameManager.team.team_name)),
 			"consistency": driver.consistency,
+			"aggression": driver.aggression,
 			"strategy_skill": GameManager.team.get_race_engineer_quality(str(entry.get("team_id", ""))),
-			"reliability": float(car.get_race_attributes().get("reliability", 75.0)),
+			"reliability": float(car_attributes.get("reliability", 75.0)),
+			"fuel_efficiency": float(car_attributes.get("fuel", 50.0)),
+			"tyre_preservation": float(car_attributes.get("tyres", 50.0)),
+			"component_health": (car_attributes.get("component_health", {}) as Dictionary).duplicate(true),
 			"attributes": driver.get_attribute_dictionary(),
 			"score": calculate_player_score(car, driver, selected_strategy, selected_race),
 			"starting_position": int(weekend_data.get("starting_position", AI_DRIVERS.size() + 1)) + index

@@ -51,7 +51,7 @@ const STEP_DATA: Dictionary = {
 	},
 	"race": {
 		"title": "Finish your first race",
-		"body": "Run the event to the checkered flag and respond to the pit wall when conditions change.",
+		"body": "Watch the event to the checkered flag while the AI crew chief manages in-race strategy and pit calls.",
 		"action": "continue_weekend",
 		"action_label": "Continue race",
 	},

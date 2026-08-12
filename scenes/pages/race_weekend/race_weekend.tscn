@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/pages/race_weekend/race_weekend.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/components/race_flow_progress.tscn" id="2_flow"]
 
 [node name="race_weekend" type="Control"]
 layout_mode = 3
@@ -34,6 +35,11 @@ offset_bottom = -12.0
 [node name="content" type="VBoxContainer" parent="PageScroll/margin"]
 layout_mode = 2
 theme_override_constants/separation = 8
+
+[node name="RaceFlowProgress" parent="PageScroll/margin/content" instance=ExtResource("2_flow")]
+unique_name_in_owner = true
+layout_mode = 2
+current_stage = 1
 
 [node name="progress_label" type="Label" parent="PageScroll/margin/content"]
 unique_name_in_owner = true

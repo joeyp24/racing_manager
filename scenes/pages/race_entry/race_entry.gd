@@ -19,6 +19,7 @@ const READINESS_ROW_SCENE: PackedScene = preload("res://ui/components/readiness_
 @onready var status_label: Label = %status_label
 @onready var back_button: Button = %back_button
 @onready var confirm_button: Button = %confirm_button
+@onready var race_flow: RaceFlowProgress = %RaceFlowProgress
 
 var selected_car: Car = null
 var selected_strategy: String = RaceManager.DEFAULT_STRATEGY
@@ -32,6 +33,7 @@ func _ready() -> void:
 	back_button.pressed.connect(_on_back_button_pressed)
 	confirm_button.pressed.connect(_on_confirm_button_pressed)
 	strategy_selector.item_selected.connect(_on_strategy_selected)
+	race_flow.set_stage(0, "Select eligible teams, review the forecast, and commit the entry")
 	setup_strategy_selector()
 	show_event_information()
 	create_car_options()
@@ -273,6 +275,13 @@ func _on_confirm_button_pressed() -> void:
 		var entry_car := GameManager.team.cars[race_team.car_bay] as Car if race_team.car_bay >= 0 and race_team.car_bay < GameManager.team.cars.size() else null
 		if not RaceReadiness.is_car_eligible(entry_car, GameManager.selected_race.series_id):
 			status_label.text = "Entry blocked: every car must be homologated for %s." % SeriesCatalog.get_series(GameManager.selected_race.series_id).get("name", GameManager.selected_race.series_id)
+			GameManager.report_decision_outcome({
+				"status": "error",
+				"title": "Race entry not committed",
+				"message": status_label.text,
+				"action_label": "Review garage",
+				"action_path": "res://scenes/pages/garage/garage.tscn",
+			})
 			back_button.disabled = false
 			refresh_operations_center()
 			return
@@ -280,8 +289,16 @@ func _on_confirm_button_pressed() -> void:
 	back_button.disabled = true
 	status_label.text = "Committing entry fee and opening race weekend..."
 	var total_fee: int = GameManager.team.get_effective_weekend_cost(GameManager.selected_race, selected_race_teams.size())
+	var cash_before := GameManager.team.money
 	if not GameManager.remove_team_money(total_fee):
 		status_label.text = "The entry fee could not be paid."
+		GameManager.report_decision_outcome({
+			"status": "error",
+			"title": "Race entry not committed",
+			"message": "The team no longer has enough cash to cover the displayed weekend cost.",
+			"action_label": "Review finances",
+			"action_path": "res://scenes/pages/finances/finances.tscn",
+		})
 		back_button.disabled = false
 		refresh_operations_center()
 		return
@@ -291,6 +308,14 @@ func _on_confirm_button_pressed() -> void:
 		entries.append({"team_id": race_team.team_id, "team_name": race_team.team_name, "driver_id": race_team.driver_id, "car_bay": race_team.car_bay})
 	GameManager.begin_race_weekend({"strategy_id": selected_strategy, "entry_fee_total": total_fee, "entries": entries})
 	GameManager.save_game()
+	GameManager.report_decision_outcome({
+		"title": "%d race entr%s committed" % [selected_race_teams.size(), "y" if selected_race_teams.size() == 1 else "ies"],
+		"message": "%s is ready for practice and qualifying." % GameManager.selected_race.race_name,
+		"detail": "AI crew chiefs will manage each car after the green flag.",
+		"cash_delta": GameManager.team.money - cash_before,
+		"action_label": "Continue weekend",
+		"action_path": "res://scenes/pages/race_weekend/race_weekend.tscn",
+	})
 	GameManager.load_page("res://scenes/pages/race_weekend/race_weekend.tscn")
 
 
