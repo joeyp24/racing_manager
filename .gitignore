@@ -4,6 +4,8 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+work/
+artifacts/
 *.tmp
 *.tscn[0-9]*
 *.gd.uid
