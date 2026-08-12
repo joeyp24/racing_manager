@@ -131,6 +131,15 @@ def test_comparison_drawer_supports_keyboard_dismissal():
     assert 'event.is_action_pressed("ui_cancel")' in drawer
 
 
+def test_comparison_drawer_keeps_actions_outside_scrollable_review_content():
+    scene = (ROOT / "ui/components/decision_comparison_drawer.tscn").read_text(encoding="utf-8")
+    assert 'name="ReviewScroll" type="ScrollContainer" parent="Margin/Layout"' in scene
+    assert 'size_flags_vertical = 3' in scene
+    assert 'name="ReviewBody" type="VBoxContainer" parent="Margin/Layout/ReviewScroll"' in scene
+    assert 'name="Actions" type="HBoxContainer" parent="Margin/Layout"' in scene
+    assert 'name="Actions" type="HBoxContainer" parent="Margin/Layout/ReviewScroll' not in scene
+
+
 def test_management_shell_hosts_global_decision_outcomes():
     shell = (ROOT / "scenes/home/home.tscn").read_text(encoding="utf-8")
     manager = (ROOT / "scripts/game_manager.gd").read_text(encoding="utf-8")

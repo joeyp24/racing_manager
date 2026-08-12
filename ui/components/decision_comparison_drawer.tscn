@@ -55,26 +55,37 @@ layout_mode = 2
 text = "×"
 tooltip_text = "Close comparison"
 
-[node name="Subtitle" type="Label" parent="Margin/Layout"]
+[node name="ReviewScroll" type="ScrollContainer" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ReviewBody" type="VBoxContainer" parent="Margin/Layout/ReviewScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Subtitle" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "Review the trade-offs before committing."
 autowrap_mode = 2
 
-[node name="Rule" type="HSeparator" parent="Margin/Layout"]
+[node name="Rule" type="HSeparator" parent="Margin/Layout/ReviewScroll/ReviewBody"]
 layout_mode = 2
 
-[node name="ColumnHeadings" type="HBoxContainer" parent="Margin/Layout"]
+[node name="ColumnHeadings" type="HBoxContainer" parent="Margin/Layout/ReviewScroll/ReviewBody"]
 layout_mode = 2
 
-[node name="Metric" type="Label" parent="Margin/Layout/ColumnHeadings"]
+[node name="Metric" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/ColumnHeadings"]
 custom_minimum_size = Vector2(112, 0)
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "METRIC"
 
-[node name="CurrentHeading" type="Label" parent="Margin/Layout/ColumnHeadings"]
+[node name="CurrentHeading" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/ColumnHeadings"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(96, 0)
 layout_mode = 2
@@ -82,7 +93,7 @@ size_flags_horizontal = 3
 theme_type_variation = &"MutedLabel"
 text = "CURRENT"
 
-[node name="CandidateHeading" type="Label" parent="Margin/Layout/ColumnHeadings"]
+[node name="CandidateHeading" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/ColumnHeadings"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(96, 0)
 layout_mode = 2
@@ -90,120 +101,116 @@ size_flags_horizontal = 3
 theme_type_variation = &"MutedLabel"
 text = "CANDIDATE"
 
-[node name="Delta" type="Label" parent="Margin/Layout/ColumnHeadings"]
+[node name="Delta" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/ColumnHeadings"]
 custom_minimum_size = Vector2(82, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"MutedLabel"
 text = "CHANGE"
 
-[node name="MetricRows" type="VBoxContainer" parent="Margin/Layout"]
+[node name="MetricRows" type="VBoxContainer" parent="Margin/Layout/ReviewScroll/ReviewBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="FinanceTitle" type="Label" parent="Margin/Layout"]
+[node name="FinanceTitle" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody"]
 layout_mode = 2
 theme_type_variation = &"EyebrowLabel"
 text = "FINANCIAL EFFECT"
 
-[node name="FinanceGrid" type="GridContainer" parent="Margin/Layout"]
+[node name="FinanceGrid" type="GridContainer" parent="Margin/Layout/ReviewScroll/ReviewBody"]
 layout_mode = 2
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 6
 columns = 2
 
-[node name="Upfront" type="VBoxContainer" parent="Margin/Layout/FinanceGrid"]
+[node name="Upfront" type="VBoxContainer" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid"]
 custom_minimum_size = Vector2(210, 44)
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="Label" type="Label" parent="Margin/Layout/FinanceGrid/Upfront"]
+[node name="Label" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid/Upfront"]
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "IMMEDIATE CASH"
 
-[node name="UpfrontValue" type="Label" parent="Margin/Layout/FinanceGrid/Upfront"]
+[node name="UpfrontValue" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid/Upfront"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"BodyStrong"
 text = "$0"
 
-[node name="Recurring" type="VBoxContainer" parent="Margin/Layout/FinanceGrid"]
+[node name="Recurring" type="VBoxContainer" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid"]
 custom_minimum_size = Vector2(210, 44)
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="Label" type="Label" parent="Margin/Layout/FinanceGrid/Recurring"]
+[node name="Label" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid/Recurring"]
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "RECURRING EFFECT"
 
-[node name="RecurringValue" type="Label" parent="Margin/Layout/FinanceGrid/Recurring"]
+[node name="RecurringValue" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid/Recurring"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"BodyStrong"
 text = "No change"
 
-[node name="CashAfter" type="VBoxContainer" parent="Margin/Layout/FinanceGrid"]
+[node name="CashAfter" type="VBoxContainer" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid"]
 custom_minimum_size = Vector2(210, 44)
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="Label" type="Label" parent="Margin/Layout/FinanceGrid/CashAfter"]
+[node name="Label" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid/CashAfter"]
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "CASH AFTER"
 
-[node name="CashAfterValue" type="Label" parent="Margin/Layout/FinanceGrid/CashAfter"]
+[node name="CashAfterValue" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid/CashAfter"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"BodyStrong"
 text = "$0"
 
-[node name="SeasonEnd" type="VBoxContainer" parent="Margin/Layout/FinanceGrid"]
+[node name="SeasonEnd" type="VBoxContainer" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid"]
 custom_minimum_size = Vector2(210, 44)
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="Label" type="Label" parent="Margin/Layout/FinanceGrid/SeasonEnd"]
+[node name="Label" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid/SeasonEnd"]
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "PROJECTED SEASON END"
 
-[node name="SeasonEndValue" type="Label" parent="Margin/Layout/FinanceGrid/SeasonEnd"]
+[node name="SeasonEndValue" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/FinanceGrid/SeasonEnd"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"BodyStrong"
 text = "$0"
 
-[node name="ReserveLabel" type="Label" parent="Margin/Layout"]
+[node name="ReserveLabel" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "Recommended reserve  ·  $0"
 
-[node name="RiskLabel" type="Label" parent="Margin/Layout"]
+[node name="RiskLabel" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"SuccessLabel"
 text = "WITHIN PLAN  ·  This decision remains inside the current forecast."
 autowrap_mode = 2
 
-[node name="Recommendation" type="PanelContainer" parent="Margin/Layout"]
+[node name="Recommendation" type="PanelContainer" parent="Margin/Layout/ReviewScroll/ReviewBody"]
 layout_mode = 2
 theme_type_variation = &"CardPanel"
 
-[node name="RecommendationLabel" type="Label" parent="Margin/Layout/Recommendation"]
+[node name="RecommendationLabel" type="Label" parent="Margin/Layout/ReviewScroll/ReviewBody/Recommendation"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"BodyStrong"
 text = "RECOMMENDATION\nChoose the option that best fits the team plan."
 autowrap_mode = 2
-
-[node name="Spacer" type="Control" parent="Margin/Layout"]
-layout_mode = 2
-size_flags_vertical = 3
 
 [node name="Actions" type="HBoxContainer" parent="Margin/Layout"]
 layout_mode = 2

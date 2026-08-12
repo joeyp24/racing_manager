@@ -73,6 +73,8 @@ func _test_drawer_renders_and_emits_context() -> void:
 	assert(drawer.visible)
 	assert(drawer.metric_rows.get_child_count() == 1)
 	assert(drawer.primary_button.text == "Confirm decision")
+	assert(drawer.review_scroll.size_flags_vertical == Control.SIZE_EXPAND_FILL)
+	assert(drawer.primary_button.get_parent().get_parent() == drawer.review_scroll.get_parent())
 	drawer.primary_button.pressed.emit()
 	assert(not drawer.visible)
 	assert(emitted.size() == 1)
