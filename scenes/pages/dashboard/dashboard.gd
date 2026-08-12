@@ -43,6 +43,7 @@ func _ready() -> void:
 	advance_preview.confirmed.connect(_confirm_date_advance)
 	advance_preview.custom_action.connect(_on_advance_preview_action)
 	advance_preview.add_button("View Calendar", false, "calendar")
+	advance_preview.add_button("Review Decisions", false, "decisions")
 
 	update_dashboard()
 
@@ -380,6 +381,7 @@ func _on_prepare_race_pressed() -> void:
 
 func _show_advance_preview(target_day: int) -> void:
 	var preview := RaceManager.get_advance_preview(target_day)
+	var impacts := CareerExpansionManager.get_time_advance_impacts(GameManager.team, target_day)
 	var lines: Array[String] = ["Advance from %s to %s?" % [CalendarCatalog.format_day(int(preview.from_day)), CalendarCatalog.format_day(target_day)], "", "During these %d days:" % int(preview.days)]
 	if int(preview.other_races) > 0:
 		lines.append("• %d races will run across %d other series" % [preview.other_races, preview.other_series])
@@ -395,13 +397,50 @@ func _show_advance_preview(target_day: int) -> void:
 			lines.append("• %s — %s" % [CalendarCatalog.format_day(int(day)), ", ".join(noteworthy)])
 	if preview.events.is_empty():
 		lines.append("• No scheduled events")
+	var expiring_decisions := impacts.get("expiring_decisions", []) as Array
+	var expiring_activations := impacts.get("expiring_activations", []) as Array
+	var completions := impacts.get("completions", []) as Array
+	var entry_readiness := impacts.get("entry_readiness", []) as Array
+	if not completions.is_empty():
+		lines.append("")
+		lines.append("Projects completing:")
+		for completion in completions:
+			lines.append("- %s" % str(completion))
+	if not expiring_decisions.is_empty() or not expiring_activations.is_empty():
+		lines.append("")
+		lines.append("Action required before advancing:")
+		for item in expiring_decisions:
+			lines.append("- Decision: %s" % str((item as Dictionary).get("subject", "Untitled decision")))
+		for activation in expiring_activations:
+			lines.append("- Sponsor: %s" % str((activation as Dictionary).get("event", "Activation opportunity")))
+	if not entry_readiness.is_empty():
+		lines.append("")
+		lines.append("Race-team readiness:")
+		for readiness in entry_readiness:
+			var entry := readiness as Dictionary
+			var status := "Ready" if bool(entry.get("race_ready", false)) else "Needs %s" % ", ".join(entry.get("gaps", []) as Array)
+			lines.append("- %s - %s" % [str(entry.get("team_name", "Race team")), status])
 	advance_preview.dialog_text = "\n".join(lines)
 	advance_preview.set_meta("target_day", target_day)
+	advance_preview.set_meta("blocked", bool(impacts.get("blocked", false)))
+	advance_preview.get_ok_button().disabled = bool(impacts.get("blocked", false))
+	advance_preview.get_ok_button().tooltip_text = "Review expiring decisions and sponsor actions first." if bool(impacts.get("blocked", false)) else "Advance the organization calendar."
 	advance_preview.popup_centered(Vector2i(620, 430))
 
 
 func _confirm_date_advance() -> void:
 	var target_day := int(advance_preview.get_meta("target_day", GameManager.team.current_season_day))
+	var impacts := CareerExpansionManager.get_time_advance_impacts(GameManager.team, target_day)
+	if bool(impacts.get("blocked", false)):
+		advance_preview.hide()
+		GameManager.report_decision_outcome({
+			"status": "warning",
+			"title": "Calendar advance paused",
+			"message": "Resolve expiring decisions and sponsor activations before moving forward.",
+			"action_label": "Review decisions",
+			"action_path": "res://scenes/pages/career_hub/career_hub.tscn",
+		})
+		return
 	var result := RaceManager.advance_to_date(target_day)
 	var days := int(result.days_advanced) if result.has("days_advanced") else 0
 	advance_preview.hide()
@@ -414,6 +453,9 @@ func _on_advance_preview_action(action: StringName) -> void:
 	if action == &"calendar":
 		advance_preview.hide()
 		GameManager.load_page("res://scenes/pages/race_calendar/race_calendar.tscn")
+	elif action == &"decisions":
+		advance_preview.hide()
+		GameManager.load_page("res://scenes/pages/career_hub/career_hub.tscn")
 
 
 func _on_readiness_action_requested(action: String) -> void:

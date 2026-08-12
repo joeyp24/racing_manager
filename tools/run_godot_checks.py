@@ -81,6 +81,16 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_career_hub.gd"),
     ),
     (
+        "Career decision-center model tests",
+        (
+            "--headless",
+            "--path",
+            ".",
+            "--script",
+            "tests/test_career_decision_center.gd",
+        ),
+    ),
+    (
         "car inspection interaction smoke tests",
         ("--headless", "--path", ".", "--script", "tests/test_car_inspection.gd"),
     ),

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/pages/career_hub/career_hub.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/components/decision_comparison_drawer.tscn" id="2_compare"]
 
 [node name="CareerHub" type="Control"]
 layout_mode = 3
@@ -16,16 +17,14 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 14
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
 
 [node name="Layout" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 9
+theme_override_constants/separation = 8
 
 [node name="Header" type="HBoxContainer" parent="Margin/Layout"]
 layout_mode = 2
@@ -36,56 +35,175 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 0
 
+[node name="Eyebrow" type="Label" parent="Margin/Layout/Header/TitleStack"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "CAREER  /  ORGANIZATION"
+
 [node name="Title" type="Label" parent="Margin/Layout/Header/TitleStack"]
 layout_mode = 2
 theme_type_variation = &"PageTitle"
-text = "CAREER HQ"
+text = "Career HQ"
 
 [node name="Summary" type="Label" parent="Margin/Layout/Header/TitleStack"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
-text = "Your team, people, technology and racing world"
+text = "Priorities, long-term planning and organization history"
 
 [node name="mark_read_button" type="Button" parent="Margin/Layout/Header"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Mark All Read"
 
-[node name="tab_selector" type="OptionButton" parent="Margin/Layout"]
+[node name="ViewTabs" type="HFlowContainer" parent="Margin/Layout"]
+layout_mode = 2
+theme_override_constants/h_separation = 5
+theme_override_constants/v_separation = 5
+
+[node name="decision_button" type="Button" parent="Margin/Layout/ViewTabs"]
 unique_name_in_owner = true
 layout_mode = 2
+toggle_mode = true
+text = "Decision Center"
 
-[node name="InboxFilters" type="HBoxContainer" parent="Margin/Layout"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="FilterLabel" type="Label" parent="Margin/Layout/InboxFilters"]
-layout_mode = 2
-theme_type_variation = &"MutedLabel"
-text = "INBOX FILTERS"
-vertical_alignment = 1
-
-[node name="category_filter" type="OptionButton" parent="Margin/Layout/InboxFilters"]
+[node name="board_button" type="Button" parent="Margin/Layout/ViewTabs"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
+toggle_mode = true
+text = "Board & Story"
 
-[node name="status_filter" type="OptionButton" parent="Margin/Layout/InboxFilters"]
+[node name="people_button" type="Button" parent="Margin/Layout/ViewTabs"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
+toggle_mode = true
+text = "People"
+
+[node name="car_button" type="Button" parent="Margin/Layout/ViewTabs"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "Car & R&D"
+
+[node name="operations_button" type="Button" parent="Margin/Layout/ViewTabs"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "Operations"
+
+[node name="world_button" type="Button" parent="Margin/Layout/ViewTabs"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "World"
+
+[node name="settings_button" type="Button" parent="Margin/Layout/ViewTabs"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "Stats & Settings"
 
 [node name="Rule" type="HSeparator" parent="Margin/Layout"]
 layout_mode = 2
 
-[node name="Scroll" type="ScrollContainer" parent="Margin/Layout"]
+[node name="Workspace" type="Control" parent="Margin/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DecisionWorkspace" type="HSplitContainer" parent="Margin/Layout/Workspace"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = 315
+
+[node name="QueuePanel" type="PanelContainer" parent="Margin/Layout/Workspace/DecisionWorkspace"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="QueueMargin" type="MarginContainer" parent="Margin/Layout/Workspace/DecisionWorkspace/QueuePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="QueueLayout" type="VBoxContainer" parent="Margin/Layout/Workspace/DecisionWorkspace/QueuePanel/QueueMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="QueueHeading" type="Label" parent="Margin/Layout/Workspace/DecisionWorkspace/QueuePanel/QueueMargin/QueueLayout"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "PRIORITY QUEUE"
+
+[node name="queue_summary" type="Label" parent="Margin/Layout/Workspace/DecisionWorkspace/QueuePanel/QueueMargin/QueueLayout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "No decisions require attention"
+autowrap_mode = 2
+
+[node name="category_filter" type="OptionButton" parent="Margin/Layout/Workspace/DecisionWorkspace/QueuePanel/QueueMargin/QueueLayout"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="status_filter" type="OptionButton" parent="Margin/Layout/Workspace/DecisionWorkspace/QueuePanel/QueueMargin/QueueLayout"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="QueueScroll" type="ScrollContainer" parent="Margin/Layout/Workspace/DecisionWorkspace/QueuePanel/QueueMargin/QueueLayout"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="content" type="VBoxContainer" parent="Margin/Layout/Scroll"]
+[node name="decision_queue" type="VBoxContainer" parent="Margin/Layout/Workspace/DecisionWorkspace/QueuePanel/QueueMargin/QueueLayout/QueueScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="DetailPanel" type="PanelContainer" parent="Margin/Layout/Workspace/DecisionWorkspace"]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="DetailMargin" type="MarginContainer" parent="Margin/Layout/Workspace/DecisionWorkspace/DetailPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="DetailScroll" type="ScrollContainer" parent="Margin/Layout/Workspace/DecisionWorkspace/DetailPanel/DetailMargin"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="decision_detail" type="VBoxContainer" parent="Margin/Layout/Workspace/DecisionWorkspace/DetailPanel/DetailMargin/DetailScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
+
+[node name="LegacyScroll" type="ScrollContainer" parent="Margin/Layout/Workspace"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="content" type="VBoxContainer" parent="Margin/Layout/Workspace/LegacyScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DecisionComparisonDrawer" parent="." instance=ExtResource("2_compare")]
+unique_name_in_owner = true

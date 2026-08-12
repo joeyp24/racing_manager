@@ -81,6 +81,27 @@ entry receives six offers and can sign multiple partners up to its capacity.
 Brand identities rotate by entry, season, and series so a growing organization
 does not encounter the same sponsor slate on every car or at every career tier.
 
+## Career decision model
+
+Career HQ opens on the Decision Center: a two-pane workspace with a complete,
+scrolling priority queue on the left and one focused decision on the right.
+Keep the seven long-term planning views available, but treat them as reference
+areas; the queue is the front door for work that needs a response.
+
+Every queued item shows its category, priority or read state, deadline, affected
+race team, reason for appearing, and final recorded outcome. Choices must open
+the shared comparison drawer before they take effect. The same rule applies to
+board funding, driver packages, R&D, facilities, manufacturer agreements,
+sponsor activations, merchandise orders, and special-event entries. Report the
+realized result through the global outcome receipt and include a route to the
+affected area whenever one exists.
+
+Advancing time is also a decision. Its preview must list scheduled events,
+projects that will finish, and the readiness of every race team. Disable the
+advance action when an unresolved decision or sponsor activation would expire,
+and offer a direct route back to the Decision Center. Resolved messages remain
+available through the archive filters rather than disappearing.
+
 Prefer rows and aligned columns over prose-heavy cards. Keep primary actions
 at 36 px high and ordinary controls near 32 px. Do not add scene-level font
 overrides when a named theme variation describes the role.
