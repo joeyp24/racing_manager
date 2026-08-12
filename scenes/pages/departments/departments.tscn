@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/pages/departments/departments.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/components/decision_comparison_drawer.tscn" id="2_compare"]
 
 [node name="departments" type="Control"]
 layout_mode = 3
@@ -53,3 +54,6 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 columns = 2
+
+[node name="DecisionComparisonDrawer" parent="." instance=ExtResource("2_compare")]
+unique_name_in_owner = true

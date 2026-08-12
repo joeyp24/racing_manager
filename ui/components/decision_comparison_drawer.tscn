@@ -1,0 +1,222 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/components/decision_comparison_drawer.gd" id="1"]
+
+[node name="DecisionComparisonDrawer" type="PanelContainer"]
+visible = false
+z_index = 30
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -500.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_type_variation = &"DecisionDrawerPanel"
+script = ExtResource("1")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="Layout" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="Margin/Layout"]
+layout_mode = 2
+
+[node name="Identity" type="VBoxContainer" parent="Margin/Layout/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Eyebrow" type="Label" parent="Margin/Layout/Header/Identity"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "DECISION REVIEW"
+
+[node name="Title" type="Label" parent="Margin/Layout/Header/Identity"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PageTitle"
+text = "Compare options"
+autowrap_mode = 2
+
+[node name="CloseButton" type="Button" parent="Margin/Layout/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+text = "×"
+tooltip_text = "Close comparison"
+
+[node name="Subtitle" type="Label" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Review the trade-offs before committing."
+autowrap_mode = 2
+
+[node name="Rule" type="HSeparator" parent="Margin/Layout"]
+layout_mode = 2
+
+[node name="ColumnHeadings" type="HBoxContainer" parent="Margin/Layout"]
+layout_mode = 2
+
+[node name="Metric" type="Label" parent="Margin/Layout/ColumnHeadings"]
+custom_minimum_size = Vector2(112, 0)
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "METRIC"
+
+[node name="CurrentHeading" type="Label" parent="Margin/Layout/ColumnHeadings"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"MutedLabel"
+text = "CURRENT"
+
+[node name="CandidateHeading" type="Label" parent="Margin/Layout/ColumnHeadings"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"MutedLabel"
+text = "CANDIDATE"
+
+[node name="Delta" type="Label" parent="Margin/Layout/ColumnHeadings"]
+custom_minimum_size = Vector2(82, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"MutedLabel"
+text = "CHANGE"
+
+[node name="MetricRows" type="VBoxContainer" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="FinanceTitle" type="Label" parent="Margin/Layout"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "FINANCIAL EFFECT"
+
+[node name="FinanceGrid" type="GridContainer" parent="Margin/Layout"]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 6
+columns = 2
+
+[node name="Upfront" type="VBoxContainer" parent="Margin/Layout/FinanceGrid"]
+custom_minimum_size = Vector2(210, 44)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Margin/Layout/FinanceGrid/Upfront"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "IMMEDIATE CASH"
+
+[node name="UpfrontValue" type="Label" parent="Margin/Layout/FinanceGrid/Upfront"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "$0"
+
+[node name="Recurring" type="VBoxContainer" parent="Margin/Layout/FinanceGrid"]
+custom_minimum_size = Vector2(210, 44)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Margin/Layout/FinanceGrid/Recurring"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "RECURRING EFFECT"
+
+[node name="RecurringValue" type="Label" parent="Margin/Layout/FinanceGrid/Recurring"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "No change"
+
+[node name="CashAfter" type="VBoxContainer" parent="Margin/Layout/FinanceGrid"]
+custom_minimum_size = Vector2(210, 44)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Margin/Layout/FinanceGrid/CashAfter"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "CASH AFTER"
+
+[node name="CashAfterValue" type="Label" parent="Margin/Layout/FinanceGrid/CashAfter"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "$0"
+
+[node name="SeasonEnd" type="VBoxContainer" parent="Margin/Layout/FinanceGrid"]
+custom_minimum_size = Vector2(210, 44)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Margin/Layout/FinanceGrid/SeasonEnd"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "PROJECTED SEASON END"
+
+[node name="SeasonEndValue" type="Label" parent="Margin/Layout/FinanceGrid/SeasonEnd"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "$0"
+
+[node name="ReserveLabel" type="Label" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Recommended reserve  ·  $0"
+
+[node name="RiskLabel" type="Label" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SuccessLabel"
+text = "WITHIN PLAN  ·  This decision remains inside the current forecast."
+autowrap_mode = 2
+
+[node name="Recommendation" type="PanelContainer" parent="Margin/Layout"]
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="RecommendationLabel" type="Label" parent="Margin/Layout/Recommendation"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "RECOMMENDATION\nChoose the option that best fits the team plan."
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="Margin/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Actions" type="HBoxContainer" parent="Margin/Layout"]
+layout_mode = 2
+alignment = 2
+
+[node name="CancelButton" type="Button" parent="Margin/Layout/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cancel"
+
+[node name="PrimaryButton" type="Button" parent="Margin/Layout/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 38)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "Confirm decision"

@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=31 format=3]
+[gd_resource type="Theme" load_steps=32 format=3]
 
 [sub_resource type="SystemFont" id="FontRegular"]
 font_names = PackedStringArray("Inter", "IBM Plex Sans", "Noto Sans", "Segoe UI", "Arial")
@@ -145,6 +145,13 @@ corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="DecisionDrawer"]
+bg_color = Color(0.025, 0.027, 0.052, 0.99)
+border_width_left = 3
+border_color = Color(0.55, 0.28, 0.94, 1)
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 12
 
 [sub_resource type="StyleBoxFlat" id="Sidebar"]
 bg_color = Color(0.024, 0.027, 0.052, 1)
@@ -386,6 +393,8 @@ StatusMetricPanel/base_type = &"PanelContainer"
 StatusMetricPanel/styles/panel = SubResource("StatusMetric")
 StatusMetricHoverPanel/base_type = &"PanelContainer"
 StatusMetricHoverPanel/styles/panel = SubResource("StatusMetricHover")
+DecisionDrawerPanel/base_type = &"PanelContainer"
+DecisionDrawerPanel/styles/panel = SubResource("DecisionDrawer")
 SidebarPanel/base_type = &"PanelContainer"
 SidebarPanel/styles/panel = SubResource("Sidebar")
 TopbarPanel/base_type = &"PanelContainer"

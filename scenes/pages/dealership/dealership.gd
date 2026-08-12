@@ -28,6 +28,7 @@ var maximum_used_mileage: int = 140000
 @onready var title_label: Label = %title_label
 @onready var instructions_label: Label = %instructions_label
 @onready var series_selector: OptionButton = %series_selector
+@onready var comparison_drawer: DecisionComparisonDrawer = %DecisionComparisonDrawer
 
 var random_number_generator := RandomNumberGenerator.new()
 
@@ -37,6 +38,7 @@ func _ready() -> void:
 
 	back_button.pressed.connect(_on_back_button_pressed)
 	series_selector.item_selected.connect(_on_series_selected)
+	comparison_drawer.action_requested.connect(_on_comparison_action)
 	populate_series_selector()
 
 	if GameManager.selected_bay < 0:
@@ -235,7 +237,105 @@ func create_offer(car_template: Car) -> void:
 		return
 
 	offer_instance.set("car_template", car_template)
+	offer_instance.comparison_requested.connect(_show_car_comparison)
 	offers_container.add_child(offer_instance)
+
+
+func _show_car_comparison(candidate: Car) -> void:
+	var team := GameManager.team
+	var current := _best_owned_car(candidate.series_id)
+	var current_name := current.name if current != null else "No owned car"
+	var current_attributes := current.get_race_attributes() if current != null else {}
+	var candidate_attributes := candidate.get_race_attributes()
+	var candidate_pp := candidate.get_total_performance_points(team)
+	var current_pp := current.get_total_performance_points(team) if current != null else 0
+	var purchase_cost := team.get_discounted_cost(candidate.purchase_price)
+	var eligible := GameManager.selected_bay >= 0 and team.entered_series_ids.has(candidate.series_id)
+	var disabled_reason := ""
+	if GameManager.selected_bay < 0:
+		disabled_reason = "Sell a car or expand garage capacity before purchasing."
+	elif not team.entered_series_ids.has(candidate.series_id):
+		disabled_reason = "Enter this series before purchasing its homologated car."
+	elif team.money < purchase_cost:
+		disabled_reason = "You need %s more cash." % DecisionComparisonModel.money(purchase_cost - team.money)
+	var pp_delta := candidate_pp - current_pp
+	var condition_delta := candidate.condition - (current.condition if current != null else 0)
+	var model := DecisionComparisonModel.build(team, {
+		"eyebrow": "CAR ACQUISITION",
+		"title": candidate.name,
+		"subtitle": "Compare the candidate with your strongest owned car in the same series. Performance Points include installed parts and team modifiers.",
+		"current_title": current_name.to_upper(),
+		"candidate_title": "CANDIDATE",
+		"metrics": [
+			DecisionComparisonModel.metric("Performance", str(current_pp), str(candidate_pp), "%+d PP" % pp_delta, _impact(pp_delta), "Displayed whole-car Performance Points."),
+			DecisionComparisonModel.metric("Condition", "%d%%" % (current.condition if current != null else 0), "%d%%" % candidate.condition, "%+d%%" % condition_delta, _impact(condition_delta), "Condition affects usable pace and repair exposure."),
+			_attribute_metric("Power", current_attributes, candidate_attributes, "power"),
+			_attribute_metric("Grip", current_attributes, candidate_attributes, "grip"),
+			_attribute_metric("Reliability", current_attributes, candidate_attributes, "reliability"),
+			DecisionComparisonModel.metric("Mileage", str(current.mileage) if current != null else "—", str(candidate.mileage), "USED" if candidate.mileage > 0 else "NEW", DecisionComparisonModel.WARNING if candidate.mileage > 0 else DecisionComparisonModel.IMPROVES),
+		],
+		"upfront_cost": purchase_cost,
+		"action_label": "Purchase for %s" % DecisionComparisonModel.money(purchase_cost),
+		"action_enabled": eligible and team.money >= purchase_cost,
+		"disabled_reason": disabled_reason,
+		"recommendation": _car_recommendation(current, candidate, pp_delta),
+		"context": {"kind": "car", "candidate": candidate},
+	})
+	comparison_drawer.display(model)
+
+
+func _attribute_metric(label: String, current: Dictionary, candidate: Dictionary, key: String) -> Dictionary:
+	var current_value := roundi(float(current.get(key, 0.0)))
+	var candidate_value := roundi(float(candidate.get(key, 0.0)))
+	var delta := candidate_value - current_value
+	return DecisionComparisonModel.metric(label, str(current_value) if not current.is_empty() else "—", str(candidate_value), "%+d" % delta, _impact(delta))
+
+
+func _best_owned_car(series_id: String) -> Car:
+	var best: Car = null
+	var best_pp := -1
+	for value in GameManager.team.cars:
+		var car := value as Car
+		if car == null or car.series_id != series_id:
+			continue
+		var points := car.get_total_performance_points(GameManager.team)
+		if points > best_pp:
+			best = car
+			best_pp = points
+	return best
+
+
+func _car_recommendation(current: Car, candidate: Car, pp_delta: int) -> String:
+	if current == null:
+		return "This car establishes an eligible baseline for the series. Preserve enough reserve to enter and service the first race."
+	if pp_delta > 0 and candidate.condition >= 80:
+		return "Clear performance upgrade with manageable condition risk. Check the reserve before committing."
+	if pp_delta > 0:
+		return "The pace improves, but used-car wear may consume part of the purchase advantage through repairs."
+	return "This does not improve whole-car Performance Points. Buy only for capacity, condition, or a deliberate rebuild."
+
+
+func _impact(delta: int) -> int:
+	if delta > 0:
+		return DecisionComparisonModel.IMPROVES
+	if delta < 0:
+		return DecisionComparisonModel.WORSENS
+	return DecisionComparisonModel.NEUTRAL
+
+
+func _on_comparison_action(context: Dictionary) -> void:
+	if str(context.get("kind", "")) != "car":
+		return
+	var candidate := context.get("candidate") as Car
+	if candidate == null or GameManager.selected_bay < 0:
+		return
+	if not GameManager.team.buy_car(candidate, GameManager.selected_bay):
+		instructions_label.text = "The purchase could not be completed. Check cash, eligibility, and garage capacity."
+		return
+	GameManager.selected_car = GameManager.team.get_car(GameManager.selected_bay)
+	GameManager.refresh_team_money()
+	GameManager.save_game()
+	GameManager.load_page("res://scenes/pages/garage/car_inspection.tscn")
 
 
 func clear_existing_offers() -> void:

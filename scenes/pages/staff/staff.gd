@@ -19,11 +19,13 @@ extends Control
 @onready var contract_summary: Label = %Summary
 @onready var approach: OptionButton = %Approach
 @onready var fire_dialog: ConfirmationDialog = %FireDialog
+@onready var comparison_drawer: DecisionComparisonDrawer = %DecisionComparisonDrawer
 
 var selected: StaffMember
 var pending: StaffMember
 
 func _ready() -> void:
+	comparison_drawer.action_requested.connect(_on_comparison_action)
 	role_filter.add_item("All roles")
 	for role in StaffMember.ROLES: role_filter.add_item(role)
 	for item in ["Rating: high to low", "Salary: low to high", "Potential: high to low", "Rival interest"]: sort_filter.add_item(item)
@@ -90,16 +92,13 @@ func make_row(member: StaffMember, hiring: bool) -> PanelContainer:
 	label.theme_type_variation = &"BodyStrong"
 	var action := Button.new()
 	if hiring:
-		action.text = "Hire · $%s" % number(GameManager.team.get_discounted_cost(member.signing_fee))
+		action.text = "Compare"
 		action.theme_type_variation = &"PrimaryButton"
-		action.disabled = (not GameManager.team.can_add_staff_role(member.role)
-			or GameManager.team.money < GameManager.team.get_discounted_cost(member.signing_fee))
 		var peers := GameManager.team.get_staff_by_role(member.role)
 		if not peers.is_empty():
 			label.tooltip_text = "Compared with %s: Overall %+d  ·  Primary %+d  ·  Secondary %+d  ·  Salary %+d/race" % [peers[0].staff_name, member.rating - peers[0].rating, member.primary_rating - peers[0].primary_rating, member.secondary_rating - peers[0].secondary_rating, GameManager.team.get_effective_salary(member.salary) - GameManager.team.get_effective_salary(peers[0].salary)]
-		if action.disabled:
-			action.tooltip_text = "Disabled: this role is at capacity." if not GameManager.team.can_add_staff_role(member.role) else "Disabled: insufficient cash for the signing fee."
-		action.pressed.connect(hire_member.bind(member))
+		action.tooltip_text = "Compare capability, payroll, and season forecast."
+		action.pressed.connect(_show_staff_comparison.bind(member))
 	else:
 		action.text = "View"
 		action.pressed.connect(func(): selected = member; show_detail(member))
@@ -125,8 +124,68 @@ func show_detail(member: StaffMember) -> void:
 		var terminate := Button.new(); terminate.text = "Terminate…"; terminate.theme_type_variation = &"DangerButton"; terminate.pressed.connect(open_fire.bind(member))
 		actions.add_child(negotiate); actions.add_child(terminate)
 	else:
-		var hire := Button.new(); hire.text = "Hire · $%s" % number(GameManager.team.get_discounted_cost(member.signing_fee)); hire.theme_type_variation = &"PrimaryButton"; hire.pressed.connect(hire_member.bind(member)); actions.add_child(hire)
+		var hire := Button.new(); hire.text = "Compare hire"; hire.theme_type_variation = &"PrimaryButton"; hire.pressed.connect(_show_staff_comparison.bind(member)); actions.add_child(hire)
 	detail.add_child(actions)
+
+func _show_staff_comparison(member: StaffMember) -> void:
+	var team: Team = GameManager.team
+	var peers := team.get_staff_by_role(member.role)
+	var current: StaffMember = peers[0] if not peers.is_empty() else null
+	for peer in peers:
+		if current == null or peer.rating > current.rating:
+			current = peer
+	var names := member.get_attribute_names()
+	var metrics: Array = [
+		_staff_metric("Overall", current.rating if current != null else 0, member.rating, current != null),
+		_staff_metric(names[0], current.primary_rating if current != null else 0, member.primary_rating, current != null),
+		_staff_metric(names[1], current.secondary_rating if current != null else 0, member.secondary_rating, current != null),
+		_staff_metric("Potential", current.potential if current != null else 0, member.potential, current != null),
+		_staff_metric("Performance", current.primary_rating if current != null else 0, member.primary_rating, current != null, "Estimated team-performance contribution."),
+		_staff_metric("Condition care", current.secondary_rating if current != null else 0, member.secondary_rating, current != null, "Higher secondary rating reduces condition loss."),
+	]
+	var signing_cost := team.get_discounted_cost(member.signing_fee)
+	var can_add := team.can_add_staff_role(member.role)
+	var recommendation := "This fills an open %s position and adds capability without replacing a current employee." % member.role
+	if current != null:
+		var delta := member.rating - current.rating
+		recommendation = (
+			"A strong capability upgrade over %s; check the payroll impact before committing." % current.staff_name
+			if delta >= 5 else
+			"A comparable option to %s; specialty and long-term potential should drive the choice." % current.staff_name
+			if delta >= -3 else
+			"Below the current benchmark; best suited to depth or development."
+		)
+	var model := DecisionComparisonModel.build(team, {
+		"eyebrow": "STAFF DECISION",
+		"title": member.staff_name,
+		"subtitle": "%s specialist compared with %s." % [member.role, current.staff_name if current != null else "an open position"],
+		"current_title": current.staff_name.to_upper() if current != null else "OPEN ROLE",
+		"candidate_title": "CANDIDATE",
+		"metrics": metrics,
+		"upfront_cost": signing_cost,
+		"recurring_per_race": team.get_effective_salary(member.salary),
+		"recurring_events": member.get_default_contract_length(),
+		"action_enabled": can_add and not member.hired,
+		"disabled_reason": "This role is at capacity." if not can_add else "This employee is already contracted." if member.hired else "",
+		"action_label": "Hire %s" % member.staff_name.split(" ")[0],
+		"recommendation": recommendation,
+		"risk": "Rival interest is %s; the candidate may become more expensive if left on the market." % member.rival_interest if member.rival_interest in ["High", "Very high"] else "",
+		"context": {"kind": "staff", "candidate": member},
+	})
+	comparison_drawer.display(model)
+
+func _staff_metric(label_text: String, current_value: int, candidate_value: int, has_current: bool, detail_text: String = "") -> Dictionary:
+	var delta := candidate_value - current_value
+	return DecisionComparisonModel.metric(label_text, str(current_value) if has_current else "--", str(candidate_value), "%+d" % delta if has_current else "New", _staff_impact(delta) if has_current else DecisionComparisonModel.IMPROVES, detail_text)
+
+func _staff_impact(delta: int) -> int:
+	if delta > 0: return DecisionComparisonModel.IMPROVES
+	if delta < 0: return DecisionComparisonModel.WORSENS
+	return DecisionComparisonModel.NEUTRAL
+
+func _on_comparison_action(context: Dictionary) -> void:
+	if str(context.get("kind", "")) == "staff":
+		hire_member(context.get("candidate") as StaffMember)
 
 func add_rating(parent: VBoxContainer, label_text: String, value: int) -> void:
 	var label := Label.new(); label.text = "%s   %d · %s" % [label_text.to_upper(), value, selected.get_rating_grade()]; label.theme_type_variation = &"BodyStrong"; parent.add_child(label)

@@ -2,9 +2,11 @@ extends Control
 
 @onready var department_grid: GridContainer = %department_grid
 @onready var status_label: Label = %status_label
+@onready var comparison_drawer: DecisionComparisonDrawer = %DecisionComparisonDrawer
 
 
 func _ready() -> void:
+	comparison_drawer.action_requested.connect(_on_comparison_action)
 	refresh_departments()
 
 
@@ -31,9 +33,9 @@ func create_hq_card() -> Control:
 	var description := Label.new(); description.text = "Headquarters improves operational capacity and remains an optional investment. Series promotion is earned through reputation, season completion and financial readiness."; description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; description.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var action := Button.new()
 	var cost := team.get_hq_upgrade_cost()
-	action.text = "Maximum Level" if cost <= 0 else "Upgrade HQ — $%s" % format_number(cost)
-	action.disabled = cost <= 0 or team.money < cost
-	action.pressed.connect(_on_hq_upgrade_pressed)
+	action.text = "Maximum Level" if cost <= 0 else "Review HQ upgrade"
+	action.disabled = cost <= 0
+	action.pressed.connect(_show_hq_comparison)
 	content.add_child(title); content.add_child(level); content.add_child(description); content.add_child(action); panel.add_child(content)
 	return panel
 
@@ -72,9 +74,8 @@ func create_department_card(department_id: String) -> Control:
 		action.disabled = true
 	else:
 		var cost := team.get_department_cost(department_id)
-		action.text = "%s — $%s" % ["Purchase" if level == 0 else "Upgrade to Level %d" % (level + 1), format_number(cost)]
-		action.disabled = team.money < cost
-		action.pressed.connect(_on_purchase_pressed.bind(department_id))
+		action.text = "Review %s" % ("purchase" if level == 0 else "upgrade")
+		action.pressed.connect(_show_department_comparison.bind(department_id))
 	content.add_child(title)
 	content.add_child(level_label)
 	content.add_child(description)
@@ -82,6 +83,78 @@ func create_department_card(department_id: String) -> Control:
 	margin.add_child(content)
 	panel.add_child(margin)
 	return panel
+
+
+func _show_hq_comparison() -> void:
+	var team: Team = GameManager.team
+	var cost := team.get_hq_upgrade_cost()
+	var next_level := mini(SeriesCatalog.SERIES.size(), team.hq_level + 1)
+	var current_series := SeriesCatalog.SERIES[clampi(team.hq_level - 1, 0, SeriesCatalog.SERIES.size() - 1)] as Dictionary
+	var next_series := SeriesCatalog.SERIES[clampi(next_level - 1, 0, SeriesCatalog.SERIES.size() - 1)] as Dictionary
+	var metrics: Array = [
+		DecisionComparisonModel.metric("HQ level", str(team.hq_level), str(next_level), "+1", DecisionComparisonModel.IMPROVES),
+		DecisionComparisonModel.metric("Series gate", str(current_series.get("name", "Current tier")), str(next_series.get("name", "Next tier")), "Unlocked", DecisionComparisonModel.IMPROVES, "HQ is one of several requirements for promotion."),
+		DecisionComparisonModel.metric("Tier capacity", "%d tiers" % team.hq_level, "%d tiers" % next_level, "+1", DecisionComparisonModel.IMPROVES),
+		DecisionComparisonModel.metric("Promotion", "Current gates", "HQ gate ready", "Partial", DecisionComparisonModel.WARNING, "Reputation, season completion, and financial readiness still apply."),
+	]
+	var model := DecisionComparisonModel.build(team, {
+		"eyebrow": "HEADQUARTERS DECISION",
+		"title": "Upgrade HQ to level %d" % next_level,
+		"subtitle": "Expand the team's operational ceiling and satisfy the next series' headquarters gate.",
+		"current_title": "LEVEL %d" % team.hq_level,
+		"candidate_title": "LEVEL %d" % next_level,
+		"metrics": metrics,
+		"upfront_cost": cost,
+		"recurring_per_race": 0,
+		"action_enabled": cost > 0,
+		"disabled_reason": "Headquarters is already at maximum level." if cost <= 0 else "",
+		"action_label": "Upgrade headquarters",
+		"recommendation": "Upgrade when the next series is a near-term goal and the remaining cash stays above the operating reserve.",
+		"risk": "This unlocks the HQ gate only; promotion still depends on reputation, season completion, and finances.",
+		"context": {"kind": "hq"},
+	})
+	comparison_drawer.display(model)
+
+
+func _show_department_comparison(department_id: String) -> void:
+	var team: Team = GameManager.team
+	var data := DepartmentCatalog.get_data(department_id)
+	var current_level := team.get_department_level(department_id)
+	var next_level := mini(DepartmentCatalog.MAX_LEVEL, current_level + 1)
+	var current_bonus := team.get_department_bonus(department_id)
+	var next_bonus := DepartmentCatalog.get_bonus(next_level)
+	var cost := team.get_department_cost(department_id)
+	var metrics: Array = [
+		DecisionComparisonModel.metric("Department level", str(current_level), str(next_level), "+1", DecisionComparisonModel.IMPROVES),
+		DecisionComparisonModel.metric("Team bonus", "%.1f%%" % current_bonus, "%.1f%%" % next_bonus, "+%.1f%%" % (next_bonus - current_bonus), DecisionComparisonModel.IMPROVES),
+		DecisionComparisonModel.metric("Benefit", "Inactive" if current_level == 0 else "Active", str(data.get("description", "Team improvement")), "Enabled" if current_level == 0 else "Stronger", DecisionComparisonModel.IMPROVES, str(data.get("description", ""))),
+		DecisionComparisonModel.metric("Level ceiling", "%d" % DepartmentCatalog.MAX_LEVEL, "%d" % DepartmentCatalog.MAX_LEVEL, "%d remaining" % (DepartmentCatalog.MAX_LEVEL - next_level), DecisionComparisonModel.NEUTRAL),
+	]
+	var department_name := str(data.get("name", department_id.capitalize()))
+	var model := DecisionComparisonModel.build(team, {
+		"eyebrow": "FACILITY DECISION",
+		"title": "%s · level %d" % [department_name, next_level],
+		"subtitle": "Review the permanent team-wide benefit before investing.",
+		"current_title": "LEVEL %d" % current_level if current_level > 0 else "NOT OWNED",
+		"candidate_title": "LEVEL %d" % next_level,
+		"metrics": metrics,
+		"upfront_cost": cost,
+		"recurring_per_race": 0,
+		"action_enabled": current_level < DepartmentCatalog.MAX_LEVEL and cost > 0,
+		"disabled_reason": "This department is already at maximum level." if current_level >= DepartmentCatalog.MAX_LEVEL else "",
+		"action_label": "Purchase department" if current_level == 0 else "Upgrade department",
+		"recommendation": "%s Prioritize it when that benefit supports the team's current bottleneck." % str(data.get("description", "This adds a permanent team bonus.")),
+		"context": {"kind": "department", "department_id": department_id},
+	})
+	comparison_drawer.display(model)
+
+
+func _on_comparison_action(context: Dictionary) -> void:
+	match str(context.get("kind", "")):
+		"hq":
+			_on_hq_upgrade_pressed()
+		"department":
+			_on_purchase_pressed(str(context.get("department_id", "")))
 
 
 func _on_purchase_pressed(department_id: String) -> void:

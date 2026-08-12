@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/pages/driver_market/driver_market.gd" id="1_drivers"]
+[ext_resource type="PackedScene" path="res://ui/components/decision_comparison_drawer.tscn" id="2_compare"]
 
 [node name="driver_market" type="Control"]
 layout_mode = 3
@@ -69,3 +70,6 @@ theme_override_constants/separation = 8
 [node name="confirmation_dialog" type="ConfirmationDialog" parent="."]
 unique_name_in_owner = true
 title = "Confirm driver contract"
+
+[node name="DecisionComparisonDrawer" parent="." instance=ExtResource("2_compare")]
+unique_name_in_owner = true

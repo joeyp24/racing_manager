@@ -1,5 +1,7 @@
 extends PanelContainer
 
+signal comparison_requested(car: Car)
+
 @export var car_template: Car
 
 @onready var car_name_label: Label = %car_name_label
@@ -9,7 +11,7 @@ extends PanelContainer
 
 
 func _ready() -> void:
-	buy_button.pressed.connect(_on_buy_button_pressed)
+	buy_button.pressed.connect(_on_compare_button_pressed)
 	update_offer_display()
 
 
@@ -44,46 +46,19 @@ func update_offer_display() -> void:
 	)
 
 	buy_button.disabled = false
+	buy_button.text = "Compare"
+	buy_button.tooltip_text = "Compare performance, condition, cost, and cash impact before purchasing."
 	if GameManager.selected_bay < 0:
-		buy_button.disabled = true
-		buy_button.text = "Garage Full"
-		buy_button.tooltip_text = "Disabled: sell a car or expand garage capacity before purchasing."
+		buy_button.text = "Compare  ·  Garage Full"
 	elif not GameManager.team.entered_series_ids.has(car_template.series_id):
-		buy_button.disabled = true
-		buy_button.text = "Series Locked"
+		buy_button.text = "Compare  ·  Series Locked"
 
 
-func _on_buy_button_pressed() -> void:
+func _on_compare_button_pressed() -> void:
 	if car_template == null:
 		push_error("No car template is assigned to this offer.")
 		return
-
-	if GameManager.team == null:
-		push_error("No team is currently loaded.")
-		return
-
-	if GameManager.selected_bay < 0:
-		push_error("No garage bay was selected.")
-		return
-
-	var purchase_successful: bool = GameManager.team.buy_car(
-		car_template,
-		GameManager.selected_bay
-	)
-
-	if not purchase_successful:
-		push_warning("The car could not be purchased.")
-		return
-
-	GameManager.selected_car = GameManager.team.cars[
-		GameManager.selected_bay
-	]
-	GameManager.refresh_team_money()
-	GameManager.save_game()
-
-	GameManager.load_page(
-		"res://scenes/pages/garage/car_inspection.tscn"
-	)
+	comparison_requested.emit(car_template)
 
 
 func format_number(number: int) -> String:

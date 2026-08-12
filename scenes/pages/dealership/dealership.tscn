@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://bwtk3goiiwe6p"]
+[gd_scene load_steps=8 format=3 uid="uid://bwtk3goiiwe6p"]
 
 [ext_resource type="Script" uid="uid://mx45cext0pbu" path="res://scenes/pages/dealership/dealership.gd" id="1_ualsi"]
 [ext_resource type="Script" uid="uid://xfetmj3klkbk" path="res://resources/car.gd" id="2_tf1xs"]
@@ -6,6 +6,7 @@
 [ext_resource type="Resource" uid="uid://b6clrw52aommj" path="res://resources/cars/falcon_xr.tres" id="4_sxlu8"]
 [ext_resource type="Resource" uid="uid://dax6le012dkie" path="res://resources/cars/thunder_v8.tres" id="5_tk1bs"]
 [ext_resource type="Resource" uid="uid://epg0spg21va1" path="res://resources/cars/used_comet.tres" id="6_65d2i"]
+[ext_resource type="PackedScene" path="res://ui/components/decision_comparison_drawer.tscn" id="7_compare"]
 
 [node name="dealership" type="Control" unique_id=490624185]
 layout_mode = 3
@@ -63,3 +64,6 @@ columns = 3
 unique_name_in_owner = true
 layout_mode = 2
 text = "Back To Garage"
+
+[node name="DecisionComparisonDrawer" parent="." instance=ExtResource("7_compare")]
+unique_name_in_owner = true
