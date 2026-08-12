@@ -38,6 +38,7 @@ extends Control
 @onready var settings_dialog: ConfirmationDialog = %settings_dialog
 @onready var reset_confirmation: ConfirmationDialog = %reset_confirmation
 @onready var command_bar: CommandBar = %CommandBar
+@onready var decision_outcome_receipt: DecisionOutcomeReceipt = %DecisionOutcomeReceipt
 
 var navigation_buttons: Array[Button] = []
 var last_reputation_xp: int = -1
@@ -94,7 +95,9 @@ func _ready() -> void:
 	board_metric.activated.connect(_on_career_hub_button_pressed)
 	attention_metric.activated.connect(_on_career_hub_button_pressed)
 	command_bar.action_requested.connect(_on_command_action_requested)
+	decision_outcome_receipt.action_requested.connect(_on_outcome_action_requested)
 	GameManager.page_changed.connect(_on_page_changed)
+	GameManager.decision_outcome_reported.connect(_on_decision_outcome_reported)
 	GameManager.fullscreen_changed.connect(_update_fullscreen_button)
 	GameManager.race_weekend_lock_changed.connect(_on_race_weekend_lock_changed)
 	reputation_toast_timer.timeout.connect(_hide_reputation_toast)
@@ -111,6 +114,9 @@ func _ready() -> void:
 	if GameManager.team != null:
 		last_reputation_xp = GameManager.team.reputation
 		last_reputation_level = GameManager.team.get_reputation_level()
+	var pending_outcome := GameManager.consume_decision_outcome()
+	if not pending_outcome.is_empty():
+		_display_decision_outcome(pending_outcome)
 
 	update_team_display()
 	update_unlocked_navigation()
@@ -137,6 +143,8 @@ func _exit_tree() -> void:
 		GameManager.page_changed.disconnect(_on_page_changed)
 	if GameManager.race_weekend_lock_changed.is_connected(_on_race_weekend_lock_changed):
 		GameManager.race_weekend_lock_changed.disconnect(_on_race_weekend_lock_changed)
+	if GameManager.decision_outcome_reported.is_connected(_on_decision_outcome_reported):
+		GameManager.decision_outcome_reported.disconnect(_on_decision_outcome_reported)
 	if GameManager.team_money_changed.is_connected(
 		_on_team_money_changed
 	):
@@ -431,6 +439,21 @@ func _show_reputation_gain(amount: int, previous_level: int, team: Team) -> void
 
 func _hide_reputation_toast() -> void:
 	reputation_toast.visible = false
+
+
+func _on_decision_outcome_reported(outcome: Dictionary) -> void:
+	GameManager.consume_decision_outcome()
+	_display_decision_outcome(outcome)
+
+
+func _display_decision_outcome(outcome: Dictionary) -> void:
+	update_team_display()
+	var accessibility := GameManager.team.career_state.get("accessibility", {}) as Dictionary if GameManager.team != null else {}
+	decision_outcome_receipt.display(outcome, bool(accessibility.get("reduced_motion", false)))
+
+
+func _on_outcome_action_requested(scene_path: String) -> void:
+	GameManager.load_page(scene_path)
 
 
 func _on_command_action_requested(action: String) -> void:

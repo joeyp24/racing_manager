@@ -65,6 +65,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_decision_comparison.gd"),
     ),
     (
+        "decision outcome feedback tests",
+        ("--headless", "--path", ".", "--script", "tests/test_decision_outcomes.gd"),
+    ),
+    (
         "Career HQ interaction smoke tests",
         ("--headless", "--path", ".", "--script", "tests/test_career_hub.gd"),
     ),

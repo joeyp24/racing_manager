@@ -177,13 +177,29 @@ func get_comparison_car_label() -> String:
 
 
 func _on_buy_pressed(part: CarPart) -> void:
+	var cash_before := GameManager.team.money
 	if not GameManager.team.buy_part(part):
 		status_label.text = "Your team cannot afford that part."
+		GameManager.report_decision_outcome({
+			"status": "error",
+			"title": "Part not purchased",
+			"message": status_label.text,
+			"action_label": "Review marketplace",
+			"action_path": "res://scenes/pages/shop/shop.tscn",
+		})
 		return
 	GameManager.refresh_team_money()
 	GameManager.save_game()
 	status_label.text = "%s added to your parts inventory. Install it from a car's inspection screen." % part.part_name
 	refresh_shop()
+	GameManager.report_decision_outcome({
+		"title": "%s purchased" % part.part_name,
+		"message": "The part was added to inventory.",
+		"detail": "Open the garage to choose a car and install it.",
+		"cash_delta": GameManager.team.money - cash_before,
+		"action_label": "Open garage",
+		"action_path": "res://scenes/pages/garage/garage.tscn",
+	})
 
 
 func format_number(number: int) -> String:

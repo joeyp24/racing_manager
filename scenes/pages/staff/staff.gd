@@ -199,19 +199,64 @@ func open_contract(member: StaffMember) -> void:
 
 func _confirm_contract() -> void:
 	var hard := approach.selected == 2
-	if pending and GameManager.team.renew_staff_contract(pending, hard): show_status("Contract renewed with %s." % pending.staff_name, true); finish()
-	else: show_status("Offer rejected or funds unavailable.", false)
+	var cash_before := GameManager.team.money
+	if pending and GameManager.team.renew_staff_contract(pending, hard):
+		var member_name := pending.staff_name
+		show_status("Contract renewed with %s." % member_name, true); finish()
+		GameManager.report_decision_outcome({
+			"title": "%s renewed" % member_name,
+			"message": "The new staff contract is active.",
+			"cash_delta": GameManager.team.money - cash_before,
+			"action_label": "View staff",
+			"action_path": "res://scenes/pages/staff/staff.tscn",
+		})
+	else:
+		show_status("Offer rejected or funds unavailable.", false)
+		GameManager.report_decision_outcome({
+			"status": "error", "title": "Renewal not completed",
+			"message": "The offer was rejected or the team could not cover the terms.",
+			"action_label": "Review staff", "action_path": "res://scenes/pages/staff/staff.tscn",
+		})
 
 func open_fire(member: StaffMember) -> void:
 	pending = member; fire_dialog.dialog_text = "Terminate %s for $%s? This cannot be undone." % [member.staff_name, number(member.get_termination_fee())]; fire_dialog.popup_centered()
 
 func _confirm_fire() -> void:
-	if pending and GameManager.team.fire_staff(pending): selected = null; show_status("Contract terminated.", true); finish()
-	else: show_status("Termination failed. Check available funds.", false)
+	var cash_before := GameManager.team.money
+	var member_name := pending.staff_name if pending != null else "Staff member"
+	if pending and GameManager.team.fire_staff(pending):
+		selected = null; show_status("Contract terminated.", true); finish()
+		GameManager.report_decision_outcome({
+			"title": "%s released" % member_name, "message": "The staff contract was terminated.",
+			"cash_delta": GameManager.team.money - cash_before,
+			"action_label": "View staff", "action_path": "res://scenes/pages/staff/staff.tscn",
+		})
+	else:
+		show_status("Termination failed. Check available funds.", false)
+		GameManager.report_decision_outcome({
+			"status": "error", "title": "Termination not completed",
+			"message": "The team could not cover the termination fee.",
+			"action_label": "Review staff", "action_path": "res://scenes/pages/staff/staff.tscn",
+		})
 
 func hire_member(member: StaffMember) -> void:
-	if GameManager.team.hire_staff(member): selected = member; show_status("%s joined the team." % member.staff_name, true); finish()
-	else: show_status("Unable to hire: check funds and role capacity.", false)
+	var cash_before := GameManager.team.money
+	if GameManager.team.hire_staff(member):
+		selected = member; show_status("%s joined the team." % member.staff_name, true); finish()
+		GameManager.report_decision_outcome({
+			"title": "%s hired" % member.staff_name,
+			"message": "The %s position has been filled." % member.role,
+			"detail": "$%s per race · %d-race contract" % [number(GameManager.team.get_effective_salary(member.salary)), member.contract_races_remaining],
+			"cash_delta": GameManager.team.money - cash_before,
+			"action_label": "View staff", "action_path": "res://scenes/pages/staff/staff.tscn",
+		})
+	else:
+		show_status("Unable to hire: check funds and role capacity.", false)
+		GameManager.report_decision_outcome({
+			"status": "error", "title": "Hire not completed",
+			"message": "Check available cash and %s role capacity." % member.role,
+			"action_label": "Review staff", "action_path": "res://scenes/pages/staff/staff.tscn",
+		})
 
 func show_status(text: String, success: bool) -> void:
 	status_panel.show(); status_message.text = ("SUCCESS  ·  " if success else "WARNING  ·  ") + text; status_message.theme_type_variation = &"SuccessLabel" if success else &"WarningLabel"

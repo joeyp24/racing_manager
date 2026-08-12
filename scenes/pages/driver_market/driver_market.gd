@@ -280,11 +280,28 @@ func _on_hire_pressed(driver: Driver) -> void:
 func _on_hire_confirmed() -> void:
 	if pending_driver == null:
 		return
-
-	if GameManager.team.hire_driver(pending_driver):
-		PersonalityCatalog.reaction(pending_driver, "signed", {"season":GameManager.team.current_season_year, "event":"initial_signing", "team":GameManager.team.team_name})
+	var driver := pending_driver
+	var cash_before := GameManager.team.money
+	if GameManager.team.hire_driver(driver):
+		PersonalityCatalog.reaction(driver, "signed", {"season":GameManager.team.current_season_year, "event":"initial_signing", "team":GameManager.team.team_name})
 		GameManager.refresh_team_money()
 		GameManager.save_game()
+		GameManager.report_decision_outcome({
+			"title": "%s signed" % driver.driver_name,
+			"message": "The driver joined the multi-team roster.",
+			"detail": "$%s per race · %d-race contract" % [format_number(GameManager.team.get_effective_salary(driver.salary)), driver.contract_races_remaining],
+			"cash_delta": GameManager.team.money - cash_before,
+			"action_label": "View drivers",
+			"action_path": "res://scenes/pages/drivers/drivers.tscn",
+		})
+	else:
+		GameManager.report_decision_outcome({
+			"status": "error",
+			"title": "Driver not signed",
+			"message": "The contract could not be completed with the current offer, roster capacity, or available cash.",
+			"action_label": "Review market",
+			"action_path": "res://scenes/pages/driver_market/driver_market.tscn",
+		})
 	pending_driver = null
 	display_market()
 
