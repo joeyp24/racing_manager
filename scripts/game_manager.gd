@@ -7,6 +7,7 @@ signal team_loaded(team: Team)
 signal fullscreen_changed(is_now_fullscreen: bool)
 signal page_changed(scene_path: String)
 signal race_weekend_lock_changed(locked: bool)
+signal decision_outcome_reported(outcome: Dictionary)
 
 var team: Team = null
 var active_save_id: String = ""
@@ -15,6 +16,7 @@ var selected_bay: int = -1
 var selected_race: Race = null
 var page_container: Control = null
 var active_race_weekend: Dictionary = {}
+var pending_decision_outcome: Dictionary = {}
 
 
 func _ready() -> void:
@@ -127,6 +129,7 @@ func clear_selected_data() -> void:
 	selected_bay = -1
 	selected_race = null
 	active_race_weekend.clear()
+	pending_decision_outcome.clear()
 	race_weekend_lock_changed.emit(false)
 
 
@@ -283,3 +286,17 @@ func charge_team_money(amount: int) -> void:
 func refresh_team_money() -> void:
 	if team != null:
 		team_money_changed.emit(team.money)
+
+
+func report_decision_outcome(specification: Dictionary) -> Dictionary:
+	var outcome := DecisionOutcomeModel.build(team, specification)
+	pending_decision_outcome = outcome.duplicate(true)
+	refresh_team_money()
+	decision_outcome_reported.emit(outcome.duplicate(true))
+	return outcome
+
+
+func consume_decision_outcome() -> Dictionary:
+	var outcome := pending_decision_outcome.duplicate(true)
+	pending_decision_outcome.clear()
+	return outcome

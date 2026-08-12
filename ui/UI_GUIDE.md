@@ -48,6 +48,11 @@ Use the constants in `ui/ui_tokens.gd`:
   per-race cash effects, projects season-end cash, flags reserve risk, and keeps
   the final action available only when eligibility and funds allow it. Buying,
   hiring, sponsorship, engineering, and facility flows should route through it.
+- `decision_outcome_receipt` closes that loop from the persistent management
+  shell. It confirms success or failure, shows the realized cash effect and new
+  balance, refreshes cockpit context, and offers a direct route to the affected
+  car, person, contract, project, or facility. Report outcomes through
+  `GameManager.report_decision_outcome` so receipts survive page navigation.
 
 Prefer rows and aligned columns over prose-heavy cards. Keep primary actions
 at 36 px high and ordinary controls near 32 px. Do not add scene-level font

@@ -41,9 +41,22 @@ func create_hq_card() -> Control:
 
 
 func _on_hq_upgrade_pressed() -> void:
+	var cash_before := GameManager.team.money
 	if GameManager.team.upgrade_hq():
 		status_label.text = "Team HQ upgraded to level %d." % GameManager.team.hq_level
 		GameManager.refresh_team_money(); GameManager.save_game(); refresh_departments()
+		GameManager.report_decision_outcome({
+			"title": "Headquarters upgraded", "message": "Team HQ is now level %d." % GameManager.team.hq_level,
+			"detail": "The next headquarters series gate is now available.",
+			"cash_delta": GameManager.team.money - cash_before,
+			"action_label": "View headquarters", "action_path": "res://scenes/pages/departments/departments.tscn",
+		})
+	else:
+		GameManager.report_decision_outcome({
+			"status": "error", "title": "HQ upgrade not completed",
+			"message": "Check the maximum level and available cash.",
+			"action_label": "Review headquarters", "action_path": "res://scenes/pages/departments/departments.tscn",
+		})
 
 
 func create_department_card(department_id: String) -> Control:
@@ -158,14 +171,25 @@ func _on_comparison_action(context: Dictionary) -> void:
 
 
 func _on_purchase_pressed(department_id: String) -> void:
+	var cash_before := GameManager.team.money
+	var data := DepartmentCatalog.get_data(department_id)
 	if not GameManager.team.purchase_department(department_id):
 		status_label.text = "That department cannot be purchased right now."
+		GameManager.report_decision_outcome({
+			"status": "error", "title": "Facility update not completed", "message": status_label.text,
+			"action_label": "Review facilities", "action_path": "res://scenes/pages/departments/departments.tscn",
+		})
 		return
-	var data := DepartmentCatalog.get_data(department_id)
 	status_label.text = "%s is now level %d." % [data.get("name", department_id), GameManager.team.get_department_level(department_id)]
 	GameManager.refresh_team_money()
 	GameManager.save_game()
 	refresh_departments()
+	GameManager.report_decision_outcome({
+		"title": "%s upgraded" % str(data.get("name", department_id)), "message": status_label.text,
+		"detail": "The permanent team bonus is now %.1f%%." % GameManager.team.get_department_bonus(department_id),
+		"cash_delta": GameManager.team.money - cash_before,
+		"action_label": "View facilities", "action_path": "res://scenes/pages/departments/departments.tscn",
+	})
 
 
 func format_number(number: int) -> String:

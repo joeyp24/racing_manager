@@ -129,3 +129,36 @@ def test_comparison_model_always_exposes_financial_consequences():
 def test_comparison_drawer_supports_keyboard_dismissal():
     drawer = (ROOT / "ui/components/decision_comparison_drawer.gd").read_text(encoding="utf-8")
     assert 'event.is_action_pressed("ui_cancel")' in drawer
+
+
+def test_management_shell_hosts_global_decision_outcomes():
+    shell = (ROOT / "scenes/home/home.tscn").read_text(encoding="utf-8")
+    manager = (ROOT / "scripts/game_manager.gd").read_text(encoding="utf-8")
+    assert "res://ui/components/decision_outcome_receipt.tscn" in shell
+    assert 'name="DecisionOutcomeReceipt"' in shell
+    assert "signal decision_outcome_reported" in manager
+    assert "func report_decision_outcome" in manager
+    assert "func consume_decision_outcome" in manager
+
+
+def test_phase_three_decisions_report_success_and_failure():
+    decision_scripts = (
+        "dealership/dealership.gd",
+        "shop/shop.gd",
+        "driver_market/driver_market.gd",
+        "staff/staff.gd",
+        "sponsors/sponsors.gd",
+        "engineering/engineering.gd",
+        "departments/departments.gd",
+    )
+    for relative_path in decision_scripts:
+        text = (PAGES / relative_path).read_text(encoding="utf-8")
+        assert "GameManager.report_decision_outcome" in text, relative_path
+        assert '"status": "error"' in text or '"status":"error"' in text, relative_path
+
+
+def test_outcome_receipt_is_actionable_and_keyboard_dismissible():
+    component = (ROOT / "ui/components/decision_outcome_receipt.gd").read_text(encoding="utf-8")
+    assert "signal action_requested" in component
+    assert 'event.is_action_pressed("ui_cancel")' in component
+    assert 'call_deferred("grab_focus")' in component

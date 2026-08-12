@@ -109,12 +109,25 @@ func _on_comparison_action(context: Dictionary) -> void:
 
 func start_project(engineer: StaffMember) -> void:
 	var selected_type := part_type.get_item_text(part_type.selected)
+	var cash_before := GameManager.team.money
 	if GameManager.team.queue_part_project(engineer, selected_type):
-		status_label.text = "%s started. Delivery: %s." % [selected_type, CalendarCatalog.format_day(GameManager.team.current_season_day + Team.ENGINEERING_PROJECT_DAYS)]
+		var delivery := CalendarCatalog.format_day(GameManager.team.current_season_day + Team.ENGINEERING_PROJECT_DAYS)
+		status_label.text = "%s started. Delivery: %s." % [selected_type, delivery]
 		GameManager.refresh_team_money()
 		GameManager.save_game()
+		GameManager.report_decision_outcome({
+			"title": "%s development started" % selected_type,
+			"message": "%s is assigned to the project." % engineer.staff_name,
+			"detail": "Projected delivery: %s" % delivery,
+			"cash_delta": GameManager.team.money - cash_before,
+			"action_label": "View project", "action_path": "res://scenes/pages/engineering/engineering.tscn",
+		})
 	else:
 		status_label.text = "Unable to start that project. Check engineer availability and funds."
+		GameManager.report_decision_outcome({
+			"status": "error", "title": "Project not started", "message": status_label.text,
+			"action_label": "Review engineering", "action_path": "res://scenes/pages/engineering/engineering.tscn",
+		})
 	refresh()
 
 func add_text(parent: Control, value: String) -> void:

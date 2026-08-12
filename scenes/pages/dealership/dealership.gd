@@ -328,13 +328,37 @@ func _on_comparison_action(context: Dictionary) -> void:
 		return
 	var candidate := context.get("candidate") as Car
 	if candidate == null or GameManager.selected_bay < 0:
+		GameManager.report_decision_outcome({
+			"status": "error",
+			"title": "Purchase not completed",
+			"message": "No open garage bay is available for this car.",
+			"action_label": "Return to garage",
+			"action_path": "res://scenes/pages/garage/garage.tscn",
+		})
 		return
+	var cash_before := GameManager.team.money
+	var target_bay := GameManager.selected_bay
 	if not GameManager.team.buy_car(candidate, GameManager.selected_bay):
 		instructions_label.text = "The purchase could not be completed. Check cash, eligibility, and garage capacity."
+		GameManager.report_decision_outcome({
+			"status": "error",
+			"title": "Purchase not completed",
+			"message": instructions_label.text,
+			"action_label": "Review marketplace",
+			"action_path": "res://scenes/pages/dealership/dealership.tscn",
+		})
 		return
 	GameManager.selected_car = GameManager.team.get_car(GameManager.selected_bay)
 	GameManager.refresh_team_money()
 	GameManager.save_game()
+	GameManager.report_decision_outcome({
+		"title": "%s added to Bay %d" % [candidate.name, target_bay + 1],
+		"message": "Purchase complete and the car is ready for inspection.",
+		"detail": "The garage and season forecast now use the new balance.",
+		"cash_delta": GameManager.team.money - cash_before,
+		"action_label": "View new car",
+		"action_path": "res://scenes/pages/garage/car_inspection.tscn",
+	})
 	GameManager.load_page("res://scenes/pages/garage/car_inspection.tscn")
 
 

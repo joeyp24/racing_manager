@@ -1,0 +1,157 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/components/decision_outcome_receipt.gd" id="1"]
+
+[node name="DecisionOutcomeReceipt" type="PanelContainer"]
+visible = false
+z_index = 40
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -458.0
+offset_top = -200.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_type_variation = &"OutcomeReceiptPanel"
+script = ExtResource("1")
+
+[node name="Body" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="StatusBar" type="ColorRect" parent="Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+color = Color(0.258824, 0.831373, 0.513726, 1)
+
+[node name="Margin" type="MarginContainer" parent="Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="Content" type="VBoxContainer" parent="Body/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Header" type="HBoxContainer" parent="Body/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StatusIcon" type="Label" parent="Body/Margin/Content/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+theme_type_variation = &"SuccessLabel"
+text = "✓"
+horizontal_alignment = 1
+
+[node name="Identity" type="VBoxContainer" parent="Body/Margin/Content/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Eyebrow" type="Label" parent="Body/Margin/Content/Header/Identity"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "DECISION COMPLETE"
+
+[node name="Title" type="Label" parent="Body/Margin/Content/Header/Identity"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "Update complete"
+text_overrun_behavior = 3
+
+[node name="CloseButton" type="Button" parent="Body/Margin/Content/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+text = "×"
+tooltip_text = "Dismiss update"
+
+[node name="Message" type="Label" parent="Body/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "The team state has been updated."
+autowrap_mode = 2
+
+[node name="Detail" type="Label" parent="Body/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Additional context"
+autowrap_mode = 2
+
+[node name="FinanceReceipt" type="PanelContainer" parent="Body/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="Row" type="HBoxContainer" parent="Body/Margin/Content/FinanceReceipt"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="CashBlock" type="VBoxContainer" parent="Body/Margin/Content/FinanceReceipt/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Body/Margin/Content/FinanceReceipt/Row/CashBlock"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "CASH EFFECT"
+
+[node name="CashEffect" type="Label" parent="Body/Margin/Content/FinanceReceipt/Row/CashBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"WarningLabel"
+text = "-$0"
+
+[node name="BalanceBlock" type="VBoxContainer" parent="Body/Margin/Content/FinanceReceipt/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Body/Margin/Content/FinanceReceipt/Row/BalanceBlock"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "NEW BALANCE"
+
+[node name="Balance" type="Label" parent="Body/Margin/Content/FinanceReceipt/Row/BalanceBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "$0"
+
+[node name="Actions" type="HBoxContainer" parent="Body/Margin/Content"]
+layout_mode = 2
+alignment = 2
+
+[node name="DismissButton" type="Button" parent="Body/Margin/Content/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 32)
+layout_mode = 2
+text = "Dismiss"
+
+[node name="ActionButton" type="Button" parent="Body/Margin/Content/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(142, 32)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "View update"
+
+[node name="Timer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 8.0
+one_shot = true

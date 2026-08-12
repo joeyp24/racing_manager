@@ -295,8 +295,14 @@ func _create_relationship_section(team: Team) -> void:
 
 func _sign_offer(index: int) -> void:
 	var team := GameManager.team
+	var cash_before := team.money
 	var contract := SponsorManager.sign_offer(team, index)
 	if contract.is_empty():
+		GameManager.report_decision_outcome({
+			"status": "error", "title": "Partnership not signed",
+			"message": "The sponsor slot or offer is no longer available.",
+			"action_label": "Review sponsors", "action_path": "res://scenes/pages/sponsors/sponsors.tscn",
+		})
 		return
 	var signing_bonus := int(contract.signing_bonus)
 	GameManager.add_team_money(signing_bonus)
@@ -304,6 +310,13 @@ func _sign_offer(index: int) -> void:
 	SponsorManager.adjust_relationship(team, str(contract.sponsor_id), 3)
 	GameManager.save_game()
 	show_sponsors()
+	GameManager.report_decision_outcome({
+		"title": "%s partnership signed" % str(contract.sponsor_name),
+		"message": "$%s is guaranteed after each covered race." % _format_number(int(contract.payment_per_race)),
+		"detail": "%d races · %s" % [int(contract.contract_length), SponsorManager.objective_description(contract)],
+		"cash_delta": team.money - cash_before,
+		"action_label": "View contract", "action_path": "res://scenes/pages/sponsors/sponsors.tscn",
+	})
 
 
 func _new_card(profile: String) -> PanelContainer:
