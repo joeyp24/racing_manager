@@ -66,6 +66,21 @@ pause, change playback speed, or advance a lap while paused, but does not issue
 tactical commands. Always present every player entry together in the team
 monitor and surface automated calls in the crew-chief feed.
 
+## Multi-team operations model
+
+Once the organization owns multiple entries, present them together in a
+two-column, vertically scrolling operations board. Every entry card must show
+race eligibility, preparation gaps, driver, car, crew chief, engineers, and
+the complete sponsor portfolio. Resources already committed to another entry
+stay visible but disabled, with the owning team named in the option. Expansion
+routes through the shared comparison drawer, while assignments and naming
+changes report a global outcome receipt.
+
+Sponsor markets belong to race entries rather than the organization. Each
+entry receives six offers and can sign multiple partners up to its capacity.
+Brand identities rotate by entry, season, and series so a growing organization
+does not encounter the same sponsor slate on every car or at every career tier.
+
 Prefer rows and aligned columns over prose-heavy cards. Keep primary actions
 at 36 px high and ordinary controls near 32 px. Do not add scene-level font
 overrides when a named theme variation describes the role.

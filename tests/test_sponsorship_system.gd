@@ -6,6 +6,9 @@ func _initialize() -> void:
 	_test_generated_offers_cover_the_remaining_season()
 	_test_contract_terms_are_snapshotted()
 	_test_multiple_sponsors_pay_the_same_race_team()
+	_test_entries_receive_distinct_sponsor_markets()
+	_test_series_progression_refreshes_sponsor_brands()
+	_test_each_entry_can_sign_multiple_sponsors()
 	_test_legacy_contract_is_migrated()
 	_test_retirement_does_not_advance_finish_objective()
 	_test_failure_applies_relationship_consequences()
@@ -59,6 +62,63 @@ func _test_multiple_sponsors_pay_the_same_race_team() -> void:
 	result.standings = [{"is_player":true, "team_id":team.active_race_team_id, "status":"Finished"}]
 	var outcome := SponsorManager.process_race_result(team, result)
 	assert(int(outcome.race_payment) >= int(first.payment_per_race) + int(second.payment_per_race))
+
+
+func _test_entries_receive_distinct_sponsor_markets() -> void:
+	var team := Team.new()
+	team.ensure_race_teams()
+	var second_team := RaceTeam.new()
+	second_team.team_id = "team_2"
+	second_team.team_name = "Team 2"
+	team.race_teams.append(second_team)
+	SponsorManager.ensure_state(team)
+	var first_names := _offer_names(team.race_teams[0].sponsor_offers)
+	var second_names := _offer_names(second_team.sponsor_offers)
+	assert(first_names.size() == 6)
+	assert(second_names.size() == 6)
+	assert(first_names != second_names)
+	for sponsor_name in first_names:
+		assert(not second_names.has(sponsor_name))
+
+
+func _test_series_progression_refreshes_sponsor_brands() -> void:
+	var team := Team.new()
+	team.current_series_id = "local_short_track"
+	SponsorManager.ensure_state(team)
+	var local_names := _offer_names(team.get_active_race_team().sponsor_offers)
+	team.current_series_id = "regional_short_track"
+	SponsorManager.ensure_state(team)
+	var regional_names := _offer_names(team.get_active_race_team().sponsor_offers)
+	assert(local_names != regional_names)
+	for sponsor_name in local_names:
+		assert(not regional_names.has(sponsor_name))
+
+
+func _test_each_entry_can_sign_multiple_sponsors() -> void:
+	var team := Team.new()
+	team.ensure_race_teams()
+	var second_team := RaceTeam.new()
+	second_team.team_id = "team_2"
+	second_team.team_name = "Team 2"
+	team.race_teams.append(second_team)
+	SponsorManager.ensure_state(team)
+	var first_contract := SponsorManager.sign_offer(team, 0)
+	var second_contract := SponsorManager.sign_offer(team, 1)
+	assert(not first_contract.is_empty() and not second_contract.is_empty())
+	assert(team.race_teams[0].sponsor_contracts.size() == 2)
+	team.set_active_race_team(second_team.team_id)
+	var third_contract := SponsorManager.sign_offer(team, 0)
+	var fourth_contract := SponsorManager.sign_offer(team, 1)
+	assert(not third_contract.is_empty() and not fourth_contract.is_empty())
+	assert(second_team.sponsor_contracts.size() == 2)
+	assert(str(first_contract.sponsor_name) != str(third_contract.sponsor_name))
+
+
+func _offer_names(offers: Array[Dictionary]) -> Array[String]:
+	var names: Array[String] = []
+	for offer in offers:
+		names.append(str(offer.get("sponsor_name", "")))
+	return names
 
 
 func _test_legacy_contract_is_migrated() -> void:

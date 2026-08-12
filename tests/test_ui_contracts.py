@@ -207,3 +207,28 @@ def test_race_entry_and_settlement_use_global_outcome_receipts():
     assert '"cash_delta": GameManager.team.money - cash_before' in entry
     assert "GameManager.report_decision_outcome" in live
     assert '"cash_delta": GameManager.team.money - cash_before' in live
+
+
+def test_multi_team_operations_center_shows_every_entry_and_conflict_state():
+    scene = (PAGES / "race_teams/race_teams.tscn").read_text(encoding="utf-8")
+    controller = (PAGES / "race_teams/race_teams.gd").read_text(encoding="utf-8")
+    assert 'name="OperationsScroll"' in scene
+    assert 'name="OperationsBoard"' in scene
+    assert "res://ui/components/decision_comparison_drawer.tscn" in scene
+    assert 'grid.columns = 2' in controller
+    assert "_build_operation_card" in controller
+    assert "set_item_disabled" in controller
+    assert "Assigned to %s" in controller
+    assert "GameManager.report_decision_outcome" in controller
+
+
+def test_sponsor_markets_are_owned_by_entries_and_vary_by_series():
+    race_team = (ROOT / "resources/race_team.gd").read_text(encoding="utf-8")
+    manager = (ROOT / "resources/sponsor_manager.gd").read_text(encoding="utf-8")
+    sponsor_page = (PAGES / "sponsors/sponsors.gd").read_text(encoding="utf-8")
+    assert "@export var sponsor_offers" in race_team
+    assert "SERIES_BRAND_PREFIXES" in manager
+    assert "PROFILE_SUFFIXES" in manager
+    assert "generate_offers(team, race_team)" in manager
+    assert '"race_team_id": race_team.team_id' in manager
+    assert "func _active_offers" in sponsor_page
