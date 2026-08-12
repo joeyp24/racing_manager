@@ -10,6 +10,20 @@ covers bankruptcy, unavoidable loss frequency, recovery after bad results, cash,
 timing, promotion readiness, runaway wealth, and modeled ROI. Use `--seed` to reproduce or
 compare balance changes. Human first-hour sessions follow `docs/FIRST_HOUR_PLAYTEST.md`.
 
+## Long-career simulation
+
+Run `python3 tools/career_simulation.py --difficulty Club --careers 64 --seasons 20 --seed 2026 --fail-on-threshold`
+to exercise the systems that compound across decades. The deterministic harness tracks
+career survival, cash distribution, board confidence, promotion, academy-to-seat
+conversion, AI financial pressure and development, promotion and relegation, regulation
+resets, sponsor and manufacturer concentration, and championship parity.
+
+Use `--json artifacts/career-simulation.json --csv artifacts/career-simulation.csv` to
+save the complete summary and per-season aggregates. Balance gates live in
+`tools/career_simulation_thresholds.json`; CI runs the Club profile and uploads both
+reports even when a threshold fails. Change the seed to explore a new cohort, or keep it
+fixed to compare balance changes between commits.
+
 A stock-car motorsports management game built in Godot 4.x.
 
 The goal of the game is to let the player build a racing team by purchasing cars, entering races, earning prize money, repairing vehicles, progressing through a championship season, and eventually competing for the championship.

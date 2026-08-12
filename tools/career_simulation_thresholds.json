@@ -1,0 +1,101 @@
+{
+  "Rookie": {
+    "career_failure_rate": {
+      "max": 0.2,
+      "reason": "Rookie careers should rarely end through insolvency or dismissal."
+    },
+    "runaway_wealth_rate": {
+      "max": 0.35,
+      "reason": "Cash reserves should not routinely exceed five full seasons of costs."
+    },
+    "academy_seat_conversion_rate": {
+      "min": 0.08,
+      "reason": "The academy should produce credible senior-seat candidates."
+    },
+    "champion_concentration": {
+      "max": 0.4,
+      "reason": "No organization should dominate the whole simulated ecosystem."
+    },
+    "manufacturer_top_share": {
+      "max": 0.48,
+      "reason": "One manufacturer should not control most entries."
+    },
+    "sponsor_top_share": {
+      "max": 0.35,
+      "reason": "One sponsor should not control most of the market."
+    }
+  },
+  "Club": {
+    "career_failure_rate": {
+      "max": 0.35,
+      "reason": "Most well-managed careers should remain recoverable over two decades."
+    },
+    "insolvency_rate": {
+      "max": 0.2,
+      "reason": "The economy should not make insolvency a routine outcome."
+    },
+    "runaway_wealth_rate": {
+      "max": 0.3,
+      "reason": "Cash reserves should not routinely exceed five full seasons of costs."
+    },
+    "promotion_rate": {
+      "min": 0.12,
+      "reason": "A meaningful share of careers should reach a higher series."
+    },
+    "academy_seat_conversion_rate": {
+      "min": 0.08,
+      "max": 0.75,
+      "reason": "Academy drivers should reach seats without replacing the entire market."
+    },
+    "ai_financial_distress_rate": {
+      "max": 0.42,
+      "reason": "AI organizations should experience pressure without systemic collapse."
+    },
+    "champion_concentration": {
+      "max": 0.4,
+      "reason": "No organization should dominate the whole simulated ecosystem."
+    },
+    "longest_championship_streak": {
+      "max": 10,
+      "reason": "Indefinite title dynasties indicate runaway development."
+    },
+    "manufacturer_top_share": {
+      "max": 0.48,
+      "reason": "One manufacturer should not control most entries."
+    },
+    "sponsor_top_share": {
+      "max": 0.35,
+      "reason": "One sponsor should not control most of the market."
+    }
+  },
+  "Pro": {
+    "career_failure_rate": {
+      "max": 0.55,
+      "reason": "Pro should be punishing but not eliminate nearly every career."
+    },
+    "runaway_wealth_rate": {
+      "max": 0.25,
+      "reason": "Cash reserves should not routinely exceed five full seasons of costs."
+    },
+    "academy_seat_conversion_rate": {
+      "min": 0.05,
+      "reason": "The academy should remain viable on the hardest economy."
+    },
+    "ai_financial_distress_rate": {
+      "max": 0.5,
+      "reason": "AI organizations should experience pressure without systemic collapse."
+    },
+    "champion_concentration": {
+      "max": 0.45,
+      "reason": "No organization should dominate the whole simulated ecosystem."
+    },
+    "manufacturer_top_share": {
+      "max": 0.52,
+      "reason": "One manufacturer should not control most entries."
+    },
+    "sponsor_top_share": {
+      "max": 0.38,
+      "reason": "One sponsor should not control most of the market."
+    }
+  }
+}
