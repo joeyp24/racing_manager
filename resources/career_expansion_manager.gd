@@ -154,6 +154,10 @@ static func _migrate_inbox_metadata(team) -> void:
 			item["why_changed"] = "This message was carried forward from an earlier career save."
 		if not item.has("story_id"):
 			item["story_id"] = ""
+		if not item.has("race_team_id"):
+			item["race_team_id"] = ""
+		if not item.has("action_path"):
+			item["action_path"] = ""
 
 
 static func _merge_defaults(target: Dictionary, template: Dictionary) -> void:
@@ -257,7 +261,9 @@ static func add_inbox_item(team, category: String, subject: String, body: String
 		"deadline":mini(SEASON_END_DAY, int(metadata.get("deadline", team.current_season_day + (7 if requires_action else 0)))),
 		"priority":str(metadata.get("priority", default_priority)),
 		"why_changed":str(metadata.get("why_changed", "New information arrived from %s." % category)),
-		"story_id":str(metadata.get("story_id", ""))
+		"story_id":str(metadata.get("story_id", "")),
+		"race_team_id":str(metadata.get("race_team_id", "")),
+		"action_path":str(metadata.get("action_path", ""))
 	})
 	if inbox.size() > MAX_INBOX_ITEMS:
 		inbox.resize(MAX_INBOX_ITEMS)
@@ -284,6 +290,88 @@ static func resolve_inbox(team, item_id: String, choice_index: int) -> bool:
 		team.emit_changed()
 		return true
 	return false
+
+
+static func get_inbox_item(team, item_id: String) -> Dictionary:
+	for value in ensure_state(team).inbox:
+		var item := value as Dictionary
+		if str(item.get("id", "")) == item_id:
+			return item
+	return {}
+
+
+static func mark_inbox_item_read(team, item_id: String) -> bool:
+	var item := get_inbox_item(team, item_id)
+	if item.is_empty():
+		return false
+	item["read"] = true
+	team.emit_changed()
+	return true
+
+
+static func get_pending_decisions(team) -> Array[Dictionary]:
+	var decisions: Array[Dictionary] = []
+	for value in ensure_state(team).inbox:
+		var item := value as Dictionary
+		if bool(item.get("resolved", false)) or (item.get("choices", []) as Array).is_empty():
+			continue
+		decisions.append(item)
+	decisions.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+		var ranks := {"High": 3, "Normal": 2, "Low": 1}
+		var first_rank := int(ranks.get(str(first.get("priority", "Low")), 1))
+		var second_rank := int(ranks.get(str(second.get("priority", "Low")), 1))
+		if first_rank != second_rank:
+			return first_rank > second_rank
+		return int(first.get("deadline", SEASON_END_DAY)) < int(second.get("deadline", SEASON_END_DAY))
+	)
+	return decisions
+
+
+static func get_time_advance_impacts(team, target_day: int) -> Dictionary:
+	var safe_target := clampi(target_day, team.current_season_day, SEASON_END_DAY)
+	var elapsed_days := maxi(0, safe_target - team.current_season_day)
+	var decisions: Array[Dictionary] = []
+	for item in get_pending_decisions(team):
+		if int(item.get("deadline", SEASON_END_DAY)) <= safe_target:
+			decisions.append(item)
+	var activations: Array[Dictionary] = []
+	for value in ensure_state(team).sponsor_activations:
+		var activation := value as Dictionary
+		if (
+			not bool(activation.get("completed", false))
+			and not bool(activation.get("declined", false))
+			and int(activation.get("deadline", SEASON_END_DAY)) <= safe_target
+		):
+			activations.append(activation)
+	var completions: Array[String] = []
+	for value in team.career_state.rd.projects:
+		var project := value as Dictionary
+		if int(project.get("days_remaining", 9999)) <= elapsed_days:
+			var node := RND_NODES.get(str(project.get("node_id", "")), {}) as Dictionary
+			completions.append(str(node.get("name", "R&D project")))
+	for value in team.career_state.construction:
+		var project := value as Dictionary
+		if int(project.get("days_remaining", 9999)) <= elapsed_days:
+			var facility := FACILITIES.get(str(project.get("facility_id", "")), {}) as Dictionary
+			completions.append("%s construction" % str(facility.get("name", "Facility")))
+	var entry_readiness: Array[Dictionary] = []
+	team.ensure_race_teams()
+	for race_team in team.race_teams:
+		entry_readiness.append({
+			"team_id": race_team.team_id,
+			"team_name": race_team.team_name,
+			"race_ready": race_team.is_ready(team),
+			"gaps": race_team.get_operations_gaps(team),
+		})
+	return {
+		"target_day": safe_target,
+		"elapsed_days": elapsed_days,
+		"expiring_decisions": decisions,
+		"expiring_activations": activations,
+		"completions": completions,
+		"entry_readiness": entry_readiness,
+		"blocked": not decisions.is_empty() or not activations.is_empty(),
+	}
 
 
 static func _apply_effects(team, effects: Dictionary) -> void:

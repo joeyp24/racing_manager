@@ -232,3 +232,45 @@ def test_sponsor_markets_are_owned_by_entries_and_vary_by_series():
     assert "generate_offers(team, race_team)" in manager
     assert '"race_team_id": race_team.team_id' in manager
     assert "func _active_offers" in sponsor_page
+
+
+def test_career_hq_is_a_prioritized_decision_workspace():
+    scene = (PAGES / "career_hub/career_hub.tscn").read_text(encoding="utf-8")
+    controller = (PAGES / "career_hub/career_hub.gd").read_text(encoding="utf-8")
+    for node in (
+        "DecisionWorkspace",
+        "decision_queue",
+        "decision_detail",
+        "category_filter",
+        "status_filter",
+        "LegacyScroll",
+    ):
+        assert f'name="{node}"' in scene
+    for view_button in (
+        "decision_button",
+        "board_button",
+        "people_button",
+        "car_button",
+        "operations_button",
+        "world_button",
+        "settings_button",
+    ):
+        assert f'name="{view_button}"' in scene
+    assert "res://ui/components/decision_comparison_drawer.tscn" in scene
+    assert "CareerDecisionModel.build_inbox_choice" in controller
+    assert "GameManager.report_decision_outcome" in controller
+    assert "Open affected area" in controller
+
+
+def test_calendar_advancement_surfaces_career_consequences():
+    dashboard = (PAGES / "dashboard/dashboard.gd").read_text(encoding="utf-8")
+    career_manager = (ROOT / "resources/career_expansion_manager.gd").read_text(
+        encoding="utf-8"
+    )
+    assert "func get_time_advance_impacts" in career_manager
+    assert '"expiring_decisions"' in career_manager
+    assert '"expiring_activations"' in career_manager
+    assert '"entry_readiness"' in career_manager
+    assert "CareerExpansionManager.get_time_advance_impacts" in dashboard
+    assert "advance_preview.get_ok_button().disabled" in dashboard
+    assert 'advance_preview.add_button("Review Decisions"' in dashboard
