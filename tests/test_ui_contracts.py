@@ -93,3 +93,39 @@ def test_status_metrics_support_mouse_and_keyboard_activation():
     component = (ROOT / "ui/components/status_metric.gd").read_text(encoding="utf-8")
     assert 'event.is_action_pressed("ui_accept")' in component
     assert "signal activated" in component
+
+
+def test_management_decisions_share_the_comparison_drawer():
+    component_path = "res://ui/components/decision_comparison_drawer.tscn"
+    decision_pages = (
+        "dealership/dealership.tscn",
+        "shop/shop.tscn",
+        "driver_market/driver_market.tscn",
+        "staff/staff.tscn",
+        "sponsors/sponsors.tscn",
+        "engineering/engineering.tscn",
+        "departments/departments.tscn",
+    )
+    for relative_path in decision_pages:
+        text = (PAGES / relative_path).read_text(encoding="utf-8")
+        assert component_path in text, relative_path
+        assert 'name="DecisionComparisonDrawer"' in text, relative_path
+
+
+def test_comparison_model_always_exposes_financial_consequences():
+    model = (ROOT / "scripts/decision_comparison_model.gd").read_text(encoding="utf-8")
+    for field in (
+        '"upfront"',
+        '"recurring"',
+        '"cash_after"',
+        '"season_end_after"',
+        '"reserve"',
+    ):
+        assert field in model
+    assert 'risk_level = "blocked"' in model
+    assert 'risk_level = "warning"' in model
+
+
+def test_comparison_drawer_supports_keyboard_dismissal():
+    drawer = (ROOT / "ui/components/decision_comparison_drawer.gd").read_text(encoding="utf-8")
+    assert 'event.is_action_pressed("ui_cancel")' in drawer

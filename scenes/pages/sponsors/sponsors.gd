@@ -12,9 +12,11 @@ const PROFILE_COLORS: Dictionary = {
 
 @onready var status_label: Label = %status_label
 @onready var offers_container: VBoxContainer = %offers_container
+@onready var comparison_drawer: DecisionComparisonDrawer = %DecisionComparisonDrawer
 
 
 func _ready() -> void:
+	comparison_drawer.action_requested.connect(_on_comparison_action)
 	show_sponsors()
 
 
@@ -152,19 +154,18 @@ func _create_offer_card(index: int, offer: Dictionary, team: Team) -> void:
 		"%s   |   Relationship: %s"
 		% [renewal_text, _relationship_label(int(offer.relationship))]
 	))
-	sign_button.text = "SIGN PARTNERSHIP"
+	sign_button.text = "COMPARE OFFER"
 	var already_signed := false
 	for contract in team.get_active_sponsor_contracts():
 		if str(contract.get("sponsor_id", "")) == str(offer.get("sponsor_id", "")):
 			already_signed = true
-	sign_button.disabled = already_signed
 	if already_signed:
-		sign_button.text = "ALREADY SIGNED"
+		sign_button.text = "REVIEW CONTRACT"
 	sign_button.tooltip_text = (
 		"Recommended prestige level %d. Lower standing changes the offer value, but does not block negotiation."
 		% int(offer.required_reputation)
 	)
-	sign_button.pressed.connect(_sign_offer.bind(index))
+	sign_button.pressed.connect(_show_sponsor_comparison.bind(index, offer))
 	action_column.add_child(sign_button)
 
 	var metrics := GridContainer.new()
@@ -189,6 +190,88 @@ func _create_offer_card(index: int, offer: Dictionary, team: Team) -> void:
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(objective_label)
 	offers_container.add_child(panel)
+
+
+func _show_sponsor_comparison(index: int, offer: Dictionary) -> void:
+	var team: Team = GameManager.team
+	var benchmark: Dictionary = {}
+	for other_index in team.sponsor_offers.size():
+		if other_index == index:
+			continue
+		var other := team.sponsor_offers[other_index] as Dictionary
+		if benchmark.is_empty() or int(other.get("expected_value", 0)) > int(benchmark.get("expected_value", 0)):
+			benchmark = other
+	var has_benchmark := not benchmark.is_empty()
+	var current_title := str(benchmark.get("sponsor_name", "No alternate")).to_upper()
+	var candidate_probability := roundi(float(offer.get("objective_probability", 0.0)) * 100.0)
+	var benchmark_probability := roundi(float(benchmark.get("objective_probability", 0.0)) * 100.0)
+	var metrics: Array = [
+		_offer_money_metric("Guaranteed", int(benchmark.get("guaranteed_value", 0)), int(offer.get("guaranteed_value", 0)), has_benchmark),
+		_offer_money_metric("Expected", int(benchmark.get("expected_value", 0)), int(offer.get("expected_value", 0)), has_benchmark),
+		_offer_money_metric("Maximum", int(benchmark.get("maximum_value", 0)), int(offer.get("maximum_value", 0)), has_benchmark),
+		_offer_money_metric("Per event", int(benchmark.get("payment_per_race", 0)), int(offer.get("payment_per_race", 0)), has_benchmark),
+		_offer_percent_metric("Objective chance", benchmark_probability, candidate_probability, has_benchmark),
+		_offer_money_metric("Failure exposure", int(benchmark.get("failure_penalty", 0)), int(offer.get("failure_penalty", 0)), has_benchmark, true),
+	]
+	var already_signed := false
+	for contract in team.get_active_sponsor_contracts():
+		if str(contract.get("sponsor_id", "")) == str(offer.get("sponsor_id", "")):
+			already_signed = true
+	var at_capacity := team.get_active_sponsor_contracts().size() >= team.get_sponsor_capacity()
+	var is_best := not has_benchmark or int(offer.get("expected_value", 0)) >= int(benchmark.get("expected_value", 0))
+	var recommendation := (
+		"Best expected-value offer currently available. Confirm that its objective risk fits the race plan."
+		if is_best else
+		"Lower expected value than %s; choose it only if the objective or relationship better matches the team plan." % str(benchmark.get("sponsor_name", "the leading offer"))
+	)
+	var model := DecisionComparisonModel.build(team, {
+		"eyebrow": "SPONSOR DECISION",
+		"title": str(offer.get("sponsor_name", "Sponsor offer")),
+		"subtitle": "%s profile · %d-race coverage. Compared with the strongest alternate expected value." % [str(offer.get("profile", "PARTNERSHIP")), int(offer.get("contract_length", 0))],
+		"current_title": current_title,
+		"candidate_title": "THIS OFFER",
+		"metrics": metrics,
+		"upfront_cost": -int(offer.get("signing_bonus", 0)),
+		"recurring_per_race": -int(offer.get("payment_per_race", 0)),
+		"recurring_events": int(offer.get("contract_length", 0)),
+		"action_enabled": not already_signed and not at_capacity,
+		"disabled_reason": "This sponsor is already contracted." if already_signed else "All sponsor slots are filled." if at_capacity else "",
+		"action_label": "Sign partnership",
+		"recommendation": recommendation,
+		"risk": "Failure exposure is $%s if the campaign objective is missed." % _format_number(int(offer.get("failure_penalty", 0))),
+		"context": {"kind": "sponsor", "offer_index": index},
+	})
+	comparison_drawer.display(model)
+
+
+func _offer_money_metric(label_text: String, current_value: int, candidate_value: int, has_current: bool, lower_is_better: bool = false) -> Dictionary:
+	var delta := candidate_value - current_value
+	var impact_delta := -delta if lower_is_better else delta
+	return DecisionComparisonModel.metric(
+		label_text,
+		"$%s" % _format_number(current_value) if has_current else "--",
+		"$%s" % _format_number(candidate_value),
+		"%s$%s" % ["+" if delta > 0 else "-" if delta < 0 else "", _format_number(absi(delta))] if has_current else "New",
+		_comparison_impact(impact_delta) if has_current else DecisionComparisonModel.IMPROVES
+	)
+
+
+func _offer_percent_metric(label_text: String, current_value: int, candidate_value: int, has_current: bool) -> Dictionary:
+	var delta := candidate_value - current_value
+	return DecisionComparisonModel.metric(label_text, "%d%%" % current_value if has_current else "--", "%d%%" % candidate_value, "%+d%%" % delta if has_current else "New", _comparison_impact(delta) if has_current else DecisionComparisonModel.IMPROVES)
+
+
+func _comparison_impact(delta: int) -> int:
+	if delta > 0:
+		return DecisionComparisonModel.IMPROVES
+	if delta < 0:
+		return DecisionComparisonModel.WORSENS
+	return DecisionComparisonModel.NEUTRAL
+
+
+func _on_comparison_action(context: Dictionary) -> void:
+	if str(context.get("kind", "")) == "sponsor":
+		_sign_offer(int(context.get("offer_index", -1)))
 
 
 func _create_relationship_section(team: Team) -> void:

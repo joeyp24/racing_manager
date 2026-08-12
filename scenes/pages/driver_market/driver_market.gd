@@ -4,11 +4,13 @@ extends Control
 @onready var hiring_status_label: Label = %hiring_status_label
 @onready var candidates_container: VBoxContainer = %candidates_container
 @onready var confirmation_dialog: ConfirmationDialog = %confirmation_dialog
+@onready var comparison_drawer: DecisionComparisonDrawer = %DecisionComparisonDrawer
 
 var pending_driver: Driver = null
 
 
 func _ready() -> void:
+	comparison_drawer.action_requested.connect(_on_comparison_action)
 	if GameManager.team == null:
 		return
 
@@ -111,25 +113,10 @@ func create_candidate_row(driver: Driver) -> void:
 	]
 	var active := GameManager.team.get_active_driver()
 	details.tooltip_text = _driver_comparison_tooltip(driver, active)
-	var is_contracted := GameManager.team.contracted_driver_ids.has(driver.driver_id)
-	var has_accepted_offer := bool((GameManager.team.contract_offers.get(driver.driver_id, {}) as Dictionary).get("accepted", false))
-	hire_button.text = "Contracted" if is_contracted else ("Sign" if has_accepted_offer else "Negotiate")
+	hire_button.text = "Review"
 	hire_button.custom_minimum_size = Vector2(96, UITokens.CONTROL_HEIGHT)
-	hire_button.disabled = (
-		is_contracted
-		or (has_accepted_offer and not GameManager.team.can_hire_driver(driver))
-		or GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee)
-	)
-	if hire_button.disabled:
-		if is_contracted:
-			hire_button.tooltip_text = "Disabled: this driver is already under contract."
-		elif GameManager.team.money < GameManager.team.get_discounted_cost(driver.signing_fee):
-			hire_button.tooltip_text = "Disabled: you need $%s more for the signing fee." % format_number(GameManager.team.get_discounted_cost(driver.signing_fee) - GameManager.team.money)
-		else:
-			hire_button.tooltip_text = "Disabled: hiring is closed or the driver roster is full."
-	elif int(GameManager.team.recruiting_progress.get(driver.driver_id, 0)) < 50:
-		hire_button.tooltip_text = "Scouting is optional: it reveals more information and can improve negotiating interest."
-	hire_button.pressed.connect(_on_hire_pressed.bind(driver))
+	hire_button.tooltip_text = "Compare performance, contract cost, and season forecast. Scouting is optional and reveals more information."
+	hire_button.pressed.connect(_show_driver_comparison.bind(driver))
 
 	var portrait := DriverPortrait.new()
 	portrait.custom_minimum_size = Vector2(78, 78)
@@ -169,6 +156,97 @@ func create_driver_details(driver: Driver) -> String:
 		format_number(GameManager.team.get_effective_salary(driver.salary)),
 		format_number(signing_cost)
 	]) + commercial_terms
+
+
+func _show_driver_comparison(driver: Driver) -> void:
+	var team: Team = GameManager.team
+	var active := team.get_active_driver()
+	var signing_cost := team.get_discounted_cost(driver.signing_fee)
+	var commercial_signing := team.get_effective_sponsor_value(driver.sponsorship_signing_bonus) if driver.is_pay_driver else 0
+	var salary := team.get_effective_salary(driver.salary)
+	var enters_immediately := not team.driver_hired_for_season and team.get_completed_races().is_empty()
+	var commercial_income := team.get_effective_sponsor_value(driver.sponsorship_contribution_per_race) if driver.is_pay_driver and enters_immediately else 0
+	var report := team.scouting_reports.get(driver.driver_id, {}) as Dictionary
+	var potential_known := bool(report.get("revealed_potential", false)) or team.contracted_driver_ids.has(driver.driver_id)
+	var accepted := bool((team.contract_offers.get(driver.driver_id, {}) as Dictionary).get("accepted", false))
+	var contracted := team.contracted_driver_ids.has(driver.driver_id)
+	var eligible := not contracted and (team.can_hire_driver(driver) if accepted else team.can_negotiate_with_driver(driver))
+	var disabled_reason := ""
+	if contracted:
+		disabled_reason = "This driver is already under contract."
+	elif accepted and not team.can_hire_driver(driver):
+		disabled_reason = "Hiring is closed or the driver roster is full."
+	elif accepted and team.money < signing_cost:
+		disabled_reason = "The full signing fee must be available before commercial backing is received."
+	elif not eligible:
+		disabled_reason = "This driver is not currently available for negotiation."
+	var current_name := active.driver_name if active != null else "Open seat"
+	var metrics: Array = [
+		_driver_metric("Overall", active.get_overall_rating() if active != null else 0, driver.get_overall_rating(), active != null),
+		_driver_metric("Race pace", active.race_pace if active != null else 0, driver.race_pace, active != null),
+		_driver_metric("Qualifying", active.qualifying_pace if active != null else 0, driver.qualifying_pace, active != null),
+		_driver_metric("Tyre management", active.tyre_management if active != null else 0, driver.tyre_management, active != null),
+		_driver_metric("Consistency", active.consistency if active != null else 0, driver.consistency, active != null),
+		DecisionComparisonModel.metric(
+			"Potential",
+			str(active.get_potential_overall()) if active != null else "--",
+			str(driver.get_potential_overall()) if potential_known else "Unknown",
+			"Scouting required" if not potential_known else "",
+			DecisionComparisonModel.NEUTRAL,
+			"Potential remains hidden until scouting reveals it."
+		),
+	]
+	var recommendation := "This candidate fills the required seat and gives the team a baseline for the season."
+	if active != null:
+		var overall_delta := driver.get_overall_rating() - active.get_overall_rating()
+		recommendation = (
+			"A clear performance upgrade over %s, with the contract cost shown below." % active.driver_name
+			if overall_delta >= 5 else
+			"A lateral roster option; use specialty strengths and contract cost as the deciding factors."
+			if overall_delta >= -3 else
+			"A development or depth signing rather than an immediate performance upgrade."
+		)
+	var model := DecisionComparisonModel.build(team, {
+		"eyebrow": "DRIVER DECISION",
+		"title": driver.driver_name,
+		"subtitle": "Compared with %s. Hiring adds a roster member; it does not automatically replace the active assignment." % current_name,
+		"current_title": current_name.to_upper(),
+		"candidate_title": "CANDIDATE",
+		"metrics": metrics,
+		"upfront_cost": signing_cost - commercial_signing,
+		"recurring_per_race": salary - commercial_income,
+		"action_enabled": eligible and (not accepted or team.money >= signing_cost),
+		"disabled_reason": disabled_reason,
+		"action_label": "Sign contract" if accepted else "Open negotiation",
+		"recommendation": recommendation,
+		"risk": "Commercial backing offsets part of this contract, but the full signing fee is still required at signing." if driver.is_pay_driver else "",
+		"context": {"kind": "driver", "candidate": driver},
+	})
+	comparison_drawer.display(model)
+
+
+func _driver_metric(label_text: String, current_value: int, candidate_value: int, has_current: bool) -> Dictionary:
+	var delta := candidate_value - current_value
+	return DecisionComparisonModel.metric(
+		label_text,
+		str(current_value) if has_current else "--",
+		str(candidate_value),
+		"%+d" % delta if has_current else "New",
+		_comparison_impact(delta) if has_current else DecisionComparisonModel.IMPROVES
+	)
+
+
+func _comparison_impact(delta: int) -> int:
+	if delta > 0:
+		return DecisionComparisonModel.IMPROVES
+	if delta < 0:
+		return DecisionComparisonModel.WORSENS
+	return DecisionComparisonModel.NEUTRAL
+
+
+func _on_comparison_action(context: Dictionary) -> void:
+	if str(context.get("kind", "")) == "driver":
+		_on_hire_pressed(context.get("candidate") as Driver)
 
 
 func _on_hire_pressed(driver: Driver) -> void:

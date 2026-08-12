@@ -43,6 +43,11 @@ Use the constants in `ui/ui_tokens.gd`:
   presents readiness, the recommended next action, its consequence, and one
   primary route forward.
 - `readiness_row` presents a status, explanation, and corrective action.
+- `decision_comparison_drawer` is the commitment point for management choices.
+  It compares the current benchmark with the candidate, shows immediate and
+  per-race cash effects, projects season-end cash, flags reserve risk, and keeps
+  the final action available only when eligibility and funds allow it. Buying,
+  hiring, sponsorship, engineering, and facility flows should route through it.
 
 Prefer rows and aligned columns over prose-heavy cards. Keep primary actions
 at 36 px high and ordinary controls near 32 px. Do not add scene-level font

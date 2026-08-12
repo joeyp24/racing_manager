@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/pages/staff/staff.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/components/decision_comparison_drawer.tscn" id="2_compare"]
 
 [node name="staff" type="Control"]
 layout_mode = 3
@@ -156,3 +157,6 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 title = "Terminate Staff Contract"
 ok_button_text = "Terminate contract"
+
+[node name="DecisionComparisonDrawer" parent="." instance=ExtResource("2_compare")]
+unique_name_in_owner = true
