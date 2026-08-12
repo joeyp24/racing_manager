@@ -34,8 +34,9 @@ func show_sponsors() -> void:
 		_create_active_contract(team, contract)
 	if team.get_active_sponsor_contracts().size() < team.get_sponsor_capacity():
 		_create_offer_comparison_header()
-		for index in team.sponsor_offers.size():
-			_create_offer_card(index, team.sponsor_offers[index], team)
+		var offers := _active_offers(team)
+		for index in offers.size():
+			_create_offer_card(index, offers[index], team)
 	_create_relationship_section(team)
 
 
@@ -195,10 +196,11 @@ func _create_offer_card(index: int, offer: Dictionary, team: Team) -> void:
 func _show_sponsor_comparison(index: int, offer: Dictionary) -> void:
 	var team: Team = GameManager.team
 	var benchmark: Dictionary = {}
-	for other_index in team.sponsor_offers.size():
+	var offers := _active_offers(team)
+	for other_index in offers.size():
 		if other_index == index:
 			continue
-		var other := team.sponsor_offers[other_index] as Dictionary
+		var other := offers[other_index] as Dictionary
 		if benchmark.is_empty() or int(other.get("expected_value", 0)) > int(benchmark.get("expected_value", 0)):
 			benchmark = other
 	var has_benchmark := not benchmark.is_empty()
@@ -366,11 +368,17 @@ func _relationship_label(value: int) -> String:
 
 
 func _sponsor_name_for_id(sponsor_id: String, team: Team) -> String:
-	for offer in team.sponsor_offers:
-		if str(offer.sponsor_id) == sponsor_id:
-			return str(offer.sponsor_name)
+	for race_team in team.race_teams:
+		for offer in race_team.sponsor_offers:
+			if str(offer.sponsor_id) == sponsor_id:
+				return str(offer.sponsor_name)
 	var sponsor := SponsorCatalog.find_by_id(sponsor_id)
 	return sponsor.sponsor_name if sponsor != null else sponsor_id.capitalize()
+
+
+func _active_offers(team: Team) -> Array[Dictionary]:
+	var race_team := team.get_active_race_team()
+	return race_team.sponsor_offers if race_team != null else []
 
 
 func _format_number(number: int) -> String:

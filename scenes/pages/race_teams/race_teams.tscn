@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/pages/race_teams/race_teams.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/components/decision_comparison_drawer.tscn" id="2_drawer"]
 
 [node name="race_teams" type="Control"]
 layout_mode = 3
@@ -63,6 +64,7 @@ layout_mode = 2
 theme_type_variation = &"MutedLabel"
 
 [node name="Content" type="HSplitContainer" parent="Margin/Layout"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 split_offset = 290
@@ -102,3 +104,19 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
+
+[node name="OperationsScroll" type="ScrollContainer" parent="Margin/Layout"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="OperationsBoard" type="VBoxContainer" parent="Margin/Layout/OperationsScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="DecisionComparisonDrawer" parent="." instance=ExtResource("2_drawer")]
+unique_name_in_owner = true

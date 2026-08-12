@@ -6,6 +6,10 @@ extends Control
 @onready var directory_button: Button = %directory_button
 @onready var operations_button: Button = %operations_button
 @onready var summary_label: Label = %summary_label
+@onready var content: HSplitContainer = %Content
+@onready var operations_scroll: ScrollContainer = %OperationsScroll
+@onready var operations_board: VBoxContainer = %OperationsBoard
+@onready var comparison_drawer: DecisionComparisonDrawer = %DecisionComparisonDrawer
 
 var selected_series_id: String = ""
 var selected_team_id: String = ""
@@ -21,6 +25,7 @@ func _ready() -> void:
 	series_select.item_selected.connect(_on_series_selected)
 	directory_button.pressed.connect(show_directory)
 	operations_button.pressed.connect(show_operations)
+	comparison_drawer.action_requested.connect(_on_comparison_action)
 	show_directory()
 
 
@@ -28,6 +33,8 @@ func show_directory() -> void:
 	directory_button.button_pressed = true
 	operations_button.button_pressed = false
 	series_select.disabled = false
+	content.visible = true
+	operations_scroll.visible = false
 	refresh_directory()
 
 
@@ -162,6 +169,525 @@ func show_operations() -> void:
 	directory_button.button_pressed = false
 	operations_button.button_pressed = true
 	series_select.disabled = true
+	content.visible = false
+	operations_scroll.visible = true
+	clear_container(operations_board)
+	var team := GameManager.team
+	team.ensure_race_teams()
+	SponsorManager.ensure_state(team)
+	var ready_entries := 0
+	var prepared_entries := 0
+	var total_gaps := 0
+	for race_team in team.race_teams:
+		if race_team.is_ready(team):
+			ready_entries += 1
+		var gaps := race_team.get_operations_gaps(team)
+		total_gaps += gaps.size()
+		if gaps.is_empty():
+			prepared_entries += 1
+	summary_label.text = "%d entries · %d race ready · %d fully prepared · %d action%s remaining" % [
+		team.race_teams.size(), ready_entries, prepared_entries, total_gaps,
+		"" if total_gaps == 1 else "s",
+	]
+	operations_board.add_child(_build_operations_overview(team, ready_entries, prepared_entries, total_gaps))
+	var grid := GridContainer.new()
+	grid.name = "OperationsGrid"
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	for race_team in team.race_teams:
+		grid.add_child(_build_operation_card(team, race_team))
+	operations_board.add_child(grid)
+	operations_board.add_child(_build_expansion_card(team))
+
+
+func _build_operations_overview(team: Team, ready_entries: int, prepared_entries: int, total_gaps: int) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.theme_type_variation = &"CardPanel"
+	var layout := VBoxContainer.new()
+	panel.add_child(layout)
+	var title_row := HBoxContainer.new()
+	layout.add_child(title_row)
+	var title := Label.new()
+	title.text = "MULTI-TEAM OPERATIONS CENTER"
+	title.theme_type_variation = &"SectionTitle"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title)
+	var state := Label.new()
+	state.text = "ALL CLEAR" if total_gaps == 0 else "%d OPEN ACTION%s" % [total_gaps, "" if total_gaps == 1 else "S"]
+	state.theme_type_variation = &"SuccessLabel" if total_gaps == 0 else &"WarningLabel"
+	title_row.add_child(state)
+	var explanation := Label.new()
+	explanation.text = "Review every entry together. Conflicting assignments are identified before you commit, and each card links directly to the market that resolves its gaps."
+	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	layout.add_child(explanation)
+	var resources := Label.new()
+	resources.name = "ResourceAvailability"
+	resources.theme_type_variation = &"MutedLabel"
+	resources.text = "%d/%d drivers available · %d/%d cars available · %d crew chiefs available · %d engineers available · %d sponsor slots open" % [
+		_count_available_drivers(team), team.get_contracted_drivers().size(),
+		_count_available_cars(team), team.cars.size(),
+		_count_available_staff(team, "Crew Chief"), _count_available_staff(team, "Engineer"),
+		_count_open_sponsor_slots(team),
+	]
+	layout.add_child(resources)
+	var progress := ProgressBar.new()
+	progress.name = "OrganizationReadiness"
+	progress.max_value = maxi(1, team.race_teams.size() * 5)
+	progress.value = team.race_teams.size() * 5 - total_gaps
+	progress.show_percentage = true
+	progress.tooltip_text = "%d entries can race; %d have every recommended assignment." % [ready_entries, prepared_entries]
+	layout.add_child(progress)
+	return panel
+
+
+func _build_operation_card(team: Team, race_team: RaceTeam) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = "TeamCard_%s" % race_team.team_id
+	panel.custom_minimum_size = Vector2(500.0, 0.0)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.theme_type_variation = &"CardPanel"
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 6)
+	panel.add_child(layout)
+
+	var title_row := HBoxContainer.new()
+	layout.add_child(title_row)
+	var title := Label.new()
+	title.text = race_team.team_name
+	title.theme_type_variation = &"SectionTitle"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title)
+	var gaps := race_team.get_operations_gaps(team)
+	var status := Label.new()
+	if not race_team.is_ready(team):
+		status.text = "ENTRY BLOCKED"
+		status.theme_type_variation = &"DangerLabel"
+	elif gaps.is_empty():
+		status.text = "FULLY PREPARED"
+		status.theme_type_variation = &"SuccessLabel"
+	else:
+		status.text = "RACE READY · %d/5" % race_team.get_operations_readiness(team)
+		status.theme_type_variation = &"WarningLabel"
+	title_row.add_child(status)
+
+	var name_edit := LineEdit.new()
+	name_edit.name = "NameEdit_%s" % race_team.team_id
+	name_edit.text = race_team.team_name
+	name_edit.placeholder_text = "Race team name"
+	name_edit.text_submitted.connect(_rename_race_team.bind(race_team))
+	layout.add_child(name_edit)
+
+	var gap_label := Label.new()
+	gap_label.name = "Readiness_%s" % race_team.team_id
+	gap_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if gaps.is_empty():
+		gap_label.text = "Every recommended resource is assigned."
+		gap_label.theme_type_variation = &"SuccessLabel"
+	else:
+		gap_label.text = "NEEDS · %s" % ", ".join(gaps).to_upper()
+		gap_label.theme_type_variation = &"WarningLabel"
+	layout.add_child(gap_label)
+
+	var assignments := GridContainer.new()
+	assignments.columns = 2
+	assignments.add_theme_constant_override("h_separation", 8)
+	assignments.add_theme_constant_override("v_separation", 4)
+	layout.add_child(assignments)
+	_add_assignment_label(assignments, "DRIVER")
+	var driver_select := _build_driver_select(team, race_team)
+	assignments.add_child(driver_select)
+	_add_assignment_label(assignments, "CAR")
+	var car_select := _build_car_select(team, race_team)
+	assignments.add_child(car_select)
+	_add_assignment_label(assignments, "CREW CHIEF")
+	var chief_select := _build_crew_chief_select(team, race_team)
+	assignments.add_child(chief_select)
+
+	var engineer_title := Label.new()
+	engineer_title.text = "ENGINEERS · %d/%d" % [race_team.engineer_ids.size(), Team.MAX_ENGINEERS]
+	engineer_title.theme_type_variation = &"EyebrowLabel"
+	layout.add_child(engineer_title)
+	for engineer_id in race_team.engineer_ids:
+		var engineer := team.get_staff_by_id(engineer_id)
+		if engineer == null:
+			continue
+		var engineer_row := HBoxContainer.new()
+		var engineer_label := Label.new()
+		engineer_label.text = "%s · OVR %d · %s" % [engineer.staff_name, engineer.rating, engineer.specialty]
+		engineer_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		engineer_row.add_child(engineer_label)
+		var remove_button := Button.new()
+		remove_button.text = "Remove"
+		remove_button.pressed.connect(_unassign_staff.bind(engineer, race_team))
+		engineer_row.add_child(remove_button)
+		layout.add_child(engineer_row)
+	var engineer_select := _build_engineer_select(team, race_team)
+	layout.add_child(engineer_select)
+
+	var sponsor_title := Label.new()
+	sponsor_title.text = "SPONSOR PORTFOLIO · %d/%d · $%s/RACE" % [
+		race_team.sponsor_contracts.size(), team.get_sponsor_capacity(), number(race_team.get_sponsor_income_per_race()),
+	]
+	sponsor_title.theme_type_variation = &"EyebrowLabel"
+	layout.add_child(sponsor_title)
+	if race_team.sponsor_contracts.is_empty():
+		var no_sponsor := Label.new()
+		no_sponsor.text = "No partners signed for this entry. Its market contains six entry-specific offers."
+		no_sponsor.theme_type_variation = &"MutedLabel"
+		no_sponsor.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		layout.add_child(no_sponsor)
+	else:
+		for contract in race_team.sponsor_contracts:
+			var sponsor := Label.new()
+			sponsor.text = "%s · $%s/race · %d races left" % [
+				str(contract.get("sponsor_name", "Sponsor")),
+				number(int(contract.get("payment_per_race", 0))),
+				int(contract.get("races_remaining", 0)),
+			]
+			layout.add_child(sponsor)
+
+	var shortcuts := HBoxContainer.new()
+	shortcuts.alignment = BoxContainer.ALIGNMENT_END
+	for item in [
+		["Drivers", "res://scenes/pages/drivers/drivers.tscn"],
+		["Garage", "res://scenes/pages/garage/garage.tscn"],
+		["Staff", "res://scenes/pages/staff/staff.tscn"],
+		["Sponsors", "res://scenes/pages/sponsors/sponsors.tscn"],
+	]:
+		var shortcut := Button.new()
+		shortcut.text = str(item[0])
+		shortcut.pressed.connect(_open_for_race_team.bind(race_team.team_id, str(item[1])))
+		shortcuts.add_child(shortcut)
+	layout.add_child(shortcuts)
+	return panel
+
+
+func _add_assignment_label(grid: GridContainer, label_text: String) -> void:
+	var label := Label.new()
+	label.text = label_text
+	label.theme_type_variation = &"EyebrowLabel"
+	label.custom_minimum_size.x = 110.0
+	grid.add_child(label)
+
+
+func _build_driver_select(team: Team, race_team: RaceTeam) -> OptionButton:
+	var select := OptionButton.new()
+	select.name = "DriverSelect_%s" % race_team.team_id
+	select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	select.add_item("Unassigned")
+	select.set_item_metadata(0, "")
+	var selected := 0
+	for driver in team.get_contracted_drivers():
+		var conflict := _driver_assignment(team, driver.driver_id, race_team.team_id)
+		var label := driver.driver_name
+		if conflict != null:
+			label += " · Assigned to %s" % conflict.team_name
+		select.add_item(label)
+		var index := select.item_count - 1
+		select.set_item_metadata(index, driver.driver_id)
+		select.set_item_disabled(index, conflict != null)
+		if conflict != null:
+			select.set_item_tooltip(index, "Resolve the assignment on %s before moving this driver." % conflict.team_name)
+		if driver.driver_id == race_team.driver_id:
+			selected = index
+	select.select(selected)
+	select.item_selected.connect(func(index: int): _assign_driver(race_team, str(select.get_item_metadata(index))))
+	return select
+
+
+func _build_car_select(team: Team, race_team: RaceTeam) -> OptionButton:
+	var select := OptionButton.new()
+	select.name = "CarSelect_%s" % race_team.team_id
+	select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	select.add_item("Unassigned")
+	select.set_item_metadata(0, -1)
+	var selected := 0
+	for bay in team.cars.size():
+		var car := team.get_car(bay)
+		if car == null:
+			continue
+		var conflict := _car_assignment(team, bay, race_team.team_id)
+		var label := "Bay %d · %s" % [bay + 1, car.name]
+		if conflict != null:
+			label += " · Assigned to %s" % conflict.team_name
+		select.add_item(label)
+		var index := select.item_count - 1
+		select.set_item_metadata(index, bay)
+		select.set_item_disabled(index, conflict != null)
+		if conflict != null:
+			select.set_item_tooltip(index, "This car is already committed to %s." % conflict.team_name)
+		if bay == race_team.car_bay:
+			selected = index
+	select.select(selected)
+	select.item_selected.connect(func(index: int): _assign_car(race_team, int(select.get_item_metadata(index))))
+	return select
+
+
+func _build_crew_chief_select(team: Team, race_team: RaceTeam) -> OptionButton:
+	var select := OptionButton.new()
+	select.name = "CrewChiefSelect_%s" % race_team.team_id
+	select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	select.add_item("Unassigned")
+	select.set_item_metadata(0, "")
+	var selected := 0
+	for chief in team.get_staff_by_role("Crew Chief"):
+		var conflict := _staff_assignment(team, chief.staff_id, race_team.team_id)
+		var label := "%s · OVR %d" % [chief.staff_name, chief.rating]
+		if conflict != null:
+			label += " · Assigned to %s" % conflict.team_name
+		select.add_item(label)
+		var index := select.item_count - 1
+		select.set_item_metadata(index, chief.staff_id)
+		select.set_item_disabled(index, conflict != null)
+		if conflict != null:
+			select.set_item_tooltip(index, "This crew chief is already leading %s." % conflict.team_name)
+		if chief.staff_id == race_team.crew_chief_id:
+			selected = index
+	select.select(selected)
+	select.item_selected.connect(func(index: int): _select_crew_chief(race_team, str(select.get_item_metadata(index))))
+	return select
+
+
+func _build_engineer_select(team: Team, race_team: RaceTeam) -> OptionButton:
+	var select := OptionButton.new()
+	select.name = "EngineerSelect_%s" % race_team.team_id
+	select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	select.add_item("Assign an engineer...")
+	select.set_item_metadata(0, "")
+	for engineer in team.get_staff_by_role("Engineer"):
+		if race_team.engineer_ids.has(engineer.staff_id):
+			continue
+		var conflict := _staff_assignment(team, engineer.staff_id, race_team.team_id)
+		var label := "%s · OVR %d" % [engineer.staff_name, engineer.rating]
+		if conflict != null:
+			label += " · Assigned to %s" % conflict.team_name
+		select.add_item(label)
+		var index := select.item_count - 1
+		select.set_item_metadata(index, engineer.staff_id)
+		select.set_item_disabled(index, conflict != null)
+		if conflict != null:
+			select.set_item_tooltip(index, "This engineer is already assigned to %s." % conflict.team_name)
+	select.disabled = race_team.engineer_ids.size() >= Team.MAX_ENGINEERS
+	select.tooltip_text = "This team already has the maximum number of engineers." if select.disabled else ""
+	select.item_selected.connect(func(index: int):
+		if index > 0:
+			_assign_staff_to_team(team.get_staff_by_id(str(select.get_item_metadata(index))), race_team)
+	)
+	return select
+
+
+func _build_expansion_card(team: Team) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = "ExpansionCard"
+	panel.theme_type_variation = &"CardPanel"
+	var row := HBoxContainer.new()
+	panel.add_child(row)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(copy)
+	var title := Label.new()
+	title.text = "ORGANIZATION EXPANSION"
+	title.theme_type_variation = &"SectionTitle"
+	copy.add_child(title)
+	var cost := team.get_discounted_cost(Team.RACE_TEAM_EXPANSION_COST)
+	var detail := Label.new()
+	detail.text = "%d/%d entries · Expansion cost $%s · Cash after $%s" % [
+		team.race_teams.size(), Team.MAX_RACE_TEAMS, number(cost), number(team.money - cost),
+	]
+	detail.theme_type_variation = &"MutedLabel"
+	copy.add_child(detail)
+	var button := Button.new()
+	button.name = "ReviewExpansionButton"
+	button.text = "Review expansion"
+	button.theme_type_variation = &"PrimaryButton"
+	button.disabled = team.race_teams.size() >= Team.MAX_RACE_TEAMS
+	button.tooltip_text = "The organization already operates the maximum of four entries." if button.disabled else "Compare capacity and cash before opening another entry."
+	button.pressed.connect(_show_expansion_comparison)
+	row.add_child(button)
+	return panel
+
+
+func _driver_assignment(team: Team, driver_id: String, excluding_team_id: String) -> RaceTeam:
+	for race_team in team.race_teams:
+		if race_team.team_id != excluding_team_id and race_team.driver_id == driver_id:
+			return race_team
+	return null
+
+
+func _car_assignment(team: Team, bay: int, excluding_team_id: String) -> RaceTeam:
+	for race_team in team.race_teams:
+		if race_team.team_id != excluding_team_id and race_team.car_bay == bay:
+			return race_team
+	return null
+
+
+func _staff_assignment(team: Team, staff_id: String, excluding_team_id: String) -> RaceTeam:
+	for race_team in team.race_teams:
+		if race_team.team_id == excluding_team_id:
+			continue
+		if race_team.crew_chief_id == staff_id or race_team.engineer_ids.has(staff_id):
+			return race_team
+	return null
+
+
+func _count_available_drivers(team: Team) -> int:
+	var count := 0
+	for driver in team.get_contracted_drivers():
+		if _driver_assignment(team, driver.driver_id, "") == null:
+			count += 1
+	return count
+
+
+func _count_available_cars(team: Team) -> int:
+	var count := 0
+	for bay in team.cars.size():
+		if team.get_car(bay) != null and _car_assignment(team, bay, "") == null:
+			count += 1
+	return count
+
+
+func _count_available_staff(team: Team, role: String) -> int:
+	var count := 0
+	for member in team.get_staff_by_role(role):
+		if _staff_assignment(team, member.staff_id, "") == null:
+			count += 1
+	return count
+
+
+func _count_open_sponsor_slots(team: Team) -> int:
+	var count := 0
+	for race_team in team.race_teams:
+		count += maxi(0, team.get_sponsor_capacity() - race_team.sponsor_contracts.size())
+	return count
+
+
+func _rename_race_team(value: String, race_team: RaceTeam) -> void:
+	var clean_name := value.strip_edges()
+	if clean_name.is_empty() or clean_name == race_team.team_name:
+		show_operations()
+		return
+	var previous_name := race_team.team_name
+	race_team.team_name = clean_name
+	GameManager.save_game()
+	show_operations()
+	GameManager.report_decision_outcome({
+		"title": "%s renamed" % clean_name,
+		"message": "%s is now listed as %s across race operations." % [previous_name, clean_name],
+		"action_label": "View operations",
+		"action_path": "res://scenes/pages/race_teams/race_teams.tscn",
+	})
+
+
+func _assign_driver(race_team: RaceTeam, driver_id: String) -> void:
+	var success := GameManager.team.assign_race_team(race_team, driver_id, race_team.car_bay)
+	var driver := GameManager.team.get_driver_by_id(driver_id)
+	_finish_assignment(
+		success,
+		"Driver assignment updated" if success else "Driver assignment blocked",
+		"%s now drives for %s." % [driver.driver_name, race_team.team_name] if driver != null else "%s no longer has an assigned driver." % race_team.team_name,
+		"The selected driver is contracted elsewhere or no longer available."
+	)
+
+
+func _assign_car(race_team: RaceTeam, car_bay: int) -> void:
+	var success := GameManager.team.assign_race_team(race_team, race_team.driver_id, car_bay)
+	var car := GameManager.team.get_car(car_bay)
+	_finish_assignment(
+		success,
+		"Car assignment updated" if success else "Car assignment blocked",
+		"%s is now assigned to %s." % [car.name, race_team.team_name] if car != null else "%s no longer has an assigned car." % race_team.team_name,
+		"The selected car is committed to another entry or no longer available."
+	)
+
+
+func _select_crew_chief(race_team: RaceTeam, staff_id: String) -> void:
+	if staff_id.is_empty():
+		var current := GameManager.team.get_staff_by_id(race_team.crew_chief_id)
+		if current == null:
+			show_operations()
+			return
+		_unassign_staff(current, race_team)
+		return
+	_assign_staff_to_team(GameManager.team.get_staff_by_id(staff_id), race_team)
+
+
+func _assign_staff_to_team(member: StaffMember, race_team: RaceTeam) -> void:
+	var success := GameManager.team.assign_staff_to_race_team(member, race_team)
+	_finish_assignment(
+		success,
+		"Staff assignment updated" if success else "Staff assignment blocked",
+		"%s is now assigned to %s." % [member.staff_name, race_team.team_name] if member != null else "Staff assignment updated.",
+		"This staff member is unavailable or the team's engineer group is full."
+	)
+
+
+func _unassign_staff(member: StaffMember, race_team: RaceTeam) -> void:
+	var success := GameManager.team.unassign_staff_from_race_team(member, race_team)
+	_finish_assignment(
+		success,
+		"Staff assignment cleared" if success else "Staff assignment unchanged",
+		"%s is now available to another race team." % member.staff_name if member != null else "Staff assignment cleared.",
+		"That assignment no longer exists."
+	)
+
+
+func _finish_assignment(success: bool, title_text: String, success_message: String, error_message: String) -> void:
+	if success:
+		GameManager.save_game()
+	show_operations()
+	GameManager.report_decision_outcome({
+		"status": "success" if success else "error",
+		"title": title_text,
+		"message": success_message if success else error_message,
+		"action_label": "View operations",
+		"action_path": "res://scenes/pages/race_teams/race_teams.tscn",
+	})
+
+
+func _open_for_race_team(team_id: String, path: String) -> void:
+	if GameManager.team.set_active_race_team(team_id):
+		GameManager.save_game()
+		GameManager.load_page(path)
+
+
+func _show_expansion_comparison() -> void:
+	var team := GameManager.team
+	var cost := team.get_discounted_cost(Team.RACE_TEAM_EXPANSION_COST)
+	var at_capacity := team.race_teams.size() >= Team.MAX_RACE_TEAMS
+	var model := DecisionComparisonModel.build(team, {
+		"eyebrow": "ORGANIZATION DECISION",
+		"title": "Open race entry %d" % (team.race_teams.size() + 1),
+		"subtitle": "Compare organization capacity and cash before adding another independently managed entry.",
+		"current_title": "%d ENTRIES" % team.race_teams.size(),
+		"candidate_title": "%d ENTRIES" % mini(Team.MAX_RACE_TEAMS, team.race_teams.size() + 1),
+		"metrics": [
+			DecisionComparisonModel.metric("Race entries", str(team.race_teams.size()), str(mini(Team.MAX_RACE_TEAMS, team.race_teams.size() + 1)), "+1", DecisionComparisonModel.IMPROVES),
+			DecisionComparisonModel.metric("Open drivers", str(_count_available_drivers(team)), str(maxi(0, _count_available_drivers(team) - 1)), "-1", DecisionComparisonModel.WARNING),
+			DecisionComparisonModel.metric("Open cars", str(_count_available_cars(team)), str(maxi(0, _count_available_cars(team) - 1)), "-1", DecisionComparisonModel.WARNING),
+			DecisionComparisonModel.metric("Sponsor slots", str(_count_open_sponsor_slots(team)), str(_count_open_sponsor_slots(team) + team.get_sponsor_capacity()), "+%d" % team.get_sponsor_capacity(), DecisionComparisonModel.IMPROVES),
+		],
+		"upfront_cost": cost,
+		"action_enabled": not at_capacity,
+		"disabled_reason": "The organization already operates the maximum of four entries." if at_capacity else "",
+		"action_label": "Open race entry",
+		"recommendation": "Expand when one driver, one car, and supporting staff are available so the new entry can become race ready quickly.",
+		"risk": "The entry opens unassigned and needs its own driver, car, crew, and sponsor portfolio.",
+		"context": {"kind": "race_team_expansion"},
+	})
+	comparison_drawer.display(model)
+
+
+func _on_comparison_action(context: Dictionary) -> void:
+	if str(context.get("kind", "")) == "race_team_expansion":
+		_add_race_team()
+
+
+func _show_operations_legacy() -> void:
+	directory_button.button_pressed = false
+	operations_button.button_pressed = true
+	series_select.disabled = true
 	clear_container(teams_container)
 	clear_container(detail_container)
 	var team := GameManager.team
@@ -290,10 +816,30 @@ func _assign_staff(member: StaffMember, race_team: RaceTeam) -> void:
 
 
 func _add_race_team() -> void:
-	if GameManager.team.add_race_team() != null:
-		GameManager.refresh_team_money()
-		GameManager.save_game()
+	var cash_before := GameManager.team.money
+	var race_team := GameManager.team.add_race_team()
+	if race_team == null:
+		show_operations()
+		GameManager.report_decision_outcome({
+			"status": "error",
+			"title": "Race entry not opened",
+			"message": "The organization is at capacity or no longer has enough cash.",
+			"action_label": "Review operations",
+			"action_path": "res://scenes/pages/race_teams/race_teams.tscn",
+		})
+		return
+	SponsorManager.ensure_state(GameManager.team)
+	GameManager.refresh_team_money()
+	GameManager.save_game()
 	show_operations()
+	GameManager.report_decision_outcome({
+		"title": "%s opened" % race_team.team_name,
+		"message": "The new entry has its own assignments and a fresh six-sponsor market.",
+		"detail": "Resolve the driver, car, crew, and commercial gaps before entering a race.",
+		"cash_delta": GameManager.team.money - cash_before,
+		"action_label": "Prepare entry",
+		"action_path": "res://scenes/pages/race_teams/race_teams.tscn",
+	})
 
 
 func _on_series_selected(index: int) -> void:

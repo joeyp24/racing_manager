@@ -49,6 +49,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_multi_team_progression.gd"),
     ),
     (
+        "multi-team operations center tests",
+        ("--headless", "--path", ".", "--script", "tests/test_multi_team_operations_ui.gd"),
+    ),
+    (
         "reputation system tests",
         ("--headless", "--path", ".", "--script", "tests/test_reputation_system.gd"),
     ),

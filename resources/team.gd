@@ -2175,6 +2175,11 @@ func get_total_sponsor_income_per_race() -> int:
 
 
 func _sync_active_sponsor_legacy_fields() -> void:
+	var race_team := get_active_race_team()
+	if race_team != null:
+		sponsor_offers = race_team.sponsor_offers.duplicate(true)
+		sponsor_offer_season = race_team.sponsor_offer_season
+		sponsor_offer_series_id = race_team.sponsor_offer_series_id
 	var contracts := get_active_sponsor_contracts()
 	active_sponsor_contract = contracts[0].duplicate(true) if not contracts.is_empty() else {}
 	active_sponsor_id = str(active_sponsor_contract.get("sponsor_id", ""))
@@ -2207,6 +2212,23 @@ func assign_staff_to_race_team(member: StaffMember, race_team: RaceTeam) -> bool
 	member.assigned_race_team_id = race_team.team_id
 	emit_changed()
 	return true
+
+
+func unassign_staff_from_race_team(member: StaffMember, race_team: RaceTeam) -> bool:
+	if member == null or race_team == null or not race_teams.has(race_team):
+		return false
+	var changed := false
+	if race_team.crew_chief_id == member.staff_id:
+		race_team.crew_chief_id = ""
+		changed = true
+	if race_team.engineer_ids.has(member.staff_id):
+		race_team.engineer_ids.erase(member.staff_id)
+		changed = true
+	if changed and member.assigned_race_team_id == race_team.team_id:
+		member.assigned_race_team_id = ""
+	if changed:
+		emit_changed()
+	return changed
 
 
 func get_pay_driver_income(driver_ids: Array[String]) -> int:

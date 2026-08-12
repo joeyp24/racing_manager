@@ -88,6 +88,26 @@ const OFFER_PROFILES: Array[Dictionary] = [
 	}
 ]
 
+const SERIES_BRAND_PREFIXES: Dictionary = {
+	"local_short_track": ["Main Street", "County Line", "Homefield", "Foundry"],
+	"regional_short_track": ["Trailhead", "Cross-State", "Blue Ridge", "Pioneer"],
+	"national_short_track": ["Victory Lane", "American Forge", "Highbank", "Patriot"],
+	"continental_east_west": ["Coastline", "Meridian", "Waypoint", "Twin Harbor"],
+	"continental_national": ["Continental", "Northstar", "Union Peak", "Atlas"],
+	"national_truck": ["Ironhaul", "Longroad", "Workhorse", "Freightline"],
+	"national_grand": ["Grandview", "Vanguard", "Sterling", "Summit"],
+	"premier_cup": ["Crown", "Global Apex", "Prime", "Worldline"],
+}
+
+const PROFILE_SUFFIXES: Dictionary = {
+	"anchor_assurance": ["Insurance", "Credit Union", "Mutual", "Bank"],
+	"velocity_performance": ["Motors", "Performance", "Lubricants", "Speedworks"],
+	"brightline_media": ["Media", "Wireless", "Network", "Digital"],
+	"forge_technical": ["Machine", "Engineering", "Tools", "Technologies"],
+	"redline_energy": ["Energy", "Power", "Fuel", "Athletics"],
+	"hometown_cooperative": ["Co-op", "Markets", "Outfitters", "Foods"],
+}
+
 
 static func ensure_state(team: Team) -> void:
 	if team == null:
@@ -98,23 +118,41 @@ static func ensure_state(team: Team) -> void:
 	var active_team := team.get_active_race_team()
 	if active_team != null and not team.active_sponsor_contract.is_empty() and active_team.sponsor_contracts.is_empty():
 		active_team.sponsor_contracts.append(team.active_sponsor_contract.duplicate(true))
-	team._sync_active_sponsor_legacy_fields()
+	# Team still mirrors the active entry for older UI and saves. Reuse a mirror
+	# that already has entry ownership; legacy generic markets are regenerated.
 	if (
-		team.sponsor_offer_season != team.season_number
-		or team.sponsor_offer_series_id != team.current_series_id
-		or team.sponsor_offers.is_empty()
+		active_team != null
+		and active_team.sponsor_offers.is_empty()
+		and not team.sponsor_offers.is_empty()
+		and str(team.sponsor_offers[0].get("race_team_id", "")) == active_team.team_id
+		and team.sponsor_offer_season == team.season_number
+		and team.sponsor_offer_series_id == team.current_series_id
 	):
-		team.sponsor_offers = generate_offers(team)
-		team.sponsor_offer_season = team.season_number
-		team.sponsor_offer_series_id = team.current_series_id
+		active_team.sponsor_offers = team.sponsor_offers.duplicate(true)
+		active_team.sponsor_offer_season = team.sponsor_offer_season
+		active_team.sponsor_offer_series_id = team.sponsor_offer_series_id
+	for race_team in team.race_teams:
+		if race_team == null:
+			continue
+		if (
+			race_team.sponsor_offer_season != team.season_number
+			or race_team.sponsor_offer_series_id != team.current_series_id
+			or race_team.sponsor_offers.is_empty()
+		):
+			race_team.sponsor_offers = generate_offers(team, race_team)
+			race_team.sponsor_offer_season = team.season_number
+			race_team.sponsor_offer_series_id = team.current_series_id
+	team._sync_active_sponsor_legacy_fields()
 
 
-static func generate_offers(team: Team) -> Array[Dictionary]:
+static func generate_offers(team: Team, race_team: RaceTeam = null) -> Array[Dictionary]:
 	var offers: Array[Dictionary] = []
+	if race_team == null:
+		race_team = team.get_active_race_team()
 	var season_length := _season_length(team)
 	var series_index := maxi(0, SeriesCatalog.get_index(team.current_series_id))
 	var marketing_level := team.get_department_level("marketing")
-	var active_driver: Driver = team.get_active_driver()
+	var active_driver: Driver = team.get_driver_by_id(race_team.driver_id) if race_team != null else team.get_active_driver()
 	var driver_marketability := float(active_driver.marketability) / 500.0 if active_driver != null else 0.10
 	var commercial_appeal := ReputationManager.get_dimension(team, "commercial_appeal")
 	var professionalism := ReputationManager.get_dimension(team, "professionalism")
@@ -128,8 +166,11 @@ static func generate_offers(team: Team) -> Array[Dictionary]:
 		0.0,
 		0.35
 	)
-	for profile in OFFER_PROFILES:
-		var relationship := int(team.sponsor_relationships.get(str(profile.id), 0))
+	for profile_index in OFFER_PROFILES.size():
+		var profile := OFFER_PROFILES[profile_index]
+		var sponsor_identity := _sponsor_identity(team, race_team, profile, profile_index)
+		var sponsor_id := str(sponsor_identity.id)
+		var relationship := int(team.sponsor_relationships.get(sponsor_id, 0))
 		var loyalty_multiplier := (
 			1.0
 			+ maxf(0.0, float(relationship)) * 0.003
@@ -148,8 +189,8 @@ static func generate_offers(team: Team) -> Array[Dictionary]:
 		var maximum := guaranteed + objective_bonus
 		var expected := guaranteed + roundi(float(objective_bonus) * probability) - roundi(float(failure_penalty) * (1.0 - probability))
 		offers.append({
-			"sponsor_id": str(profile.id),
-			"sponsor_name": str(profile.name),
+			"sponsor_id": sponsor_id,
+			"sponsor_name": str(sponsor_identity.name),
 			"profile": str(profile.profile),
 			"signing_bonus": signing,
 			"payment_per_race": race_payment,
@@ -167,9 +208,33 @@ static func generate_offers(team: Team) -> Array[Dictionary]:
 			"interest_reason": str(profile.interest),
 			"relationship": relationship,
 			"renewal": relationship > 0 and professionalism >= 40,
-			"required_reputation": maxi(1, int(SeriesCatalog.get_series(team.current_series_id).get("required_level", 1)))
+			"required_reputation": maxi(1, int(SeriesCatalog.get_series(team.current_series_id).get("required_level", 1))),
+			"market_series_id": team.current_series_id,
+			"race_team_id": race_team.team_id if race_team != null else "",
 		})
 	return offers
+
+
+static func _sponsor_identity(team: Team, race_team: RaceTeam, profile: Dictionary, profile_index: int) -> Dictionary:
+	var prefixes := SERIES_BRAND_PREFIXES.get(
+		team.current_series_id,
+		["Independent", "National", "United", "Premier"]
+	) as Array
+	var suffixes := PROFILE_SUFFIXES.get(str(profile.id), [str(profile.name)]) as Array
+	var entry_index := maxi(0, team.race_teams.find(race_team))
+	var season_offset := maxi(0, team.season_number - 1)
+	var prefix_index := posmod(entry_index + profile_index + season_offset, prefixes.size())
+	var suffix_index := posmod(entry_index * 2 + profile_index + season_offset, suffixes.size())
+	var sponsor_name := "%s %s" % [str(prefixes[prefix_index]), str(suffixes[suffix_index])]
+	return {
+		"id": "%s_%s_%s_%d" % [
+			team.current_series_id,
+			race_team.team_id if race_team != null else "team",
+			str(profile.id),
+			season_offset,
+		],
+		"name": sponsor_name,
+	}
 
 
 static func sign_offer(team: Team, offer_index: int) -> Dictionary:
@@ -182,9 +247,9 @@ static func sign_offer(team: Team, offer_index: int) -> Dictionary:
 	var race_team := team.get_active_race_team()
 	if race_team == null or race_team.sponsor_contracts.size() >= team.get_sponsor_capacity():
 		return {}
-	if offer_index < 0 or offer_index >= team.sponsor_offers.size():
+	if offer_index < 0 or offer_index >= race_team.sponsor_offers.size():
 		return {}
-	var offer := (team.sponsor_offers[offer_index] as Dictionary).duplicate(true)
+	var offer := (race_team.sponsor_offers[offer_index] as Dictionary).duplicate(true)
 	for existing in race_team.sponsor_contracts:
 		if str(existing.get("sponsor_id", "")) == str(offer.get("sponsor_id", "")):
 			return {}
