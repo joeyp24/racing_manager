@@ -14,7 +14,6 @@ extends Control
 @onready var reaction_label: Label = %reaction_label
 @onready var incident_story_label: Label = %incident_story_label
 @onready var rival_story_label: Label = %rival_story_label
-@onready var details_toggle: CheckButton = %details_toggle
 @onready var outcome_story_label: Label = %outcome_story_label
 @onready var detailed_analysis_button: CheckButton = %detailed_analysis_button
 
@@ -23,9 +22,8 @@ func _ready() -> void:
 	continue_button.pressed.connect(
 		_on_continue_button_pressed
 	)
-	details_toggle.toggled.connect(_toggle_details)
-	_toggle_details(false)
 	detailed_analysis_button.toggled.connect(_on_detailed_analysis_toggled)
+	_on_detailed_analysis_toggled(false)
 
 	show_race_result()
 
@@ -62,15 +60,6 @@ func show_race_result() -> void:
 	rival_story_label.text = result.rival_summary + ("\n" + result.storyline_summary if not result.storyline_summary.is_empty() else "")
 
 
-func _toggle_details(visible_now: bool) -> void:
-	analysis_label.visible = visible_now
-	replay_label.visible = visible_now
-	decisive_factors_label.visible = visible_now
-	car_effects_label.visible = visible_now
-	details_toggle.text = "Hide detailed telemetry and replay" if visible_now else "Show detailed telemetry and replay"
-	_on_detailed_analysis_toggled(false)
-
-
 func create_outcome_story(result: RaceResult) -> String:
 	var sentences: Array[String] = ["Finished %s." % format_position(result.finishing_position)]
 	if result.positions_gained > 0:
@@ -97,6 +86,8 @@ func create_outcome_story(result: RaceResult) -> String:
 func _on_detailed_analysis_toggled(show_details: bool) -> void:
 	analysis_label.visible = show_details
 	replay_label.visible = show_details
+	decisive_factors_label.visible = show_details
+	car_effects_label.visible = show_details
 	detailed_analysis_button.text = "Hide detailed telemetry and race replay" if show_details else "Show detailed telemetry and race replay"
 
 
