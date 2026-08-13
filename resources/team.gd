@@ -16,7 +16,7 @@ const FLEET_WEEKLY_STORAGE_COST: int = 175
 const BACKUP_TRANSPORT_RATE: float = 0.22
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 19
+const CURRENT_SAVE_FORMAT_VERSION: int = 20
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -98,6 +98,7 @@ const SCOUTING_ACTIONS: Dictionary = {
 @export var season_history: Array[Dictionary] = []
 @export var career_state: Dictionary = {}
 @export var active_race_weekend_state: Dictionary = {}
+@export var fleet_race_assignments: Dictionary = {}
 @export var drivers: Array[Driver] = []
 @export var contracted_driver_ids: Array[String] = []
 @export var race_teams: Array[RaceTeam] = []
@@ -1184,6 +1185,7 @@ func ensure_car_parts() -> void:
 		if car != null:
 			car.ensure_standard_parts()
 			car.ensure_workshop_state(true)
+	ensure_fleet_planning_state()
 
 
 func get_car(bay_index: int) -> Car:
@@ -1264,6 +1266,7 @@ func sell_car(bay_index: int) -> int:
 	var sale_price: int = car.value
 
 	money += sale_price
+	_clear_car_from_fleet_plan(bay_index)
 	cars[bay_index] = null
 	record_finance("Garage", sale_price, "Sold %s" % car.name)
 
@@ -1319,6 +1322,186 @@ func get_fleet_weekly_upkeep() -> int:
 	return maxi(0, get_owned_car_count() - 1) * FLEET_WEEKLY_STORAGE_COST
 
 
+func ensure_fleet_planning_state() -> void:
+	if not fleet_race_assignments is Dictionary:
+		fleet_race_assignments = {}
+	for race_id in fleet_race_assignments.keys():
+		var assignments: Variant = fleet_race_assignments[race_id]
+		if not assignments is Dictionary:
+			fleet_race_assignments.erase(race_id)
+
+
+func get_race_car_assignment(race_id: String, race_team_id: String = "") -> int:
+	ensure_fleet_planning_state()
+	var team_id := race_team_id
+	if team_id.is_empty():
+		var active_team := get_active_race_team()
+		team_id = active_team.team_id if active_team != null else "team_1"
+	var assignments := fleet_race_assignments.get(race_id, {}) as Dictionary
+	var assignment: Variant = assignments.get(team_id, -1)
+	return int((assignment as Dictionary).get("bay", -1)) if assignment is Dictionary else int(assignment)
+
+
+func get_planned_assignment_count(race_ids: Array[String] = []) -> int:
+	ensure_fleet_planning_state()
+	var count := 0
+	for race_id in fleet_race_assignments:
+		if not race_ids.is_empty() and not race_ids.has(str(race_id)):
+			continue
+		count += (fleet_race_assignments[race_id] as Dictionary).size()
+	return count
+
+
+func get_assignment_change_quote(race: Race, race_team: RaceTeam, bay_index: int) -> Dictionary:
+	if race == null or race_team == null or get_car(bay_index) == null:
+		return {}
+	var previous_bay := get_race_car_assignment(race.race_id, race_team.team_id)
+	var days_remaining := race.schedule_day - current_season_day
+	var late_change := previous_bay >= 0 and previous_bay != bay_index and days_remaining <= 7
+	var cost := 0
+	if late_change:
+		cost = get_discounted_cost(maxi(500, roundi(float(race.preparation_cost) * 1.5)))
+	var previous_car := get_car(previous_bay)
+	var loses_completed_setup := false
+	var loses_setup_work := false
+	if previous_car != null:
+		previous_car.ensure_workshop_state()
+		loses_completed_setup = (previous_car.workshop_state.get("prepared_races", {}) as Dictionary).has(race.race_id)
+		loses_setup_work = loses_completed_setup or previous_car.has_pending_workshop_job("race_preparation", "", race.race_id)
+	return {
+		"previous_bay": previous_bay,
+		"new_bay": bay_index,
+		"days_remaining": days_remaining,
+		"late_change": late_change,
+		"cost": cost,
+		"loses_completed_setup": loses_completed_setup,
+		"loses_setup_work": loses_setup_work,
+	}
+
+
+func assign_car_to_race(race: Race, race_team: RaceTeam, bay_index: int) -> bool:
+	var car := get_car(bay_index)
+	if race == null or race_team == null or car == null or car.series_id != race.series_id:
+		return false
+	if race.schedule_day < current_season_day or get_completed_races().has(race.race_id):
+		return false
+	ensure_fleet_planning_state()
+	var assignments := fleet_race_assignments.get(race.race_id, {}) as Dictionary
+	for other_team_id in assignments:
+		var other_assignment: Variant = assignments[other_team_id]
+		var other_bay := int((other_assignment as Dictionary).get("bay", -1)) if other_assignment is Dictionary else int(other_assignment)
+		if str(other_team_id) != race_team.team_id and other_bay == bay_index:
+			return false
+	var quote := get_assignment_change_quote(race, race_team, bay_index)
+	var cost := int(quote.get("cost", 0))
+	if money < cost:
+		return false
+	var previous_bay := int(quote.get("previous_bay", -1))
+	if previous_bay >= 0 and previous_bay != bay_index:
+		var previous_car := get_car(previous_bay)
+		if previous_car != null:
+			previous_car.discard_event_setup(race.race_id)
+	if cost > 0:
+		money -= cost
+		record_finance("Fleet Planning", -cost, "Late car change for %s" % race.race_name)
+	assignments[race_team.team_id] = {"bay":bay_index, "schedule_day":race.schedule_day, "track_type":race.track_type}
+	fleet_race_assignments[race.race_id] = assignments
+	emit_changed()
+	return true
+
+
+func get_car_race_forecast(car: Car, race: Race, driver: Driver = null) -> Dictionary:
+	if car == null or race == null:
+		return {}
+	car.ensure_standard_parts()
+	var driver_id := driver.driver_id if driver != null else ""
+	var attributes := car.get_race_attributes()
+	var quote := get_workshop_job_quote(car, "race_preparation", "", race, false)
+	var schedule := get_workshop_job_schedule(car, quote)
+	var ready_day := int(schedule.get("completion_day", current_season_day))
+	var preparation_days := int(quote.get("duration", 0))
+	if car.get_preparation_score(race) >= 100:
+		preparation_days = 0
+		ready_day = current_season_day
+	var pace_index := (
+		float(car.get_total_performance_points(self))
+		+ car.get_identity_pace_bonus(race, driver_id)
+		+ car.get_preparation_bonus(race)
+	)
+	var reliability_index := roundi(float(attributes.get("reliability", car.reliability)))
+	var wear_index := roundi(100.0 * car.get_wear_multiplier(race) * lerpf(0.92, 1.12, clampf(race.tyre_wear_factor - 0.5, 0.0, 1.0)))
+	var structurally_eligible := car.condition >= 30
+	for component in Car.DAMAGE_COMPONENTS:
+		structurally_eligible = structurally_eligible and car.get_component_health(component) >= 35.0
+	var available_for_event := car.is_initial_preparation_complete() and structurally_eligible and ready_day <= race.schedule_day and not car.has_active_workshop_job(race.schedule_day)
+	var score := pace_index + float(reliability_index) * 0.025 + float(car.get_preparation_score(race)) * 0.035
+	var turnaround_days := 999
+	var car_bay := cars.find(car)
+	for planned_race_id in fleet_race_assignments:
+		if str(planned_race_id) == race.race_id:
+			continue
+		for assignment_value in (fleet_race_assignments[planned_race_id] as Dictionary).values():
+			if not assignment_value is Dictionary or int((assignment_value as Dictionary).get("bay", -1)) != car_bay:
+				continue
+			var planned_day := int((assignment_value as Dictionary).get("schedule_day", -999))
+			turnaround_days = mini(turnaround_days, absi(planned_day - race.schedule_day))
+	var tight_turnaround := turnaround_days <= 7
+	if tight_turnaround:
+		score -= 6.0 if turnaround_days <= 3 else 2.5
+	if not available_for_event:
+		score -= 25.0
+	if car.condition < 50:
+		score -= float(50 - car.condition) * 0.25
+	return {
+		"pace_index": pace_index,
+		"pace_bonus": car.get_identity_pace_bonus(race, driver_id),
+		"reliability": reliability_index,
+		"wear_index": wear_index,
+		"preparation_days": preparation_days,
+		"ready_day": ready_day,
+		"available_for_event": available_for_event,
+		"saved_setup": car.has_saved_setup(race.track_type),
+		"familiarity_starts": car.get_driver_familiarity_starts(driver_id),
+		"turnaround_days": turnaround_days,
+		"tight_turnaround": tight_turnaround,
+		"recommendation_score": score,
+	}
+
+
+func get_recommended_car_for_race(race: Race, race_team: RaceTeam = null) -> Car:
+	if race == null:
+		return null
+	var selected_team := race_team if race_team != null else get_active_race_team()
+	var driver := get_driver_by_id(selected_team.driver_id) if selected_team != null else get_active_driver()
+	var best_car: Car = null
+	var best_score := -INF
+	for car_value in cars:
+		var car := car_value as Car
+		if car == null or car.series_id != race.series_id:
+			continue
+		var forecast := get_car_race_forecast(car, race, driver)
+		var score := float(forecast.get("recommendation_score", -INF))
+		if score > best_score:
+			best_score = score
+			best_car = car
+	return best_car
+
+
+func _clear_car_from_fleet_plan(bay_index: int) -> void:
+	ensure_fleet_planning_state()
+	for race_id in fleet_race_assignments.keys():
+		var assignments := fleet_race_assignments[race_id] as Dictionary
+		for race_team_id in assignments.keys():
+			var assignment_value: Variant = assignments[race_team_id]
+			var assigned_bay := int((assignment_value as Dictionary).get("bay", -1)) if assignment_value is Dictionary else int(assignment_value)
+			if assigned_bay == bay_index:
+				assignments.erase(race_team_id)
+		if assignments.is_empty():
+			fleet_race_assignments.erase(race_id)
+		else:
+			fleet_race_assignments[race_id] = assignments
+
+
 func get_backup_transport_cost(race: Race, backup_count: int = 1) -> int:
 	if race == null or backup_count <= 0:
 		return 0
@@ -1356,7 +1539,10 @@ func get_workshop_job_quote(car: Car, kind: String, component: String = "", race
 		"race_preparation":
 			if race == null:
 				return {}
-			duration = 7; cost = 500; label = "%s preparation" % race.race_name
+			if car.has_saved_setup(race.track_type):
+				duration = 4; cost = 350; label = "Recall %s setup" % race.track_type
+			else:
+				duration = 7; cost = 500; label = "%s preparation" % race.race_name
 		_:
 			return {}
 	var duration_reduction := minf(0.22, get_repair_time_reduction() / 100.0)

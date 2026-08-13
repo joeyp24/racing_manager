@@ -62,9 +62,11 @@ text_overrun_behavior = 3
 
 [node name="car_identity_label" type="Label" parent="Frame/Content/occupied_content"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 theme_type_variation = &"MutedLabel"
 text = "2026 Manufacturer Model · Local Short Track Series"
+autowrap_mode = 2
 text_overrun_behavior = 3
 
 [node name="MetricStrip" type="PanelContainer" parent="Frame/Content/occupied_content"]

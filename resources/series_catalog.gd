@@ -60,6 +60,7 @@ static func create_car_templates(series_id: String) -> Array[Car]:
 		car.name = "%s %s" % [car.manufacturer, car.model]
 		var target_base_pp := int(series.car_rating) + index - 1
 		car.installed_parts = PartCatalog.create_factory_parts(series_id, target_base_pp)
+		CarSpecializationCatalog.configure_template(car, index, series_id)
 		car.purchase_price = roundi(float(series.car_price) * (0.9 + index * 0.1))
 		car.value = roundi(car.purchase_price * 0.75)
 		cars.append(car)

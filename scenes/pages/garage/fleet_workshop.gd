@@ -70,8 +70,9 @@ func _car_state_text(car: Car) -> String:
 	var prep := "No upcoming event"
 	if next_race != null and car.series_id == next_race.series_id:
 		prep = "%d/100 preparation for %s" % [car.get_preparation_score(next_race), next_race.track_type]
-	return "%s  ·  Condition %d%%  ·  %s  ·  Scrutineering risk %d%%\n%s" % [
-		availability, car.condition, car.get_damage_summary(), roundi(car.get_scrutineering_risk() * 100.0), prep
+	var saved_setup_count := car.saved_setups.size()
+	return "%s  ·  %s  ·  Condition %d%%  ·  %s  ·  Scrutineering risk %d%%\n%s  ·  %d saved setup%s" % [
+		availability, car.get_identity_summary(), car.condition, car.get_damage_summary(), roundi(car.get_scrutineering_risk() * 100.0), prep, saved_setup_count, "" if saved_setup_count == 1 else "s"
 	]
 
 

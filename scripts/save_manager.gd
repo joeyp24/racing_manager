@@ -114,6 +114,12 @@ static func _repair_and_migrate(team: Team) -> void:
 			var legacy_car := car_value as Car
 			if legacy_car != null:
 				legacy_car.ensure_workshop_state(true)
+	if team.save_format_version < 20:
+		for car_value in team.cars:
+			var legacy_car := car_value as Car
+			if legacy_car != null:
+				legacy_car.ensure_specialization_state()
+		team.ensure_fleet_planning_state()
 	team.ensure_series_progress(team.current_series_id)
 	team.load_series_progress(team.current_series_id)
 	team.ensure_calendar_progression(team.current_series_id)

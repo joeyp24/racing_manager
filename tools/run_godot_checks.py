@@ -21,6 +21,16 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_fleet_workshop.gd"),
     ),
     (
+        "car specialization and assignment planning tests",
+        (
+            "--headless",
+            "--path",
+            ".",
+            "--script",
+            "tests/test_car_specialization_planner.gd",
+        ),
+    ),
+    (
         "first-hour experience tests",
         ("--headless", "--path", ".", "--script", "tests/test_first_hour_experience.gd"),
     ),

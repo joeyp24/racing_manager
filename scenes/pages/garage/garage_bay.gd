@@ -68,6 +68,7 @@ func display_car(current_car: Car) -> void:
 		current_car.model,
 		SeriesCatalog.get_series(current_car.series_id).get("name", current_car.series_id),
 	]
+	car_identity_label.text += "\n%s" % current_car.get_identity_summary().to_upper()
 	performance_value.text = str(current_car.get_total_performance_points(GameManager.team))
 	condition_value.text = "%d%%" % current_car.condition
 	condition_bar.value = current_car.condition

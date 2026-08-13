@@ -69,11 +69,17 @@ custom_minimum_size = Vector2(150, 36)
 layout_mode = 2
 text = "VISIT DEALERSHIP"
 
+[node name="planner_button" type="Button" parent="Margin/Page/Header/HeaderRow/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 36)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "FLEET PLANNER  →"
+
 [node name="workshop_button" type="Button" parent="Margin/Page/Header/HeaderRow/Actions"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(170, 36)
 layout_mode = 2
-theme_type_variation = &"PrimaryButton"
 text = "OPEN WORKSHOP  →"
 
 [node name="FleetMetrics" type="GridContainer" parent="Margin/Page"]

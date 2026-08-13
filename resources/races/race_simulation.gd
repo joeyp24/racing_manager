@@ -131,7 +131,7 @@ func setup(
 		teammate.tyre_preservation = float(data.get("tyre_preservation", 50.0))
 		teammate.strategy_skill = float(data.get("strategy_skill", player.strategy_skill))
 		teammate.strategy_aggression = float(data.get("strategy_aggression", 0.0))
-		teammate.difficulty_scale = player.difficulty_scale
+		teammate.difficulty_scale = float(data.get("incident_scale", player.difficulty_scale))
 		teammate.component_health = (data.get("component_health", {}) as Dictionary).duplicate(true)
 		for component in Car.DAMAGE_COMPONENTS:
 			teammate.component_health[component] = clampf(float(teammate.component_health.get(component, 100.0)), 0.0, 100.0)
