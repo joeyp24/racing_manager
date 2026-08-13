@@ -205,7 +205,8 @@ def test_live_race_delegates_tactics_to_ai_crew_chiefs():
     assert "func get_player_entries" in simulation
     assert "func _update_crew_chief_strategy" in simulation
     assert "func _record_crew_chief_call" in simulation
-    assert "simulation.set_crew_chief_automation(true)" in race_manager
+    assert "simulation.set_crew_chief_automation(true," in race_manager
+    assert 'weekend_data.get("uses_volunteer_crew", false)' in race_manager
     assert "simulation.get_player_entries()" in controller
 
 

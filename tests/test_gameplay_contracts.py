@@ -335,7 +335,8 @@ def test_oval_racing_live_automation_and_career_briefing_are_integrated():
     assert 'forecast["rain_chance"] = 0' in simulation
     assert 'signal caution_started(lap: int)' in simulation
     assert 'entry.tyre_compound = "Standard"' in simulation
-    assert 'Crew chiefs are handling the caution cycle' in live_race
+    assert 'simulation.crew_controller_label' in live_race
+    assert 'is handling the caution cycle' in live_race
     assert 'caution_overlay' not in live_scene
     assert "live_track_map.gd" in live_scene
     assert '"WEEKLY BRIEFING"' in career_hub
