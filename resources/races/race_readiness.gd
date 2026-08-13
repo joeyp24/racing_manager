@@ -30,6 +30,16 @@ static func get_overall_status(checks: Array[Dictionary]) -> String:
 	return overall
 
 
+static func can_use_volunteer_crew(team: Team) -> bool:
+	if team == null or not team.season_history.is_empty():
+		return false
+	for progress_value in team.series_progress.values():
+		var progress := progress_value as Dictionary
+		if not (progress.get("completed_races", []) as Array).is_empty():
+			return false
+	return true
+
+
 static func get_recommended_car(team: Team, series_id: String = "") -> Car:
 	if team == null:
 		return null
@@ -89,7 +99,7 @@ static func _car_check(team: Team, race: Race, selected_car: Car) -> Dictionary:
 static func _staff_check(team: Team) -> Dictionary:
 	var crew_chief := team.get_crew_chief()
 	if crew_chief == null:
-		if team.get_completed_races().is_empty():
+		if can_use_volunteer_crew(team):
 			return _check(SUBOPTIMAL, "ROOKIE RACE CREW", "A volunteer crew can support the opening event. Hire a Crew Chief after race one to improve setup, reliability, and pit work.", "", "", "Opening-race assistance")
 		return _check(BLOCKED, "RACE CREW", "A contracted Crew Chief is required to run race operations.", "Open Staff", "staff")
 	var missing_roles: Array[String] = []

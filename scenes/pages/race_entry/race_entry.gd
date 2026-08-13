@@ -146,9 +146,13 @@ func show_crew_information() -> void:
 		return
 	var team: Team = GameManager.team
 	var chief: StaffMember = team.get_crew_chief()
-	var chief_name: String = chief.staff_name if chief != null else "VACANT — REQUIRED"
+	var using_volunteers := chief == null and RaceReadiness.can_use_volunteer_crew(team)
+	var chief_name: String = chief.staff_name if chief != null else ("VOLUNTEER CREW — OPENING RACE" if using_volunteers else "VACANT — REQUIRED")
 	crew_label.text = "Crew Chief: %s\nEngineers: %s  •  Mechanics: %s  •  Spotter: %s  •  Pit Crew: %s" % [chief_name, _role_summary("Engineer"), _role_summary("Mechanic"), _role_summary("Spotter"), _role_summary("Pit Crew")]
-	crew_effects_label.text = "Reliability +%.1f%%  •  Condition-loss reduction %.1f%%  •  Incident risk −%.1f%%  •  Pit mistake risk −%.1f%%" % [team.get_reliability_boost(), minf(30.0, team.get_reliability_boost() + team.get_accident_risk_reduction()), team.get_accident_risk_reduction(), team.get_pit_mistake_reduction()]
+	if using_volunteers:
+		crew_effects_label.text = "Opening-race exception active • Basic setup and automated race calls • No Crew Chief performance bonuses"
+	else:
+		crew_effects_label.text = "Reliability +%.1f%%  •  Condition-loss reduction %.1f%%  •  Incident risk −%.1f%%  •  Pit mistake risk −%.1f%%" % [team.get_reliability_boost(), minf(30.0, team.get_reliability_boost() + team.get_accident_risk_reduction()), team.get_accident_risk_reduction(), team.get_pit_mistake_reduction()]
 
 
 func _role_summary(role: String) -> String:
@@ -306,12 +310,13 @@ func _on_confirm_button_pressed() -> void:
 	var entries: Array[Dictionary] = []
 	for race_team in selected_race_teams:
 		entries.append({"team_id": race_team.team_id, "team_name": race_team.team_name, "driver_id": race_team.driver_id, "car_bay": race_team.car_bay})
-	GameManager.begin_race_weekend({"strategy_id": selected_strategy, "entry_fee_total": total_fee, "entries": entries})
+	var uses_volunteer_crew := GameManager.team.get_crew_chief() == null and RaceReadiness.can_use_volunteer_crew(GameManager.team)
+	GameManager.begin_race_weekend({"strategy_id": selected_strategy, "entry_fee_total": total_fee, "entries": entries, "uses_volunteer_crew": uses_volunteer_crew})
 	GameManager.save_game()
 	GameManager.report_decision_outcome({
 		"title": "%d race entr%s committed" % [selected_race_teams.size(), "y" if selected_race_teams.size() == 1 else "ies"],
 		"message": "%s is ready for practice and qualifying." % GameManager.selected_race.race_name,
-		"detail": "AI crew chiefs will manage each car after the green flag.",
+		"detail": "The volunteer crew will manage each car after the green flag." if uses_volunteer_crew else "AI crew chiefs will manage each car after the green flag.",
 		"cash_delta": GameManager.team.money - cash_before,
 		"action_label": "Continue weekend",
 		"action_path": "res://scenes/pages/race_weekend/race_weekend.tscn",

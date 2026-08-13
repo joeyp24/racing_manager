@@ -47,7 +47,7 @@ func _ready() -> void:
 	speed_selector.select(1)
 	_update_timer_speed()
 	track_map.set_simulation(simulation)
-	race_flow.set_stage(3, "%d team entr%s · AI crew chiefs control race strategy" % [simulation.get_player_entries().size(), "y" if simulation.get_player_entries().size() == 1 else "ies"])
+	race_flow.set_stage(3, "%d team entr%s · %s controls race strategy" % [simulation.get_player_entries().size(), "y" if simulation.get_player_entries().size() == 1 else "ies", simulation.crew_controller_label])
 	_apply_race_identity()
 	_refresh_display()
 	pause_button.call_deferred("grab_focus")
@@ -71,7 +71,7 @@ func _toggle_pause() -> void:
 	message_label.text = (
 		"BROADCAST PAUSED · Crew strategy remains locked"
 		if is_paused
-		else "Race running · Crew chiefs are managing every team entry"
+		else "Race running · %s is managing every team entry" % simulation.crew_controller_label
 	)
 	if is_paused:
 		lap_timer.stop()
@@ -105,12 +105,12 @@ func _advance_one_lap() -> void:
 func _on_caution_started(lap: int) -> void:
 	if finalized:
 		return
-	message_label.text = "YELLOW FLAG · Lap %d · Crew chiefs are handling the caution cycle" % lap
+	message_label.text = "YELLOW FLAG · Lap %d · %s is handling the caution cycle" % [lap, simulation.crew_controller_label]
 	_refresh_display()
 
 
 func _on_crew_chief_call_issued(call: Dictionary) -> void:
-	message_label.text = "CREW CHIEF / %s · %s" % [str(call.get("driver_name", "Team car")), str(call.get("title", "Strategy update"))]
+	message_label.text = "%s / %s · %s" % [simulation.crew_controller_label.to_upper(), str(call.get("driver_name", "Team car")), str(call.get("title", "Strategy update"))]
 	_refresh_crew_chief_feed()
 
 
@@ -187,7 +187,7 @@ func _refresh_team_summary() -> void:
 
 func _refresh_crew_chief_feed() -> void:
 	if simulation.crew_chief_calls.is_empty():
-		crew_chief_feed.text = "[color=#8793a3]Crew chiefs are preparing the opening stint.[/color]"
+		crew_chief_feed.text = "[color=#8793a3]%s is preparing the opening stint.[/color]" % simulation.crew_controller_label
 		return
 	var lines := PackedStringArray()
 	var first := maxi(0, simulation.crew_chief_calls.size() - 6)

@@ -40,6 +40,7 @@ var latest_engineer_advice: Dictionary = {}
 var caution_start_positions: Dictionary = {}
 var automated_player_crew: bool = false
 var crew_chief_calls: Array[Dictionary] = []
+var crew_controller_label: String = "Crew chief"
 
 
 func setup(
@@ -243,7 +244,7 @@ func simulate_lap() -> void:
 		if player_entry.status != "Retired" and player_entry.position != previous_position:
 			event_log.append("LAP %d  %s is now P%d." % [current_lap, player_entry.driver_name, player_entry.position])
 	if player != null and current_lap % maxi(4, race_distance_laps / 8) == 0:
-		event_log.append("LAP %d  Crew chief: tyres %d%%, fuel %.1f laps, car %d%%, systems %d%%." % [current_lap, roundi(player.tyre_condition), player.fuel_laps / maxf(0.1, race.fuel_consumption_factor), roundi(player.car_condition), roundi(player.mechanical_health)])
+		event_log.append("LAP %d  %s: tyres %d%%, fuel %.1f laps, car %d%%, systems %d%%." % [current_lap, crew_controller_label, roundi(player.tyre_condition), player.fuel_laps / maxf(0.1, race.fuel_consumption_factor), roundi(player.car_condition), roundi(player.mechanical_health)])
 		_generate_engineer_advice("interval")
 	_record_player_telemetry()
 	_record_replay_snapshot()
@@ -604,7 +605,7 @@ func _record_crew_chief_call(
 		"title": "%s: %s" % [entry.driver_name, title],
 		"detail": detail,
 	})
-	event_log.append("LAP %d  CREW CHIEF / %s — %s: %s" % [current_lap, entry.driver_name, title, detail])
+	event_log.append("LAP %d  %s / %s — %s: %s" % [current_lap, crew_controller_label.to_upper(), entry.driver_name, title, detail])
 	crew_chief_call_issued.emit(call.duplicate(true))
 
 
@@ -736,16 +737,17 @@ func get_player_entries() -> Array[RaceEntryState]:
 	return player_entries
 
 
-func set_crew_chief_automation(enabled: bool) -> void:
+func set_crew_chief_automation(enabled: bool, controller_label: String = "Crew chief") -> void:
 	var starting_automation := enabled and not automated_player_crew
 	automated_player_crew = enabled
+	crew_controller_label = controller_label
 	if not starting_automation:
 		return
 	for entry in get_player_entries():
 		_record_crew_chief_call(
 			entry,
 			"Race plan active",
-			"The crew chief will manage pace, fuel, traffic, cautions, and pit service.",
+			"The %s will manage pace, fuel, traffic, cautions, and pit service." % crew_controller_label.to_lower(),
 			"info"
 		)
 
