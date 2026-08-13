@@ -683,11 +683,16 @@ static func _apply_upkeep(team, elapsed_days: int, summaries: Array[String]) -> 
 	for facility_id in FACILITIES:
 		var level := get_facility_level(team, facility_id)
 		upkeep += int(FACILITIES[facility_id].upkeep) * level
-	var weekly_cost := roundi(float(upkeep) * float(elapsed_days) / 7.0)
+	var facility_cost := roundi(float(upkeep) * float(elapsed_days) / 7.0)
+	var fleet_cost := roundi(float(team.get_fleet_weekly_upkeep()) * float(elapsed_days) / 7.0)
+	var weekly_cost := facility_cost + fleet_cost
 	if weekly_cost > 0:
 		team.money -= weekly_cost
-		team.record_finance("Headquarters", -weekly_cost, "Facility upkeep")
-		summaries.append("Facility upkeep: $%s" % weekly_cost)
+		if facility_cost > 0:
+			team.record_finance("Headquarters", -facility_cost, "Facility upkeep")
+		if fleet_cost > 0:
+			team.record_finance("Fleet", -fleet_cost, "Additional-car storage and inspection upkeep")
+		summaries.append("Facility and fleet upkeep: $%s" % weekly_cost)
 
 
 static func _ensure_academy_prospects(team) -> void:

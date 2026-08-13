@@ -490,6 +490,7 @@ func _on_page_changed(scene_path: String) -> void:
 		"race_entry": race_calendar_button, "race_weekend": race_calendar_button,
 		"live_race": race_calendar_button, "race_results": race_calendar_button,
 		"championship": championship_button, "offseason": championship_button, "garage": garage_button,
+		"fleet_workshop": garage_button,
 		"drivers": drivers_button, "driver_market": driver_market_button,
 		"engineering": engineering_button, "race_teams": race_teams_button,
 		"staff": staff_button, "finances": finances_button, "shop": shop_button,

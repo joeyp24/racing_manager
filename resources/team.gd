@@ -12,9 +12,11 @@ const ROLE_LIMITS: Dictionary = {
 }
 const MANUFACTURING_BASE_COST: int = 1800
 const PART_REPAIR_COST_PER_POINT: int = 12
+const FLEET_WEEKLY_STORAGE_COST: int = 175
+const BACKUP_TRANSPORT_RATE: float = 0.22
 const MAX_RACE_TEAMS: int = 4
 const RACE_TEAM_EXPANSION_COST: int = 25000
-const CURRENT_SAVE_FORMAT_VERSION: int = 18
+const CURRENT_SAVE_FORMAT_VERSION: int = 19
 const ENGINEERING_PROJECT_DAYS: int = 14
 const DRIVER_TRAINING_DAYS: int = 14
 const XP_PER_LEVEL: int = 100
@@ -1181,6 +1183,7 @@ func ensure_car_parts() -> void:
 		var car := car_value as Car
 		if car != null:
 			car.ensure_standard_parts()
+			car.ensure_workshop_state(true)
 
 
 func get_car(bay_index: int) -> Car:
@@ -1216,6 +1219,7 @@ func buy_car(
 	if money < purchase_cost:
 		return false
 
+	var is_first_owned_car := get_owned_car_count() == 0
 	var purchased_car: Car = (
 		car_template.duplicate(true) as Car
 	)
@@ -1227,6 +1231,8 @@ func buy_car(
 		return false
 
 	purchased_car.ensure_standard_parts()
+	if not is_first_owned_car:
+		purchased_car.initialize_unprepared()
 
 	money -= purchase_cost
 	cars[bay_index] = purchased_car
@@ -1251,6 +1257,8 @@ func sell_car(bay_index: int) -> int:
 	var car: Car = cars[bay_index] as Car
 
 	if car == null:
+		return 0
+	if not car.workshop_jobs.is_empty():
 		return 0
 
 	var sale_price: int = car.value
@@ -1297,6 +1305,212 @@ func install_part(car: Car, part: CarPart) -> bool:
 	record_finance("Parts", 0, "Installed %s on %s" % [part.part_name, car.name])
 	emit_changed()
 	return true
+
+
+func get_owned_car_count() -> int:
+	var count := 0
+	for value in cars:
+		if value is Car:
+			count += 1
+	return count
+
+
+func get_fleet_weekly_upkeep() -> int:
+	return maxi(0, get_owned_car_count() - 1) * FLEET_WEEKLY_STORAGE_COST
+
+
+func get_backup_transport_cost(race: Race, backup_count: int = 1) -> int:
+	if race == null or backup_count <= 0:
+		return 0
+	return roundi(float(get_effective_weekend_cost(race)) * BACKUP_TRANSPORT_RATE) * backup_count
+
+
+func get_workshop_slot_count() -> int:
+	return clampi(1 + get_staff_by_role("Mechanic").size(), 1, 4)
+
+
+func get_workshop_job_quote(car: Car, kind: String, component: String = "", race: Race = null, rushed: bool = false) -> Dictionary:
+	if car == null:
+		return {}
+	car.ensure_workshop_state()
+	var duration := 0
+	var cost := 0
+	var label := "Workshop job"
+	match kind:
+		"inspection":
+			duration = 3; cost = 250; label = "Initial inspection"
+		"baseline_setup":
+			duration = 7; cost = 600; label = "Baseline setup"
+		"shakedown":
+			duration = 4; cost = 400; label = "Shakedown"
+		"routine_service":
+			duration = 3; cost = maxi(300, roundi(float(car.value) * 0.018)); label = "Routine service"
+		"patch", "rebuild", "replacement":
+			if not Car.DAMAGE_COMPONENTS.has(component):
+				return {}
+			var damage := maxi(1, roundi(100.0 - car.get_component_health(component)))
+			duration = {"patch": 4, "rebuild": 12, "replacement": 18}.get(kind, 4)
+			var rate := int({"patch": 14, "rebuild": 42, "replacement": 72}.get(kind, 14))
+			cost = maxi({"patch": 250, "rebuild": 850, "replacement": 1600}.get(kind, 250), damage * rate)
+			label = "%s %s" % [kind.capitalize(), str(Car.DAMAGE_LABELS.get(component, component)).to_lower()]
+		"race_preparation":
+			if race == null:
+				return {}
+			duration = 7; cost = 500; label = "%s preparation" % race.race_name
+		_:
+			return {}
+	var duration_reduction := minf(0.22, get_repair_time_reduction() / 100.0)
+	duration = maxi(1, ceili(float(duration) * (1.0 - duration_reduction)))
+	if rushed:
+		duration = maxi(1, ceili(float(duration) * 0.55))
+		cost = ceili(float(cost) * 1.65)
+	cost = get_discounted_cost(roundi(float(cost) * float(get_difficulty_setting("repair_multiplier", 1.0))))
+	return {
+		"kind": kind, "component": component, "label": label,
+		"duration": duration, "cost": cost, "rushed": rushed,
+		"blocking": true, "race_id": race.race_id if race != null else "",
+		"track_type": race.track_type if race != null else "",
+	}
+
+
+func _workshop_slot_available_days() -> Array[int]:
+	var days: Array[int] = []
+	for slot in get_workshop_slot_count():
+		days.append(current_season_day)
+	for car_value in cars:
+		var car := car_value as Car
+		if car == null:
+			continue
+		for job in car.workshop_jobs:
+			var slot := clampi(int(job.get("slot", 0)), 0, days.size() - 1)
+			days[slot] = maxi(days[slot], int(job.get("completion_day", current_season_day)))
+	return days
+
+
+func get_workshop_job_schedule(car: Car, quote: Dictionary) -> Dictionary:
+	if car == null or quote.is_empty():
+		return {}
+	var slot_days := _workshop_slot_available_days()
+	var car_available := maxi(current_season_day, car.get_latest_workshop_day())
+	var selected_slot := 0
+	var selected_start := maxi(car_available, slot_days[0])
+	for slot in range(1, slot_days.size()):
+		var candidate_start := maxi(car_available, slot_days[slot])
+		if candidate_start < selected_start:
+			selected_start = candidate_start
+			selected_slot = slot
+	return {
+		"slot": selected_slot,
+		"start_day": selected_start,
+		"completion_day": selected_start + int(quote.get("duration", 1)),
+	}
+
+
+func _queue_workshop_quote(car: Car, quote: Dictionary) -> bool:
+	if car == null or quote.is_empty() or money < int(quote.get("cost", 0)):
+		return false
+	var kind := str(quote.get("kind", ""))
+	if car.has_pending_workshop_job(kind, str(quote.get("component", "")), str(quote.get("race_id", ""))):
+		return false
+	if kind in ["patch", "rebuild", "replacement"]:
+		for repair_kind in ["patch", "rebuild", "replacement"]:
+			if car.has_pending_workshop_job(repair_kind, str(quote.get("component", ""))):
+				return false
+	var schedule := get_workshop_job_schedule(car, quote)
+	if schedule.is_empty():
+		return false
+	var job := quote.duplicate()
+	var selected_slot := int(schedule.get("slot", 0))
+	var selected_start := int(schedule.get("start_day", current_season_day))
+	job["slot"] = selected_slot
+	job["start_day"] = selected_start
+	job["completion_day"] = int(schedule.get("completion_day", selected_start + int(quote.get("duration", 1))))
+	job["id"] = "%d:%d:%s:%d" % [current_season_year, selected_start, str(job.get("kind", "job")), car.workshop_jobs.size()]
+	money -= int(job.get("cost", 0))
+	car.workshop_jobs.append(job)
+	record_finance("Workshop", -int(job.get("cost", 0)), "%s for %s" % [job.get("label", "Workshop job"), car.name])
+	car.emit_changed()
+	emit_changed()
+	return true
+
+
+func queue_workshop_job(car: Car, kind: String, component: String = "", race: Race = null, rushed: bool = false) -> bool:
+	return _queue_workshop_quote(car, get_workshop_job_quote(car, kind, component, race, rushed))
+
+
+func queue_initial_preparation(car: Car, rushed: bool = false) -> bool:
+	if car == null or car.is_initial_preparation_complete():
+		return false
+	for job in car.workshop_jobs:
+		if str(job.get("kind", "")) in ["inspection", "baseline_setup", "shakedown"]:
+			return false
+	var quotes: Array[Dictionary] = []
+	var total_cost := 0
+	for kind in ["inspection", "baseline_setup", "shakedown"]:
+		var quote := get_workshop_job_quote(car, kind, "", null, rushed)
+		quotes.append(quote)
+		total_cost += int(quote.get("cost", 0))
+	if money < total_cost:
+		return false
+	for quote in quotes:
+		if not _queue_workshop_quote(car, quote):
+			return false
+	return true
+
+
+func queue_part_install(car: Car, part: CarPart, rushed: bool = false) -> bool:
+	if car == null or part == null or not parts_inventory.has(part):
+		return false
+	var quote := {"kind":"part_install", "component":part.part_type, "label":"Install %s" % part.part_name, "duration":4, "cost":get_discounted_cost(250), "rushed":rushed, "blocking":true, "part":part}
+	if rushed:
+		quote["duration"] = 2
+		quote["cost"] = get_discounted_cost(425)
+	if money < int(quote.get("cost", 0)):
+		return false
+	parts_inventory.erase(part)
+	if not _queue_workshop_quote(car, quote):
+		parts_inventory.append(part)
+		return false
+	return true
+
+
+func complete_workshop_jobs(through_day: int) -> Array[String]:
+	var completed: Array[String] = []
+	for car_value in cars:
+		var car := car_value as Car
+		if car == null:
+			continue
+		var remaining: Array[Dictionary] = []
+		var ordered := car.workshop_jobs.duplicate()
+		ordered.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.get("completion_day", 0)) < int(b.get("completion_day", 0)))
+		for job in ordered:
+			if int(job.get("completion_day", through_day + 1)) > through_day:
+				remaining.append(job)
+				continue
+			if str(job.get("kind", "")) == "part_install":
+				var part := job.get("part") as CarPart
+				if part != null:
+					var removed := car.install_part(part)
+					if removed != null and removed.tier != "Standard":
+						parts_inventory.append(removed)
+			else:
+				car.apply_workshop_job(job, int(job.get("completion_day", through_day)))
+			completed.append("%s completed for %s" % [job.get("label", "Workshop job"), car.name])
+		car.workshop_jobs = remaining
+	return completed
+
+
+func get_workshop_date_events(target_day: int) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for car_value in cars:
+		var car := car_value as Car
+		if car == null:
+			continue
+		for job in car.workshop_jobs:
+			var day := int(job.get("completion_day", target_day + 1))
+			if day > current_season_day and day <= target_day:
+				events.append({"day":day, "type":"workshop", "title":"%s: %s" % [car.name, job.get("label", "Workshop job")]})
+	return events
 
 
 func get_parts_by_type(part_type: String) -> Array[CarPart]:
@@ -1717,7 +1931,7 @@ func complete_engineering_projects(through_day: int = CalendarCatalog.SEASON_END
 
 func get_date_events(target_day: int) -> Array[Dictionary]:
 	_migrate_date_driven_projects()
-	var events: Array[Dictionary] = []
+	var events: Array[Dictionary] = get_workshop_date_events(target_day)
 	for project in engineering_projects:
 		var day := int(project.get("completion_day", target_day))
 		if day > current_season_day and day <= target_day:
@@ -1742,6 +1956,7 @@ func advance_to_date(target_day: int) -> Array[String]:
 		return []
 	var elapsed_days := clamped_target - current_season_day
 	var summaries := complete_engineering_projects(clamped_target)
+	summaries.append_array(complete_workshop_jobs(clamped_target))
 	for driver_id in driver_training_programs.keys():
 		var program := driver_training_programs[driver_id] as Dictionary
 		while int(program.get("completion_day", clamped_target + 1)) <= clamped_target:

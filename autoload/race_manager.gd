@@ -311,12 +311,13 @@ func create_live_simulation(
 	elif plan.begins_with("Short"):
 		fuel_fraction = 0.42
 	var player_race_attributes := player_car.get_race_attributes()
+	var fleet_preparation_bonus := player_car.get_preparation_bonus(selected_race)
 	var primary_entry := ((weekend_data.get("entries", []) as Array)[0] as Dictionary) if not (weekend_data.get("entries", []) as Array).is_empty() else {}
 	var primary_team_id := str(primary_entry.get("team_id", GameManager.team.active_race_team_id))
 	player_race_attributes["consistency"] = player_driver.get_effective_consistency()
 	var expansion_modifiers := _call_career_expansion_manager(&"get_race_modifiers", [GameManager.team]) as Dictionary
 	var rivalry_modifiers := _call_career_expansion_manager(&"get_rivalry_modifiers", [GameManager.team]) as Dictionary
-	player_race_attributes["reliability"] = clampf(float(player_race_attributes.get("reliability", 75.0)) + float(expansion_modifiers.reliability), 1.0, 100.0)
+	player_race_attributes["reliability"] = clampf(float(player_race_attributes.get("reliability", 75.0)) + float(expansion_modifiers.reliability) + fleet_preparation_bonus * 1.5, 1.0, 100.0)
 	player_race_attributes["fuel"] = clampf(float(player_race_attributes.get("fuel", 50.0)) + float(expansion_modifiers.fuel), 1.0, 100.0)
 	player_race_attributes["tyres"] = clampf(float(player_race_attributes.get("tyres", 50.0)) + float(expansion_modifiers.tyres), 1.0, 100.0)
 	player_race_attributes["strategy_skill"] = clampf(42.0 + GameManager.team.get_crew_chief_performance_boost(primary_team_id) * 7.0, 35.0, 98.0)
@@ -455,6 +456,10 @@ func finalize_live_race(
 	result.replay_timeline = simulation.replay_timeline.duplicate(true)
 	for summary in weekend_data.get("decision_log", []):
 		result.weekend_summary.append(str(summary))
+	for entry_value in weekend_data.get("entries", []):
+		var entry_summary := entry_value as Dictionary
+		if not str(entry_summary.get("substitution_reason", "")).is_empty():
+			result.weekend_summary.append("%s: %s" % [entry_summary.get("team_name", "Team"), entry_summary.substitution_reason])
 	result.weekend_summary.append("Live timing completed over %d laps." % selected_race.lap_count)
 	result.standings = simulation.as_final_standings()
 	_record_ai_race_histories(selected_race, result.standings)
@@ -479,6 +484,7 @@ func finalize_live_race(
 	player_driver.record_race({"race_id":selected_race.race_id, "race_name":selected_race.race_name, "start":result.starting_position, "finish":result.finishing_position, "positions_gained":result.positions_gained, "qualifying":result.starting_position, "points":result.championship_points_earned, "track_type":selected_race.track_type, "weather":selected_race.weather, "status":str(player_row.get("status", "Finished")), "incident":float(player_row.get("incident_time_loss", 0.0)) > 0.0})
 	GameManager.team.process_driver_race_contracts(weekend_data)
 	apply_race_effects(result)
+	_record_fleet_usage(result, weekend_data)
 	_call_career_expansion_manager(&"process_race", [GameManager.team, result, simulation])
 	complete_race(selected_race)
 	last_result = result
@@ -564,6 +570,10 @@ func run_race(
 	result.strategy_effectiveness = float(weekend_data.get("race_modifier", 0.0))
 	for summary in weekend_data.get("decision_log", []):
 		result.weekend_summary.append(str(summary))
+	for entry_value in weekend_data.get("entries", []):
+		var entry_summary := entry_value as Dictionary
+		if not str(entry_summary.get("substitution_reason", "")).is_empty():
+			result.weekend_summary.append("%s: %s" % [entry_summary.get("team_name", "Team"), entry_summary.substitution_reason])
 
 	var race_standings: Array[Dictionary] = []
 
@@ -663,6 +673,7 @@ func run_race(
 	GameManager.team.process_driver_race_contracts(weekend_data)
 	player_driver.record_race({"race_id":selected_race.race_id, "race_name":selected_race.race_name, "start":result.starting_position, "finish":result.finishing_position, "positions_gained":result.positions_gained, "qualifying":result.starting_position, "points":result.championship_points_earned, "track_type":selected_race.track_type, "weather":selected_race.weather, "status":"Finished", "incident":false})
 	apply_race_effects(result)
+	_record_fleet_usage(result, weekend_data)
 	_call_career_expansion_manager(&"process_race", [GameManager.team, result, null])
 	complete_race(selected_race)
 
@@ -858,7 +869,10 @@ func calculate_player_score(
 		+ player_driver.get_race_state_modifier()
 		+ random_variance
 	)
-	return total_score * float(strategy.get("performance_modifier", 1.0))
+	return (
+		total_score * float(strategy.get("performance_modifier", 1.0))
+		+ player_car.get_preparation_bonus(selected_race)
+	)
 
 
 func calculate_ai_score(
@@ -1076,6 +1090,25 @@ func apply_race_effects(
 	)
 
 	GameManager.team.emit_changed()
+
+
+func _record_fleet_usage(result: RaceResult, weekend_data: Dictionary) -> void:
+	if result == null or result.race == null or GameManager.team == null:
+		return
+	if result.player_car != null:
+		result.player_car.record_race_use(result.race, GameManager.team.current_season_day)
+	var entries := weekend_data.get("entries", []) as Array
+	for index in range(1, entries.size()):
+		var entry := entries[index] as Dictionary
+		var car := GameManager.team.get_car(int(entry.get("car_bay", -1)))
+		if car == null or car == result.player_car:
+			continue
+		var wear := maxi(1, result.condition_lost)
+		car.condition = maxi(0, car.condition - wear)
+		for part in car.installed_parts:
+			if part != null:
+				part.condition = maxi(0, part.condition - maxi(1, wear / 3))
+		car.record_race_use(result.race, GameManager.team.current_season_day)
 
 
 func apply_department_race_effects(result: RaceResult) -> void:

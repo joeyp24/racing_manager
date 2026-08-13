@@ -353,8 +353,8 @@ func _on_comparison_action(context: Dictionary) -> void:
 	GameManager.save_game()
 	GameManager.report_decision_outcome({
 		"title": "%s added to Bay %d" % [candidate.name, target_bay + 1],
-		"message": "Purchase complete and the car is ready for inspection.",
-		"detail": "The garage and season forecast now use the new balance.",
+		"message": "Purchase complete. Additional cars require inspection, baseline setup, and a shakedown before racing.",
+		"detail": "Open the Fleet Workshop to schedule the new-car programme; the first career car keeps its opening-race exception.",
 		"cash_delta": GameManager.team.money - cash_before,
 		"action_label": "View new car",
 		"action_path": "res://scenes/pages/garage/car_inspection.tscn",

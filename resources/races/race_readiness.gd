@@ -44,16 +44,21 @@ static func get_recommended_car(team: Team, series_id: String = "") -> Car:
 	if team == null:
 		return null
 	var best_car: Car = null
+	var fallback_car: Car = null
 	var best_score := -1
 	for car_value in team.cars:
 		var car := car_value as Car
 		if car == null or not is_car_eligible(car, series_id):
 			continue
+		if fallback_car == null:
+			fallback_car = car
+		if not car.is_race_available(team.current_season_day):
+			continue
 		var score := car.get_total_performance_points(team) + car.condition
 		if score > best_score:
 			best_score = score
 			best_car = car
-	return best_car
+	return best_car if best_car != null else fallback_car
 
 
 static func is_car_eligible(car: Car, series_id: String = "") -> bool:
@@ -86,6 +91,12 @@ static func _car_check(team: Team, race: Race, selected_car: Car) -> Dictionary:
 		return _check(BLOCKED, "CAR HOMOLOGATION", "This car is homologated for the %s and cannot enter a %s event." % [car_series.get("name", car.series_id), race_series.get("name", race.series_id)], "Open Garage", "garage")
 	if car == null:
 		return _check(BLOCKED, "ELIGIBLE CAR", "No race-ready car has a complete, functioning parts package.", "Open Garage", "garage")
+	if not car.is_initial_preparation_complete():
+		return _check(BLOCKED, "CAR PREPARATION", "%s still requires its initial inspection, baseline setup, and shakedown." % car.name, "Open Workshop", "workshop", "Complete new-car programme")
+	if car.has_active_workshop_job(team.current_season_day):
+		return _check(BLOCKED, "WORKSHOP AVAILABILITY", "%s is currently committed to workshop work." % car.name, "Open Workshop", "workshop", "Select a prepared backup")
+	if not car.is_race_available(team.current_season_day):
+		return _check(BLOCKED, "MECHANICAL READINESS", "%s cannot pass event inspection in its current state." % car.name, "Open Workshop", "workshop", "Repair critical systems")
 	var worn_parts := 0
 	for part in car.installed_parts:
 		if part != null and part.condition < 60:
@@ -93,6 +104,9 @@ static func _car_check(team: Team, race: Race, selected_car: Car) -> Dictionary:
 	if car.condition < 70 or worn_parts > 0:
 		var reliability_penalty := maxi(1, roundi(float(70 - mini(car.condition, 70)) * 0.25) + worn_parts * 2)
 		return _check(SUBOPTIMAL, "CAR CONDITION", "%s is at %d%% condition; estimated reliability penalty is %d%%." % [car.name, car.condition, reliability_penalty], "Open Garage", "garage", "%d worn components" % worn_parts)
+	var preparation := car.get_preparation_score(race)
+	if preparation < 78:
+		return _check(SUBOPTIMAL, "EVENT PREPARATION", "%s has only %d/100 preparation for this event. A prepared alternate may be the stronger entry." % [car.name, preparation], "Open Workshop", "workshop", "Target: 78+")
 	return _check(READY, "ELIGIBLE CAR", "%s is fully equipped and at %d%% condition." % [car.name, car.condition], "", "", "Performance points %d" % car.get_total_performance_points(team))
 
 

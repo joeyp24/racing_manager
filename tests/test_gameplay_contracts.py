@@ -308,7 +308,7 @@ def test_finance_and_living_paddock_systems_are_integrated():
     race_simulation = (ROOT / "resources/races/race_simulation.gd").read_text()
     career_hub = (ROOT / "scenes/pages/career_hub/career_hub.gd").read_text()
     calendar = (ROOT / "scenes/pages/race_calendar/race_calendar.gd").read_text()
-    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 18" in team
+    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 19" in team
     assert "return _string_array" in team
     assert "class_name FinanceManager" in finance
     assert "owner_support" in finance and "series_distribution" in finance
@@ -365,7 +365,7 @@ def test_race_operations_analysis_and_team_philosophies_are_integrated():
     assert "func request_player_wave_around" in simulation
     assert "overtime_attempts" in simulation
     assert "DAMAGE_COMPONENTS" in car and "component_health" in simulation
-    assert "Workshop Restoration" in inspection
+    assert "Plan Workshop Repairs" in inspection
     assert "create_post_race_analysis_text" in results
     assert "WHAT COULD HAVE CHANGED THE RESULT" in results
     assert "const PHILOSOPHIES" in team_catalog

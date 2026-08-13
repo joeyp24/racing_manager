@@ -4,6 +4,7 @@ class_name RaceTeam
 @export var team_id: String = ""
 @export var team_name: String = "Race Team"
 @export var car_bay: int = -1
+@export var backup_car_bay: int = -1
 @export var driver_id: String = ""
 @export var active: bool = true
 @export_enum("Lead", "Second", "Equal", "Prospect") var driver_role: String = "Equal"

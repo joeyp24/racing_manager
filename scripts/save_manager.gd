@@ -109,6 +109,11 @@ static func _repair_and_migrate(team: Team) -> void:
 		_migrate_performance_points(team)
 	if team.save_format_version < 13:
 		ReputationManager.migrate_legacy_xp(team)
+	if team.save_format_version < 19:
+		for car_value in team.cars:
+			var legacy_car := car_value as Car
+			if legacy_car != null:
+				legacy_car.ensure_workshop_state(true)
 	team.ensure_series_progress(team.current_series_id)
 	team.load_series_progress(team.current_series_id)
 	team.ensure_calendar_progression(team.current_series_id)

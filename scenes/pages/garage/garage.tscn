@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://c2hddir0n5xrf"]
+[gd_scene load_steps=3 format=3 uid="uid://c2hddir0n5xrf"]
 
 [ext_resource type="PackedScene" uid="uid://hf02i4jjrd0u" path="res://scenes/pages/garage/garage_bay.tscn" id="1_ejesk"]
+[ext_resource type="Script" path="res://scenes/pages/garage/garage.gd" id="2"]
 
 [node name="Garage" type="Control" unique_id=905354991]
 layout_mode = 3
@@ -9,6 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("2")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=939594163]
 layout_mode = 1
@@ -29,6 +31,20 @@ theme_override_constants/separation = 8
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer" unique_id=260653347]
 layout_mode = 2
 theme_type_variation = &"PageTitle"
+text = "Fleet Garage"
+
+[node name="fleet_summary_label" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Fleet readiness"
+
+[node name="workshop_button" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "OPEN FLEET WORKSHOP  →"
 
 [node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=1737619062]
 layout_mode = 2
