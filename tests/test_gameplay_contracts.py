@@ -33,7 +33,8 @@ def test_car_performance_uses_part_points_and_explains_modifiers():
     for source in ("Engineering department", "Engineering staff", "Crew chief", "Wind tunnel", "Secret department"):
         assert source in team
     assert "format_performance_breakdown" in inspection
-    assert "PERFORMANCE POINTS" in inspection and "PERFORMANCE POINTS" in garage
+    assert "PERFORMANCE POINTS" in inspection
+    assert 'performance_value.text = str(current_car.get_total_performance_points(GameManager.team))' in garage
     assert "get_total_performance(" not in car
     assert "performance_bonus)" not in part
 

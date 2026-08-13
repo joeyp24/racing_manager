@@ -76,6 +76,19 @@ func _initialize() -> void:
 	assert(live_race.simulation != null)
 	assert(live_race.simulation.automated_player_crew)
 	assert(live_race.simulation.crew_controller_label == "Volunteer crew")
+	assert(not live_race.is_paused)
+	assert(not live_race.lap_timer.is_stopped())
+	assert(live_race.pause_button.text == "PAUSE")
+	var two_x_wait: float = float(live_race.lap_timer.wait_time)
+	live_race.speed_selector.select(2)
+	live_race._update_timer_speed()
+	assert(live_race.lap_timer.wait_time < two_x_wait)
+	assert("4× SPEED" in live_race.speed_label.text)
+	live_race._toggle_pause()
+	assert(live_race.is_paused)
+	assert(live_race.lap_timer.is_stopped())
+	assert(live_race.next_lap_button.disabled == false)
+	assert(live_race.pause_button.text == "RESUME")
 	assert(live_race.simulation.get_player_entries().size() == 2)
 	assert(live_race.simulation.crew_chief_calls.size() == 2)
 	assert(driver.driver_name in live_race.team_summary.text)
@@ -87,6 +100,9 @@ func _initialize() -> void:
 	assert(live_race.track_map.profile.get("venue_id", "") == "pine_ridge")
 	var tower_card := live_race.get_node("Margin/Root/Main/TimingColumn/TowerCard") as Control
 	var broadcast_scroll := live_race.get_node("Margin/Root/Main/BroadcastScroll") as Control
+	var playback := live_race.get_node("Margin/Root/Playback") as Control
+	var main_content := live_race.get_node("Margin/Root/Main") as Control
+	assert(playback.global_position.y < main_content.global_position.y)
 	if tower_card.size.y < 250.0 or tower_card.global_position.y + tower_card.size.y > 648.0 or broadcast_scroll.global_position.y + broadcast_scroll.size.y > 648.0:
 		push_error("Live broadcast does not fit the 1152x648 viewport: tower pos %s size %s, broadcast pos %s size %s" % [tower_card.global_position, tower_card.size, broadcast_scroll.global_position, broadcast_scroll.size])
 		quit(1)

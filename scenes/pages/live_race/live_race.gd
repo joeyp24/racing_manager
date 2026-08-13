@@ -14,6 +14,7 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 @onready var pause_button: Button = %pause_button
 @onready var speed_selector: OptionButton = %speed_selector
 @onready var next_lap_button: Button = %next_lap_button
+@onready var playback_status_label: Label = %playback_status_label
 @onready var track_map: LiveTrackMap = %track_map
 
 var simulation: RaceSimulation
@@ -50,6 +51,7 @@ func _ready() -> void:
 	race_flow.set_stage(3, "%d team entr%s · %s controls race strategy" % [simulation.get_player_entries().size(), "y" if simulation.get_player_entries().size() == 1 else "ies", simulation.crew_controller_label])
 	_apply_race_identity()
 	_refresh_display()
+	_set_paused(false)
 	pause_button.call_deferred("grab_focus")
 
 
@@ -65,11 +67,17 @@ func _on_lap_timer_timeout() -> void:
 func _toggle_pause() -> void:
 	if simulation == null or simulation.is_complete:
 		return
-	is_paused = not is_paused
-	pause_button.text = "Resume race" if is_paused else "Pause race"
+	_set_paused(not is_paused)
+
+
+func _set_paused(paused: bool) -> void:
+	is_paused = paused
+	pause_button.text = "RESUME" if is_paused else "PAUSE"
 	next_lap_button.disabled = not is_paused
+	playback_status_label.text = "Paused at lap %d" % simulation.current_lap if is_paused else "Running automatically"
+	playback_status_label.theme_type_variation = &"WarningLabel" if is_paused else &"SuccessLabel"
 	message_label.text = (
-		"BROADCAST PAUSED · Crew strategy remains locked"
+		"BROADCAST PAUSED · Change speed or advance one lap at a time"
 		if is_paused
 		else "Race running · %s is managing every team entry" % simulation.crew_controller_label
 	)
@@ -80,6 +88,20 @@ func _toggle_pause() -> void:
 	_refresh_header()
 
 
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is not InputEventKey or not event.pressed or event.echo:
+		return
+	if event.keycode == KEY_SPACE:
+		_toggle_pause()
+		get_viewport().set_input_as_handled()
+		return
+	var speed_index := int({KEY_1: 0, KEY_2: 1, KEY_3: 2, KEY_4: 3}.get(event.keycode, -1))
+	if speed_index >= 0:
+		speed_selector.select(speed_index)
+		_update_timer_speed()
+		get_viewport().set_input_as_handled()
+
+
 func _on_speed_selected(_index: int) -> void:
 	_update_timer_speed()
 
@@ -88,6 +110,7 @@ func _update_timer_speed() -> void:
 	var speed := SPEEDS[speed_selector.selected] if speed_selector.selected >= 0 else 1
 	var accessibility_speed := float(CareerExpansionManager.ensure_state(GameManager.team).accessibility.simulation_speed)
 	lap_timer.wait_time = 1.1 / (float(speed) * accessibility_speed)
+	speed_selector.tooltip_text = "Playback speed: %dx. Keys 1-4 select 1x, 2x, 4x, or 8x." % speed
 	if not is_paused:
 		lap_timer.start()
 	_refresh_header()

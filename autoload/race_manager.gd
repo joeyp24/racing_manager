@@ -1100,7 +1100,7 @@ func _record_fleet_usage(result: RaceResult, weekend_data: Dictionary) -> void:
 	var entries := weekend_data.get("entries", []) as Array
 	for index in range(1, entries.size()):
 		var entry := entries[index] as Dictionary
-		var car := GameManager.team.get_car(int(entry.get("car_bay", -1)))
+		var car: Car = GameManager.team.get_car(int(entry.get("car_bay", -1)))
 		if car == null or car == result.player_car:
 			continue
 		var wear := maxi(1, result.condition_lost)

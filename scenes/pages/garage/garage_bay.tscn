@@ -1,25 +1,178 @@
-[gd_scene format=3 uid="uid://hf02i4jjrd0u"]
+[gd_scene load_steps=2 format=3 uid="uid://hf02i4jjrd0u"]
 
 [ext_resource type="Script" uid="uid://cxf2mnhbafeyx" path="res://scenes/pages/garage/garage_bay.gd" id="1_oqiq0"]
 
-[node name="bay_1" type="PanelContainer" unique_id=628205770]
-custom_minimum_size = Vector2(220, 180)
+[node name="GarageBay" type="PanelContainer"]
+custom_minimum_size = Vector2(390, 272)
+theme_type_variation = &"CardPanel"
 script = ExtResource("1_oqiq0")
 
-[node name="bay_layout" type="VBoxContainer" parent="." unique_id=75109370]
+[node name="Frame" type="HBoxContainer" parent="."]
 layout_mode = 2
+theme_override_constants/separation = 10
 
-[node name="car_name_label" type="Label" parent="bay_layout" unique_id=571801476]
+[node name="accent_bar" type="ColorRect" parent="Frame"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+color = Color(0.49, 0.23, 0.93, 1)
+mouse_filter = 2
+
+[node name="Content" type="VBoxContainer" parent="Frame"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+
+[node name="TopRow" type="HBoxContainer" parent="Frame/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="bay_label" type="Label" parent="Frame/Content/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "No Car"
+theme_type_variation = &"EyebrowLabel"
+text = "BAY 01"
 
-[node name="action_button" type="Button" parent="bay_layout" unique_id=233642203]
+[node name="assignment_label" type="Label" parent="Frame/Content/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Build Car"
+size_flags_horizontal = 3
+theme_type_variation = &"MutedLabel"
+text = "ROTATION CAR"
+text_overrun_behavior = 3
 
-[node name="car_details_label" type="Label" parent="bay_layout" unique_id=1531273392]
+[node name="status_label" type="Label" parent="Frame/Content/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Empty Garage Bay"
+theme_type_variation = &"SuccessLabel"
+text = "RACE READY"
+
+[node name="occupied_content" type="VBoxContainer" parent="Frame/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="car_name_label" type="Label" parent="Frame/Content/occupied_content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CardTitle"
+text = "Car name"
+text_overrun_behavior = 3
+
+[node name="car_identity_label" type="Label" parent="Frame/Content/occupied_content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "2026 Manufacturer Model · Local Short Track Series"
+text_overrun_behavior = 3
+
+[node name="MetricStrip" type="PanelContainer" parent="Frame/Content/occupied_content"]
+layout_mode = 2
+theme_type_variation = &"StatusMetricPanel"
+
+[node name="Metrics" type="GridContainer" parent="Frame/Content/occupied_content/MetricStrip"]
+layout_mode = 2
+theme_override_constants/h_separation = 10
+columns = 3
+
+[node name="Performance" type="VBoxContainer" parent="Frame/Content/occupied_content/MetricStrip/Metrics"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="performance_value" type="Label" parent="Frame/Content/occupied_content/MetricStrip/Metrics/Performance"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"StatValue"
+text = "48"
+
+[node name="Caption" type="Label" parent="Frame/Content/occupied_content/MetricStrip/Metrics/Performance"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "PERFORMANCE POINTS"
+
+[node name="Condition" type="VBoxContainer" parent="Frame/Content/occupied_content/MetricStrip/Metrics"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="condition_value" type="Label" parent="Frame/Content/occupied_content/MetricStrip/Metrics/Condition"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"StatValue"
+text = "100%"
+
+[node name="Caption" type="Label" parent="Frame/Content/occupied_content/MetricStrip/Metrics/Condition"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "CONDITION"
+
+[node name="Preparation" type="VBoxContainer" parent="Frame/Content/occupied_content/MetricStrip/Metrics"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="preparation_value" type="Label" parent="Frame/Content/occupied_content/MetricStrip/Metrics/Preparation"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"StatValue"
+text = "55"
+
+[node name="Caption" type="Label" parent="Frame/Content/occupied_content/MetricStrip/Metrics/Preparation"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "NEXT EVENT PREP"
+
+[node name="condition_bar" type="ProgressBar" parent="Frame/Content/occupied_content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 7)
+layout_mode = 2
+value = 100.0
+show_percentage = false
+
+[node name="workshop_label" type="Label" parent="Frame/Content/occupied_content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "No workshop work scheduled"
+text_overrun_behavior = 3
+
+[node name="action_button" type="Button" parent="Frame/Content/occupied_content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "INSPECT & MANAGE  →"
+
+[node name="empty_content" type="VBoxContainer" parent="Frame/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Spacer" type="Control" parent="Frame/Content/empty_content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="empty_title" type="Label" parent="Frame/Content/empty_content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CardTitle"
+text = "Ready for another car"
+
+[node name="empty_description" type="Label" parent="Frame/Content/empty_content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Add a rotation car so one chassis can race while another is being prepared or repaired."
+autowrap_mode = 2
+
+[node name="EmptySpacer" type="Control" parent="Frame/Content/empty_content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="empty_action_button" type="Button" parent="Frame/Content/empty_content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "SHOP FOR A CAR  →"
