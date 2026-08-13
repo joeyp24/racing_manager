@@ -20,6 +20,24 @@ def test_mechanical_setup_is_not_changed_live():
     assert "set_player_brake_bias" in simulation
 
 
+def test_car_specialization_and_fleet_planning_are_persistent_and_race_effective():
+    car = (ROOT / "resources/car.gd").read_text()
+    team = (ROOT / "resources/team.gd").read_text()
+    race_manager = (ROOT / "autoload/race_manager.gd").read_text()
+    planner = (ROOT / "scenes/pages/garage/fleet_planner.gd").read_text()
+    assert "@export var specialization_id" in car
+    assert "@export var chassis_trait_id" in car
+    assert "@export var saved_setups" in car
+    assert "@export var driver_car_familiarity" in car
+    assert "@export var fleet_race_assignments" in team
+    assert "func assign_car_to_race(" in team
+    assert "func get_car_race_forecast(" in team
+    assert "get_identity_pace_bonus" in race_manager
+    assert "get_wear_multiplier" in race_manager
+    assert "HORIZON_EVENTS: int = 5" in planner
+    assert "QUEUE SETUP" in planner
+
+
 def test_car_performance_uses_part_points_and_explains_modifiers():
     part = (ROOT / "resources/car_part.gd").read_text()
     car = (ROOT / "resources/car.gd").read_text()
@@ -309,7 +327,7 @@ def test_finance_and_living_paddock_systems_are_integrated():
     race_simulation = (ROOT / "resources/races/race_simulation.gd").read_text()
     career_hub = (ROOT / "scenes/pages/career_hub/career_hub.gd").read_text()
     calendar = (ROOT / "scenes/pages/race_calendar/race_calendar.gd").read_text()
-    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 19" in team
+    assert "const CURRENT_SAVE_FORMAT_VERSION: int = 20" in team
     assert "return _string_array" in team
     assert "class_name FinanceManager" in finance
     assert "owner_support" in finance and "series_distribution" in finance

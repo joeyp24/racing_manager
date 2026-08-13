@@ -267,6 +267,8 @@ func _show_car_comparison(candidate: Car) -> void:
 		"current_title": current_name.to_upper(),
 		"candidate_title": "CANDIDATE",
 		"metrics": [
+			DecisionComparisonModel.metric("Specialization", current.get_specialization_data().get("name", "—") if current != null else "—", candidate.get_specialization_data().get("name", "All-Rounder"), "FLEET ROLE", DecisionComparisonModel.NEUTRAL, "Track specialization contributes directly to race pace at matching venues."),
+			DecisionComparisonModel.metric("Chassis trait", current.get_chassis_trait_data().get("name", "—") if current != null else "—", candidate.get_chassis_trait_data().get("name", "Stable Platform"), "PERSISTENT", DecisionComparisonModel.NEUTRAL, candidate.get_chassis_trait_data().get("description", "A lasting chassis characteristic.")),
 			DecisionComparisonModel.metric("Performance", str(current_pp), str(candidate_pp), "%+d PP" % pp_delta, _impact(pp_delta), "Displayed whole-car Performance Points."),
 			DecisionComparisonModel.metric("Condition", "%d%%" % (current.condition if current != null else 0), "%d%%" % candidate.condition, "%+d%%" % condition_delta, _impact(condition_delta), "Condition affects usable pace and repair exposure."),
 			_attribute_metric("Power", current_attributes, candidate_attributes, "power"),
@@ -312,6 +314,8 @@ func _car_recommendation(current: Car, candidate: Car, pp_delta: int) -> String:
 		return "Clear performance upgrade with manageable condition risk. Check the reserve before committing."
 	if pp_delta > 0:
 		return "The pace improves, but used-car wear may consume part of the purchase advantage through repairs."
+	if current.specialization_id != candidate.specialization_id:
+		return "This adds a different track specialization to the fleet. Its strategic value may exceed the raw Performance Point comparison."
 	return "This does not improve whole-car Performance Points. Buy only for capacity, condition, or a deliberate rebuild."
 
 

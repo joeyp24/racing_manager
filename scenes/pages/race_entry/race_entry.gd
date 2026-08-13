@@ -77,7 +77,8 @@ func create_car_options() -> void:
 		if race_team == null:
 			continue
 		var driver: Driver = GameManager.team.get_driver_by_id(race_team.driver_id)
-		var car: Car = GameManager.team.get_car(race_team.car_bay)
+		var planned_bay := _get_planned_primary_bay(race_team)
+		var car: Car = GameManager.team.get_car(planned_bay)
 		var entry_stack := VBoxContainer.new()
 		var option: CheckBox = CheckBox.new()
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -86,7 +87,8 @@ func create_car_options() -> void:
 		var primary_ready := _is_car_ready_for_entry(car)
 		var backup_bay := int(backup_bays_by_team.get(race_team.team_id, -1))
 		option.disabled = not race_team.active or driver == null or (not primary_ready and backup_bay < 0)
-		var car_status := "ready" if primary_ready else "unavailable — backup required"
+		var is_planned_rotation := planned_bay >= 0 and planned_bay != race_team.car_bay
+		var car_status := ("planned rotation · ready" if is_planned_rotation else "ready") if primary_ready else "unavailable — backup required"
 		option.text = "%s  •  %s  •  %s (%s)" % [race_team.team_name, driver.driver_name if driver != null else "No driver", car.name if car != null else "No car", car_status]
 		option.tooltip_text = "Assign a driver and prepare either the primary or a backup car." if option.disabled else "Include this team in the race entry."
 		option.button_pressed = not option.disabled
@@ -128,8 +130,10 @@ func _create_backup_selector(race_team: RaceTeam) -> OptionButton:
 	var selected_index := 0
 	var primary_bays: Array[int] = []
 	for other in GameManager.team.race_teams:
-		if other != null and other.car_bay >= 0:
-			primary_bays.append(other.car_bay)
+		if other != null:
+			var planned_bay := _get_planned_primary_bay(other)
+			if planned_bay >= 0:
+				primary_bays.append(planned_bay)
 	for bay in GameManager.team.cars.size():
 		if primary_bays.has(bay):
 			continue
@@ -153,7 +157,7 @@ func _on_backup_selected(index: int, race_team: RaceTeam, selector: OptionButton
 	backup_bays_by_team[race_team.team_id] = bay
 	var option := entry_options_by_team.get(race_team.team_id) as CheckBox
 	var driver := GameManager.team.get_driver_by_id(race_team.driver_id)
-	var primary := GameManager.team.get_car(race_team.car_bay)
+	var primary := GameManager.team.get_car(_get_planned_primary_bay(race_team))
 	var primary_ready := _is_car_ready_for_entry(primary)
 	if option != null:
 		var was_disabled := option.disabled
@@ -177,11 +181,19 @@ func _is_car_ready_for_entry(car: Car) -> bool:
 
 
 func _get_effective_car_bay(race_team: RaceTeam) -> int:
-	var primary := GameManager.team.get_car(race_team.car_bay)
+	var primary_bay := _get_planned_primary_bay(race_team)
+	var primary := GameManager.team.get_car(primary_bay)
 	if _is_car_ready_for_entry(primary):
-		return race_team.car_bay
+		return primary_bay
 	var backup_bay := int(backup_bays_by_team.get(race_team.team_id, race_team.backup_car_bay))
 	return backup_bay if _is_car_ready_for_entry(GameManager.team.get_car(backup_bay)) else -1
+
+
+func _get_planned_primary_bay(race_team: RaceTeam) -> int:
+	if race_team == null or GameManager.team == null or GameManager.selected_race == null:
+		return race_team.car_bay if race_team != null else -1
+	var planned_bay := GameManager.team.get_race_car_assignment(GameManager.selected_race.race_id, race_team.team_id)
+	return planned_bay if planned_bay >= 0 else race_team.car_bay
 
 
 func _on_strategy_selected(index: int) -> void:
@@ -224,7 +236,8 @@ func update_entry_information() -> void:
 	if float(attributes.grip) >= 65.0 and race.handling_demand >= 0.55: strengths.append("mechanical grip suits the corner load")
 	if float(attributes.tyres) >= 65.0 and race.tyre_wear_factor >= 1.0: strengths.append("tyre preservation should extend the pit window")
 	if strengths.is_empty(): strengths.append("a balanced package offers no dominant track advantage")
-	parts_label.text = "  •  ".join(part_lines) + "\nFIT %d/100 — %s." % [roundi(suitability / maxf(0.1, race.power_demand + race.handling_demand)), "; ".join(strengths)]
+	var identity_bonus := selected_car.get_identity_pace_bonus(race, driver.driver_id)
+	parts_label.text = "  •  ".join(part_lines) + "\nFIT %d/100 — %s.\n%s  ·  Identity pace %+.1f  ·  Driver/car familiarity %d starts" % [roundi(suitability / maxf(0.1, race.power_demand + race.handling_demand)), "; ".join(strengths), selected_car.get_identity_summary().to_upper(), identity_bonus, selected_car.get_driver_familiarity_starts(driver.driver_id)]
 
 
 func show_crew_information() -> void:
@@ -270,13 +283,14 @@ func update_forecast() -> void:
 	var strategy: Dictionary = RaceManager.get_strategy(selected_strategy)
 	var driver_rating := float(driver.get_overall_rating())
 	var strength := float(selected_car.get_total_performance_points(GameManager.team)) * 0.58 + driver_rating * 0.34 + float(selected_car.condition) * 0.08
+	strength += selected_car.get_identity_pace_bonus(race, driver.driver_id) + selected_car.get_preparation_bonus(race)
 	strength *= float(strategy.get("performance_modifier", 1.0))
 	var expected_position := clampi(9 - roundi((strength - 55.0) / 7.0), 1, 8)
 	var spread := 1 if selected_strategy == "conservative" else (3 if selected_strategy == "aggressive" else 2)
 	var best := maxi(1, expected_position - spread)
 	var worst := mini(8, expected_position + spread)
 	var base_wear := 3 + roundi(float(race.difficulty) / 25.0) + roundi(float(race.lap_count) / 100.0)
-	var wear := maxi(1, roundi(float(base_wear) * float(strategy.get("wear_modifier", 1.0))))
+	var wear := maxi(1, roundi(float(base_wear) * float(strategy.get("wear_modifier", 1.0)) * selected_car.get_wear_multiplier(race)))
 	var expected_prize := _prize_for_position(race, expected_position)
 	SponsorManager.ensure_state(GameManager.team)
 	var sponsor_income := 0
@@ -316,6 +330,8 @@ func update_forecast() -> void:
 		risks.append("limited event-specific preparation")
 	if selected_car.get_scrutineering_risk() > 0.01:
 		risks.append("%d%% scrutineering risk from rushed or patched work" % roundi(selected_car.get_scrutineering_risk() * 100.0))
+	if selected_car.get_wear_multiplier(race) > 1.05:
+		risks.append("%s increases expected component wear" % selected_car.get_chassis_trait_data().get("name", "chassis trait"))
 	if risks.is_empty():
 		risks.append("normal race variance")
 	risks_label.text = "PRIMARY RISKS  " + "  •  ".join(risks)
@@ -369,7 +385,7 @@ func _on_confirm_button_pressed() -> void:
 	var committed_bays: Array[int] = []
 	var travelling_backup_bays: Array[int] = []
 	for race_team in selected_race_teams:
-		var assigned_bay := race_team.car_bay
+		var assigned_bay := _get_planned_primary_bay(race_team)
 		var backup_bay := int(backup_bays_by_team.get(race_team.team_id, race_team.backup_car_bay))
 		var entry_bay := _get_effective_car_bay(race_team)
 		var entry_car := GameManager.team.get_car(entry_bay)

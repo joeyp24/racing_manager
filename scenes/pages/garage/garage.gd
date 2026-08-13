@@ -1,6 +1,7 @@
 extends Control
 
 @onready var workshop_button: Button = %workshop_button
+@onready var planner_button: Button = %planner_button
 @onready var dealership_button: Button = %dealership_button
 @onready var fleet_summary_label: Label = %fleet_summary_label
 @onready var owned_value: Label = %owned_value
@@ -17,6 +18,7 @@ extends Control
 
 func _ready() -> void:
 	workshop_button.pressed.connect(_open_workshop)
+	planner_button.pressed.connect(_open_planner)
 	dealership_button.pressed.connect(_open_dealership)
 	_refresh_summary()
 	_update_responsive_grid()
@@ -70,6 +72,10 @@ func _update_responsive_grid() -> void:
 
 func _open_workshop() -> void:
 	GameManager.load_page("res://scenes/pages/garage/fleet_workshop.tscn")
+
+
+func _open_planner() -> void:
+	GameManager.load_page("res://scenes/pages/garage/fleet_planner.tscn")
 
 
 func _open_dealership() -> void:
