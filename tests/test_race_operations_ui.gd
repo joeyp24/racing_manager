@@ -14,6 +14,7 @@ func _initialize() -> void:
 	var driver := team.get_active_driver()
 	assert(driver != null)
 	driver.team_name = team.team_name
+	team.get_active_race_team().car_bay = 0
 	var second_driver := Driver.new()
 	second_driver.driver_id = "operations_second_driver"
 	second_driver.driver_name = "Second Operations Driver"
@@ -37,8 +38,27 @@ func _initialize() -> void:
 	race.accident_factor = 0.0
 	race.mechanical_stress = 0.0
 	game_manager.set("selected_race", race)
+	var readiness := RaceReadiness.evaluate(team, race, car)
+	assert(RaceReadiness.get_overall_status(readiness) != RaceReadiness.BLOCKED)
+	assert(str(readiness[2].title) == "ROOKIE RACE CREW")
+	var entry_host := Control.new()
+	entry_host.size = Vector2(1152.0, 648.0)
+	get_root().add_child(entry_host)
+	var race_entry: Variant = (load("res://scenes/pages/race_entry/race_entry.tscn") as PackedScene).instantiate()
+	entry_host.add_child(race_entry)
+	await process_frame
+	await process_frame
+	assert(not race_entry.confirm_button.disabled)
+	assert("VOLUNTEER CREW" in race_entry.crew_label.text)
+	entry_host.queue_free()
+	await process_frame
+	team.complete_race_for_series(team.current_series_id, race.race_id)
+	var post_opening_readiness := RaceReadiness.evaluate(team, race, car)
+	assert(RaceReadiness.get_overall_status(post_opening_readiness) == RaceReadiness.BLOCKED)
+	assert(str(post_opening_readiness[2].title) == "RACE CREW")
 	game_manager.set("active_race_weekend", {
 		"strategy_id":"balanced", "starting_position":2, "simulation_seed":404,
+		"uses_volunteer_crew":true,
 		"forecast":{"weather":"Dry", "temperature":25.0, "rain_chance":0},
 		"entries":[
 			{"team_id":"team_one", "team_name":"Operations Team One", "driver_id":driver.driver_id, "car_bay":0},
@@ -55,6 +75,7 @@ func _initialize() -> void:
 	await process_frame
 	assert(live_race.simulation != null)
 	assert(live_race.simulation.automated_player_crew)
+	assert(live_race.simulation.crew_controller_label == "Volunteer crew")
 	assert(live_race.simulation.get_player_entries().size() == 2)
 	assert(live_race.simulation.crew_chief_calls.size() == 2)
 	assert(driver.driver_name in live_race.team_summary.text)
@@ -74,7 +95,7 @@ func _initialize() -> void:
 	assert("LIVE STANDINGS" in str((tower_card.get_node("Tower/TitleRow/Title") as Label).text))
 	live_race.simulation._trigger_caution()
 	await process_frame
-	assert("Crew chiefs" in live_race.message_label.text)
+	assert("Volunteer crew" in live_race.message_label.text)
 	for entry in live_race.simulation.get_player_entries():
 		entry.tyre_condition = 10.0
 		entry.fuel_laps = 0.5

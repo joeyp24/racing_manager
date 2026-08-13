@@ -184,10 +184,12 @@ func complete_qualifying() -> void:
 
 func show_strategy() -> void:
 	phase = 2
-	race_flow.set_stage(2, "Set the opening plan · Crew chiefs take control after the green flag")
+	var controller := "Volunteer crew" if bool(weekend_data.get("uses_volunteer_crew", false)) else "Crew chiefs"
+	var controller_action := "takes" if bool(weekend_data.get("uses_volunteer_crew", false)) else "take"
+	race_flow.set_stage(2, "Set the opening plan · %s %s control after the green flag" % [controller, controller_action])
 	phase_label.text = "PRE-RACE STRATEGY"
 	progress_label.text = "Race weekend · Grid formed · AI crew control ready"
-	briefing_label.text = "Qualified %s. Choose the opening stint philosophy; each crew chief will manage pace, fuel, cautions, traffic, and pit service during the race." % format_position(int(weekend_data["starting_position"]))
+	briefing_label.text = "Qualified %s. Choose the opening stint philosophy; the %s will manage pace, fuel, cautions, traffic, and pit service during the race." % [format_position(int(weekend_data["starting_position"])), controller.to_lower()]
 	choice_label.text = "Starting aggression"
 	set_string_items(choice_selector, ["Conservative", "Balanced", "Aggressive"])
 	choice_selector.select(1)

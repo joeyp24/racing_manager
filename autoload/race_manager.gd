@@ -350,7 +350,7 @@ func create_live_simulation(
 	simulation.configure_environment(weekend_environment)
 	var team_order := str(weekend_data.get("team_order", "Race freely"))
 	simulation.set_team_order(team_order, GameManager.team.team_name)
-	simulation.set_crew_chief_automation(true)
+	simulation.set_crew_chief_automation(true, "Volunteer crew" if bool(weekend_data.get("uses_volunteer_crew", false)) else "Crew chief")
 	return simulation
 
 
