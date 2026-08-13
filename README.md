@@ -447,6 +447,8 @@ python tools/run_godot_checks.py
 - Oval weekends are always dry and every series currently uses one standard race tyre, keeping pit decisions focused on wear, fuel and track position.
 - Live track maps show the running order, gaps, flags, pit activity and position changes; cautions pause the simulation for an explicit pit-or-stay-out decision.
 - Expanded headquarters, logistics and spare equipment, multi-car resource politics, sponsor activations, merchandise and regional fan growth, and cash-flow forecasting.
+- Persistent fleet preparation with staff-limited workshop lanes, multi-day inspections, setup work, shakedowns, servicing, component repair choices, and scheduled part installation.
+- Primary and travelling-backup race cars, automatic rotation when a primary is unavailable or fails scrutineering, event-specific preparation bonuses, and additional-car storage and transport costs.
 - Evolving venues and invitation events, historical track and series records, independent entrant changes, AI manufacturer alliances, and international racing programmes.
 - Livery and team-branding choices, guided contextual tutorials, advanced form and trend statistics, configurable notifications, interface scaling, colour modes, reduced-motion preferences, and simulation-speed controls.
 - Persistent reputation progress is visible from every main screen, with level progress, XP-to-next-level guidance and gain/level-up alerts.
@@ -481,12 +483,23 @@ python tools/run_godot_checks.py
 
 ---
 
-# Staff and Workshop
+# Staff and Fleet Workshop
 
-The Staff page allows a team to hire one crew chief and up to three engineers.
-Crew-chief rating supplies a percentage race-performance boost. Engineers can
-manufacture parts and repair worn inventory parts; their rating controls the
-quality of manufactured parts and the condition restored by each repair.
+The Staff page allows a team to hire one crew chief, up to three engineers, and
+up to three mechanics. Crew-chief rating supplies a percentage race-performance
+boost. Engineers manufacture and repair inventory parts, while each hired
+mechanic adds a parallel workshop lane and reduces job duration.
+
+Every car now keeps its own readiness, event preparation, damage, service age,
+track familiarity, and workshop calendar. Additional purchases must complete an
+inspection, baseline setup, and shakedown before racing. Services, component
+patches/rebuilds/replacements, and part installations take calendar days. A
+proper event preparation adds pace and reliability; rushed work finishes sooner
+but costs more and raises scrutineering risk. Teams can send an eligible,
+unassigned car as a travelling backup, allowing it to replace an unavailable
+primary or a car that fails inspection. Extra cars incur weekly storage and
+inspection upkeep, and travelling backups add weekend transport cost.
+
 Staff work on race-based contracts, receive payroll after every event, and can
 be renewed, negotiated with, or released for a termination fee. Specialties
 provide smaller role-specific bonuses alongside each staff member's rating.

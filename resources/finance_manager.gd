@@ -89,6 +89,7 @@ static func build_forecast(team: Team) -> Dictionary:
 	for facility_id in FACILITY_WEEKLY_UPKEEP:
 		var facility := facilities.get(facility_id, {}) as Dictionary
 		weekly_upkeep += int(FACILITY_WEEKLY_UPKEEP[facility_id]) * int(facility.get("level", 0))
+	weekly_upkeep += team.get_fleet_weekly_upkeep()
 	var weeks_remaining := maxi(0, CalendarCatalog.SEASON_END_DAY - team.current_season_day) / 7
 	var projected_income := race_income * remaining_races
 	var projected_costs := race_cost * remaining_races + weekly_upkeep * weeks_remaining

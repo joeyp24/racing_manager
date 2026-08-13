@@ -218,6 +218,7 @@ func is_first_hour_page_allowed(scene_path: String) -> bool:
 		"dealership",
 		"garage",
 		"car_inspection",
+		"fleet_workshop",
 		"sponsors",
 		"race_calendar",
 		"race_entry",

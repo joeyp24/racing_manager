@@ -52,15 +52,22 @@ func update_display() -> void:
 
 func display_car(current_car: Car) -> void:
 	car_name_label.text = current_car.name
-
+	current_car.ensure_workshop_state()
+	var availability := "AVAILABLE" if current_car.is_race_available(GameManager.team.current_season_day) else "UNAVAILABLE"
+	var job_summary := "No scheduled work"
+	if not current_car.workshop_jobs.is_empty():
+		var next_job := current_car.workshop_jobs[0]
+		job_summary = "%s until %s" % [next_job.get("label", "Workshop job"), CalendarCatalog.format_day(int(next_job.get("completion_day", GameManager.team.current_season_day)))]
 	car_details_label.text = (
-		"%d PERFORMANCE POINTS\n%d %s %s\nCondition: %d%%"
+		"%d PERFORMANCE POINTS\n%d %s %s\nCondition: %d%%  ·  %s\n%s"
 		% [
 			current_car.get_total_performance_points(GameManager.team),
 			current_car.year,
 			current_car.manufacturer,
 			current_car.model,
-			current_car.condition
+			current_car.condition,
+			availability,
+			job_summary,
 		]
 	)
 	car_details_label.add_theme_font_size_override("font_size", 18)

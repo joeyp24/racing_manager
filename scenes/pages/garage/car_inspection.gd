@@ -151,8 +151,8 @@ func preview_replacement(candidate: CarPart) -> Dictionary:
 
 
 func _on_install_part_pressed(part: CarPart) -> void:
-	if GameManager.team.install_part(GameManager.selected_car, part):
-		status_label.text = "%s installed. The previous upgraded part was returned to inventory." % part.part_name
+	if GameManager.team.queue_part_install(GameManager.selected_car, part):
+		status_label.text = "%s installation scheduled. The current part remains fitted until workshop completion." % part.part_name
 		GameManager.save_game()
 		display_car()
 
@@ -171,8 +171,7 @@ func update_repair_display(car: Car) -> void:
 		repair_button.text = "Car Fully Repaired"
 		repair_button.disabled = true
 		return
-	var repair_cost: int = calculate_repair_cost(car)
-	repair_button.text = "Workshop Restoration ($%s)" % format_number(repair_cost)
+	repair_button.text = "Plan Workshop Repairs"
 	repair_button.disabled = false
 
 
@@ -191,17 +190,7 @@ func _on_repair_button_pressed() -> void:
 	var car: Car = GameManager.selected_car
 	if car == null or (car.condition >= MAX_CAR_CONDITION and car.get_damage_points() <= 0.5):
 		return
-	var repair_cost: int = calculate_repair_cost(car)
-	if not GameManager.remove_team_money(repair_cost):
-		status_label.text = "Your team cannot afford these repairs."
-		return
-	car.condition = MAX_CAR_CONDITION
-	car.restore_all_damage()
-	GameManager.team.record_finance("Repairs", -repair_cost, "Repaired %s" % car.name)
-	car.emit_changed()
-	status_label.text = "%s received full workshop restoration, including all five damage systems." % car.name
-	GameManager.save_game()
-	display_car()
+	GameManager.load_page("res://scenes/pages/garage/fleet_workshop.tscn")
 
 
 func _on_rename_button_pressed() -> void:
@@ -220,6 +209,9 @@ func _on_rename_button_pressed() -> void:
 func _on_sell_button_pressed() -> void:
 	var car: Car = GameManager.selected_car
 	if car != null:
+		if not car.workshop_jobs.is_empty():
+			status_label.text = "Complete the scheduled workshop work before selling this car."
+			return
 		sell_confirmation_dialog.dialog_text = "Sell %s for $%s? Installed upgrades are included." % [car.name, format_number(car.value)]
 		sell_confirmation_dialog.popup_centered()
 

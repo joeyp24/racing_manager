@@ -24,9 +24,15 @@ func _test_player_progression_survives_load_and_reaches_third_race() -> void:
 	team.current_season_day = calendar[1].schedule_day
 	team.week_advance_required = true
 	team.save_format_version = 13
+	var legacy_car := SeriesCatalog.create_car_templates(team.current_series_id)[0] as Car
+	legacy_car.ensure_standard_parts()
+	legacy_car.workshop_state = {}
+	team.cars[0] = legacy_car
 	var progress := team.series_progress[team.current_series_id] as Dictionary
 	progress["unlocked_races"] = [calendar[0].race_id, calendar[1].race_id]
 	save_manager.call("_repair_and_migrate", team)
+	assert(legacy_car.is_initial_preparation_complete())
+	assert(team.save_format_version == Team.CURRENT_SAVE_FORMAT_VERSION)
 	game_manager.set("team", team)
 	var next_race := race_manager.call("get_next_race", team) as Race
 	assert(next_race != null)

@@ -24,6 +24,8 @@ const READINESS_ROW_SCENE: PackedScene = preload("res://ui/components/readiness_
 var selected_car: Car = null
 var selected_strategy: String = RaceManager.DEFAULT_STRATEGY
 var selected_race_teams: Array[RaceTeam] = []
+var backup_bays_by_team: Dictionary = {}
+var entry_options_by_team: Dictionary = {}
 
 
 func _ready() -> void:
@@ -66,6 +68,8 @@ func create_car_options() -> void:
 	for child in cars_container.get_children():
 		child.queue_free()
 	selected_race_teams.clear()
+	backup_bays_by_team.clear()
+	entry_options_by_team.clear()
 	if GameManager.team == null:
 		return
 	GameManager.team.ensure_race_teams()
@@ -74,15 +78,29 @@ func create_car_options() -> void:
 			continue
 		var driver: Driver = GameManager.team.get_driver_by_id(race_team.driver_id)
 		var car: Car = GameManager.team.get_car(race_team.car_bay)
+		var entry_stack := VBoxContainer.new()
 		var option: CheckBox = CheckBox.new()
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		option.clip_text = true
-		option.disabled = not race_team.is_ready(GameManager.team) or not RaceReadiness.is_car_eligible(car, GameManager.selected_race.series_id)
-		option.text = "%s  •  %s  •  %s" % [race_team.team_name, driver.driver_name if driver != null else "No driver", car.name if car != null else "No car"]
-		option.tooltip_text = "Assign a contracted driver and eligible car on the Race Teams page." if option.disabled else "Include this team in the race entry."
+		var backup_selector := _create_backup_selector(race_team)
+		var primary_ready := _is_car_ready_for_entry(car)
+		var backup_bay := int(backup_bays_by_team.get(race_team.team_id, -1))
+		option.disabled = not race_team.active or driver == null or (not primary_ready and backup_bay < 0)
+		var car_status := "ready" if primary_ready else "unavailable — backup required"
+		option.text = "%s  •  %s  •  %s (%s)" % [race_team.team_name, driver.driver_name if driver != null else "No driver", car.name if car != null else "No car", car_status]
+		option.tooltip_text = "Assign a driver and prepare either the primary or a backup car." if option.disabled else "Include this team in the race entry."
 		option.button_pressed = not option.disabled
 		option.toggled.connect(_on_race_team_toggled.bind(race_team))
-		cars_container.add_child(option)
+		entry_options_by_team[race_team.team_id] = option
+		entry_stack.add_child(option)
+		var backup_row := HBoxContainer.new()
+		var backup_label := Label.new()
+		backup_label.text = "Travelling backup"
+		backup_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		backup_row.add_child(backup_label)
+		backup_row.add_child(backup_selector)
+		entry_stack.add_child(backup_row)
+		cars_container.add_child(entry_stack)
 		if option.button_pressed:
 			selected_race_teams.append(race_team)
 	_sync_primary_entry()
@@ -97,9 +115,73 @@ func _on_race_team_toggled(enabled: bool, race_team: RaceTeam) -> void:
 
 
 func _sync_primary_entry() -> void:
-	selected_car = GameManager.team.get_car(selected_race_teams[0].car_bay) if not selected_race_teams.is_empty() else null
+	selected_car = GameManager.team.get_car(_get_effective_car_bay(selected_race_teams[0])) if not selected_race_teams.is_empty() else null
 	GameManager.selected_car = selected_car
 	refresh_operations_center()
+
+
+func _create_backup_selector(race_team: RaceTeam) -> OptionButton:
+	var selector := OptionButton.new()
+	selector.custom_minimum_size.x = 240.0
+	selector.add_item("No travelling backup")
+	selector.set_item_metadata(0, -1)
+	var selected_index := 0
+	var primary_bays: Array[int] = []
+	for other in GameManager.team.race_teams:
+		if other != null and other.car_bay >= 0:
+			primary_bays.append(other.car_bay)
+	for bay in GameManager.team.cars.size():
+		if primary_bays.has(bay):
+			continue
+		var candidate := GameManager.team.get_car(bay)
+		if not _is_car_ready_for_entry(candidate):
+			continue
+		selector.add_item("Bay %d  ·  %s  ·  Prep %d/100" % [bay + 1, candidate.name, candidate.get_preparation_score(GameManager.selected_race)])
+		selector.set_item_metadata(selector.item_count - 1, bay)
+		if bay == race_team.backup_car_bay:
+			selected_index = selector.item_count - 1
+	selector.select(selected_index)
+	backup_bays_by_team[race_team.team_id] = int(selector.get_item_metadata(selected_index))
+	selector.item_selected.connect(_on_backup_selected.bind(race_team, selector))
+	selector.tooltip_text = "A prepared, unassigned car can substitute for failed inspection or an unavailable primary. Transport adds 22% of one entry's weekend cost."
+	return selector
+
+
+func _on_backup_selected(index: int, race_team: RaceTeam, selector: OptionButton) -> void:
+	var bay := int(selector.get_item_metadata(index))
+	race_team.backup_car_bay = bay
+	backup_bays_by_team[race_team.team_id] = bay
+	var option := entry_options_by_team.get(race_team.team_id) as CheckBox
+	var driver := GameManager.team.get_driver_by_id(race_team.driver_id)
+	var primary := GameManager.team.get_car(race_team.car_bay)
+	var primary_ready := _is_car_ready_for_entry(primary)
+	if option != null:
+		var was_disabled := option.disabled
+		option.disabled = not race_team.active or driver == null or (not primary_ready and bay < 0)
+		var car_status := "ready" if primary_ready else ("backup selected" if bay >= 0 else "unavailable - backup required")
+		option.text = "%s  -  %s  -  %s (%s)" % [race_team.team_name, driver.driver_name if driver != null else "No driver", primary.name if primary != null else "No car", car_status]
+		if option.disabled:
+			option.button_pressed = false
+			selected_race_teams.erase(race_team)
+		elif was_disabled and not selected_race_teams.has(race_team):
+			option.button_pressed = true
+			selected_race_teams.append(race_team)
+	_sync_primary_entry()
+
+
+func _is_car_ready_for_entry(car: Car) -> bool:
+	return (
+		RaceReadiness.is_car_eligible(car, GameManager.selected_race.series_id if GameManager.selected_race != null else "")
+		and car.is_race_available(GameManager.team.current_season_day)
+	)
+
+
+func _get_effective_car_bay(race_team: RaceTeam) -> int:
+	var primary := GameManager.team.get_car(race_team.car_bay)
+	if _is_car_ready_for_entry(primary):
+		return race_team.car_bay
+	var backup_bay := int(backup_bays_by_team.get(race_team.team_id, race_team.backup_car_bay))
+	return backup_bay if _is_car_ready_for_entry(GameManager.team.get_car(backup_bay)) else -1
 
 
 func _on_strategy_selected(index: int) -> void:
@@ -126,6 +208,10 @@ func update_entry_information() -> void:
 		parts_label.text = "Assign a contracted driver before reviewing the entry package."
 		return
 	selected_car_label.text = "%d team%s entered  •  Primary: %s / %s" % [selected_race_teams.size(), "s" if selected_race_teams.size() != 1 else "", driver.driver_name, selected_car.name]
+	var backup_bay := int(backup_bays_by_team.get(primary_team.team_id, -1))
+	if backup_bay >= 0:
+		var backup := GameManager.team.get_car(backup_bay)
+		selected_car_label.text += "  ·  Backup: %s" % (backup.name if backup != null else "Unavailable")
 	var part_lines: Array[String] = []
 	for part_type in CarPart.PART_TYPES:
 		var part := selected_car.get_part(part_type)
@@ -207,7 +293,7 @@ func update_forecast() -> void:
 			driver_payroll += GameManager.team.get_effective_salary(entry_driver.salary)
 	var staff_payroll: int = GameManager.team.get_staff_payroll()
 	var objective_chance := clampi(roundi(72.0 + (strength - 60.0) - float(race.difficulty) * 0.25), 10, 95)
-	var total_fee: int = GameManager.team.get_effective_weekend_cost(race, selected_race_teams.size())
+	var total_fee: int = _get_total_entry_cost()
 	var repair_per_point := maxi(50, roundi(float(selected_car.value) * 0.006))
 	var expected_wear_cost := wear * repair_per_point
 	var fixed_costs := total_fee + driver_payroll + staff_payroll + expected_wear_cost
@@ -226,6 +312,10 @@ func update_forecast() -> void:
 		risks.append("elevated incident and wear exposure")
 	if GameManager.team.get_staff_by_role("Spotter").is_empty():
 		risks.append("no spotter risk reduction")
+	if selected_car.get_preparation_score(race) < 78:
+		risks.append("limited event-specific preparation")
+	if selected_car.get_scrutineering_risk() > 0.01:
+		risks.append("%d%% scrutineering risk from rushed or patched work" % roundi(selected_car.get_scrutineering_risk() * 100.0))
 	if risks.is_empty():
 		risks.append("normal race variance")
 	risks_label.text = "PRIMARY RISKS  " + "  •  ".join(risks)
@@ -239,7 +329,7 @@ func update_readiness() -> void:
 		return
 	var checks := RaceReadiness.evaluate(GameManager.team, GameManager.selected_race, selected_car)
 	var overall := RaceReadiness.get_overall_status(checks)
-	var total_fee: int = GameManager.team.get_effective_weekend_cost(GameManager.selected_race, selected_race_teams.size())
+	var total_fee: int = _get_total_entry_cost()
 	if selected_race_teams.is_empty() or GameManager.team.money < total_fee:
 		overall = RaceReadiness.BLOCKED
 	readiness_summary_label.text = {RaceReadiness.READY: "READY TO ENTER", RaceReadiness.SUBOPTIMAL: "ENTRY AVAILABLE WITH WARNINGS", RaceReadiness.BLOCKED: "ENTRY BLOCKED"}.get(overall, "REVIEW")
@@ -266,7 +356,7 @@ func _get_commit_block_reason(total_fee: int) -> String:
 
 
 func _on_readiness_action_requested(action: String) -> void:
-	var pages := {"drivers": "res://scenes/pages/driver_market/driver_market.tscn", "garage": "res://scenes/pages/garage/garage.tscn", "staff": "res://scenes/pages/staff/staff.tscn", "finances": "res://scenes/pages/finances/finances.tscn", "sponsors": "res://scenes/pages/sponsors/sponsors.tscn"}
+	var pages := {"drivers": "res://scenes/pages/driver_market/driver_market.tscn", "garage": "res://scenes/pages/garage/garage.tscn", "workshop": "res://scenes/pages/garage/fleet_workshop.tscn", "staff": "res://scenes/pages/staff/staff.tscn", "finances": "res://scenes/pages/finances/finances.tscn", "sponsors": "res://scenes/pages/sponsors/sponsors.tscn"}
 	var path := str(pages.get(action, ""))
 	if not path.is_empty():
 		GameManager.load_page(path)
@@ -275,9 +365,32 @@ func _on_readiness_action_requested(action: String) -> void:
 func _on_confirm_button_pressed() -> void:
 	if confirm_button.disabled or selected_car == null or GameManager.selected_race == null or selected_race_teams.is_empty():
 		return
+	var entries: Array[Dictionary] = []
+	var committed_bays: Array[int] = []
+	var travelling_backup_bays: Array[int] = []
 	for race_team in selected_race_teams:
-		var entry_car := GameManager.team.cars[race_team.car_bay] as Car if race_team.car_bay >= 0 and race_team.car_bay < GameManager.team.cars.size() else null
-		if not RaceReadiness.is_car_eligible(entry_car, GameManager.selected_race.series_id):
+		var assigned_bay := race_team.car_bay
+		var backup_bay := int(backup_bays_by_team.get(race_team.team_id, race_team.backup_car_bay))
+		var entry_bay := _get_effective_car_bay(race_team)
+		var entry_car := GameManager.team.get_car(entry_bay)
+		var substitution_reason := "Workshop rotation" if entry_bay != assigned_bay else ""
+		if backup_bay >= 0:
+			if travelling_backup_bays.has(backup_bay):
+				status_label.text = "Entry blocked: one travelling backup cannot support two race teams."
+				refresh_operations_center()
+				return
+			travelling_backup_bays.append(backup_bay)
+		if entry_bay == assigned_bay and entry_car != null and RaceManager.random_number_generator.randf() < entry_car.get_scrutineering_risk():
+			var backup := GameManager.team.get_car(backup_bay)
+			if _is_car_ready_for_entry(backup):
+				entry_bay = backup_bay
+				entry_car = backup
+				substitution_reason = "Primary car failed scrutineering after rushed or patched work"
+			else:
+				status_label.text = "Entry blocked: %s failed scrutineering and no prepared backup travelled." % entry_car.name
+				refresh_operations_center()
+				return
+		if not _is_car_ready_for_entry(entry_car):
 			status_label.text = "Entry blocked: every car must be homologated for %s." % SeriesCatalog.get_series(GameManager.selected_race.series_id).get("name", GameManager.selected_race.series_id)
 			GameManager.report_decision_outcome({
 				"status": "error",
@@ -289,10 +402,25 @@ func _on_confirm_button_pressed() -> void:
 			back_button.disabled = false
 			refresh_operations_center()
 			return
+		if committed_bays.has(entry_bay):
+			status_label.text = "Entry blocked: the same prepared car cannot support two race entries."
+			refresh_operations_center()
+			return
+		committed_bays.append(entry_bay)
+		entries.append({
+			"team_id": race_team.team_id, "team_name": race_team.team_name,
+			"driver_id": race_team.driver_id, "car_bay": entry_bay,
+			"assigned_car_bay": assigned_bay, "backup_car_bay": backup_bay,
+			"substitution_reason": substitution_reason,
+		})
+	if entries.is_empty():
+		return
+	GameManager.selected_car = GameManager.team.get_car(int(entries[0].car_bay))
+	selected_car = GameManager.selected_car
 	confirm_button.disabled = true
 	back_button.disabled = true
 	status_label.text = "Committing entry fee and opening race weekend..."
-	var total_fee: int = GameManager.team.get_effective_weekend_cost(GameManager.selected_race, selected_race_teams.size())
+	var total_fee: int = _get_total_entry_cost()
 	var cash_before := GameManager.team.money
 	if not GameManager.remove_team_money(total_fee):
 		status_label.text = "The entry fee could not be paid."
@@ -307,16 +435,13 @@ func _on_confirm_button_pressed() -> void:
 		refresh_operations_center()
 		return
 	GameManager.team.record_finance("Race Operations", -total_fee, "%s track, travel, preparation, insurance, and facility costs (%d teams)" % [GameManager.selected_race.race_name, selected_race_teams.size()])
-	var entries: Array[Dictionary] = []
-	for race_team in selected_race_teams:
-		entries.append({"team_id": race_team.team_id, "team_name": race_team.team_name, "driver_id": race_team.driver_id, "car_bay": race_team.car_bay})
 	var uses_volunteer_crew := GameManager.team.get_crew_chief() == null and RaceReadiness.can_use_volunteer_crew(GameManager.team)
 	GameManager.begin_race_weekend({"strategy_id": selected_strategy, "entry_fee_total": total_fee, "entries": entries, "uses_volunteer_crew": uses_volunteer_crew})
 	GameManager.save_game()
 	GameManager.report_decision_outcome({
 		"title": "%d race entr%s committed" % [selected_race_teams.size(), "y" if selected_race_teams.size() == 1 else "ies"],
 		"message": "%s is ready for practice and qualifying." % GameManager.selected_race.race_name,
-		"detail": "The volunteer crew will manage each car after the green flag." if uses_volunteer_crew else "AI crew chiefs will manage each car after the green flag.",
+		"detail": _entry_commit_detail(entries, uses_volunteer_crew),
 		"cash_delta": GameManager.team.money - cash_before,
 		"action_label": "Continue weekend",
 		"action_path": "res://scenes/pages/race_weekend/race_weekend.tscn",
@@ -331,6 +456,30 @@ func _on_back_button_pressed() -> void:
 
 func _prize_for_position(race: Race, position: int) -> int:
 	return RaceManager.calculate_prize_money(race, position)
+
+
+func _get_total_entry_cost() -> int:
+	if GameManager.team == null or GameManager.selected_race == null:
+		return 0
+	var backup_count := 0
+	for race_team in selected_race_teams:
+		if int(backup_bays_by_team.get(race_team.team_id, -1)) >= 0:
+			backup_count += 1
+	return (
+		GameManager.team.get_effective_weekend_cost(GameManager.selected_race, selected_race_teams.size())
+		+ GameManager.team.get_backup_transport_cost(GameManager.selected_race, backup_count)
+	)
+
+
+func _entry_commit_detail(entries: Array[Dictionary], uses_volunteer_crew: bool) -> String:
+	var substitutions: Array[String] = []
+	for entry in entries:
+		if not str(entry.get("substitution_reason", "")).is_empty():
+			var car := GameManager.team.get_car(int(entry.get("car_bay", -1)))
+			substitutions.append("%s uses %s: %s." % [entry.get("team_name", "Team"), car.name if car != null else "the backup", entry.substitution_reason])
+	if not substitutions.is_empty():
+		return " ".join(substitutions)
+	return "The volunteer crew will manage each car after the green flag." if uses_volunteer_crew else "AI crew chiefs will manage each car after the green flag."
 
 
 func format_number(number: int) -> String:
