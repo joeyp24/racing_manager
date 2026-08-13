@@ -72,7 +72,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 26)
 layout_mode = 2
 theme_type_variation = &"BodyStrong"
-text = "Broadcast paused · Crew chiefs are preparing every team entry"
+text = "Race starting · Crew chiefs are preparing every team entry"
 vertical_alignment = 1
 text_overrun_behavior = 3
 
@@ -232,7 +232,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(116, 32)
 layout_mode = 2
 theme_type_variation = &"PrimaryButton"
-text = "Resume race"
+text = "Pause race"
 
 [node name="speed_selector" type="OptionButton" parent="Margin/Root/Playback/PlaybackRow"]
 unique_name_in_owner = true
@@ -243,4 +243,5 @@ layout_mode = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(112, 32)
 layout_mode = 2
+disabled = true
 text = "Advance lap"
