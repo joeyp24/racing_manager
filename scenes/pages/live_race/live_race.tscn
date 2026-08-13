@@ -67,6 +67,56 @@ unique_name_in_owner = true
 layout_mode = 2
 current_stage = 3
 
+[node name="Playback" type="PanelContainer" parent="Margin/Root"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"CardPanel"
+
+[node name="PlaybackRow" type="HBoxContainer" parent="Margin/Root/Playback"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PlaybackTitle" type="Label" parent="Margin/Root/Playback/PlaybackRow"]
+layout_mode = 2
+theme_type_variation = &"EyebrowLabel"
+text = "RACE PLAYBACK"
+vertical_alignment = 1
+
+[node name="playback_status_label" type="Label" parent="Margin/Root/Playback/PlaybackRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SuccessLabel"
+text = "Running automatically"
+vertical_alignment = 1
+
+[node name="pause_button" type="Button" parent="Margin/Root/Playback/PlaybackRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 32)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "PAUSE"
+tooltip_text = "Pause or resume the live race (Space)"
+
+[node name="SpeedLabel" type="Label" parent="Margin/Root/Playback/PlaybackRow"]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "SPEED"
+vertical_alignment = 1
+
+[node name="speed_selector" type="OptionButton" parent="Margin/Root/Playback/PlaybackRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 32)
+layout_mode = 2
+
+[node name="next_lap_button" type="Button" parent="Margin/Root/Playback/PlaybackRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(112, 32)
+layout_mode = 2
+disabled = true
+text = "ADVANCE LAP"
+tooltip_text = "Available while paused"
+
 [node name="message_label" type="Label" parent="Margin/Root"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 26)
@@ -210,38 +260,3 @@ layout_mode = 2
 bbcode_enabled = true
 fit_content = false
 scroll_active = true
-
-[node name="Playback" type="PanelContainer" parent="Margin/Root"]
-custom_minimum_size = Vector2(0, 42)
-layout_mode = 2
-theme_type_variation = &"CardPanel"
-
-[node name="PlaybackRow" type="HBoxContainer" parent="Margin/Root/Playback"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Label" type="Label" parent="Margin/Root/Playback/PlaybackRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"MutedLabel"
-text = "WATCH CONTROLS · Strategy and pit calls are delegated to each crew chief"
-vertical_alignment = 1
-
-[node name="pause_button" type="Button" parent="Margin/Root/Playback/PlaybackRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(116, 32)
-layout_mode = 2
-theme_type_variation = &"PrimaryButton"
-text = "Pause race"
-
-[node name="speed_selector" type="OptionButton" parent="Margin/Root/Playback/PlaybackRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(88, 32)
-layout_mode = 2
-
-[node name="next_lap_button" type="Button" parent="Margin/Root/Playback/PlaybackRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(112, 32)
-layout_mode = 2
-disabled = true
-text = "Advance lap"

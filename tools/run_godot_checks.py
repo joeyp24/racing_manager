@@ -99,6 +99,10 @@ CHECKS = (
         ("--headless", "--path", ".", "--script", "tests/test_car_inspection.gd"),
     ),
     (
+        "garage overview interaction and layout tests",
+        ("--headless", "--path", ".", "--script", "tests/test_garage_ui.gd"),
+    ),
+    (
         "UI scene smoke tests",
         ("--headless", "--path", ".", "--script", "tests/test_ui_scenes.gd"),
     ),
