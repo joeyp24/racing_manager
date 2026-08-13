@@ -52,11 +52,8 @@ func _initialize() -> void:
 	assert("VOLUNTEER CREW" in race_entry.crew_label.text)
 	entry_host.queue_free()
 	await process_frame
-	team.complete_race_for_series(team.current_series_id, race.race_id)
-	var post_opening_readiness := RaceReadiness.evaluate(team, race, car)
-	assert(RaceReadiness.get_overall_status(post_opening_readiness) == RaceReadiness.BLOCKED)
-	assert(str(post_opening_readiness[2].title) == "RACE CREW")
 	game_manager.set("active_race_weekend", {
+		"entry_fee_paid":true, "flow_stage":"live_race",
 		"strategy_id":"balanced", "starting_position":2, "simulation_seed":404,
 		"uses_volunteer_crew":true,
 		"forecast":{"weather":"Dry", "temperature":25.0, "rain_chance":0},
@@ -65,14 +62,16 @@ func _initialize() -> void:
 			{"team_id":"team_two", "team_name":"Operations Team Two", "driver_id":second_driver.driver_id, "car_bay":1},
 		]
 	})
-	var packed := load("res://scenes/pages/live_race/live_race.tscn") as PackedScene
-	var live_race: Variant = packed.instantiate()
-	var viewport_host := Control.new()
-	viewport_host.size = Vector2(1152.0, 648.0)
-	get_root().add_child(viewport_host)
-	viewport_host.add_child(live_race)
+	assert(team.get_completed_races().is_empty())
+	var shell := (load("res://scenes/home/home.tscn") as PackedScene).instantiate() as Control
+	get_root().add_child(shell)
 	await process_frame
 	await process_frame
+	game_manager.load_page("res://scenes/pages/live_race/live_race.tscn")
+	await process_frame
+	await process_frame
+	var page_container := shell.get_node("%page_container") as Control
+	var live_race: Variant = page_container.get_child(0)
 	assert(live_race.simulation != null)
 	assert(live_race.simulation.automated_player_crew)
 	assert(live_race.simulation.crew_controller_label == "Volunteer crew")
@@ -87,11 +86,18 @@ func _initialize() -> void:
 	assert(live_race.track_map.profile.get("venue_id", "") == "pine_ridge")
 	var tower_card := live_race.get_node("Margin/Root/Main/TimingColumn/TowerCard") as Control
 	var broadcast_scroll := live_race.get_node("Margin/Root/Main/BroadcastScroll") as Control
-	if tower_card.size.y < 250.0 or tower_card.global_position.y + tower_card.size.y > 648.0 or broadcast_scroll.global_position.y + broadcast_scroll.size.y > 648.0:
-		push_error("Live broadcast does not fit the 1152x648 viewport: tower pos %s size %s, broadcast pos %s size %s" % [tower_card.global_position, tower_card.size, broadcast_scroll.global_position, broadcast_scroll.size])
+	var playback := live_race.get_node("Margin/Root/Playback") as Control
+	var page_bottom := page_container.global_position.y + page_container.size.y
+	if tower_card.global_position.y + tower_card.size.y > page_bottom or broadcast_scroll.global_position.y + broadcast_scroll.size.y > page_bottom or playback.global_position.y + playback.size.y > page_bottom:
+		push_error("Live broadcast does not fit the management shell: page bottom %.1f, tower pos %s size %s, broadcast pos %s size %s, playback pos %s size %s" % [page_bottom, tower_card.global_position, tower_card.size, broadcast_scroll.global_position, broadcast_scroll.size, playback.global_position, playback.size])
 		quit(1)
 		return
-	assert(live_race.timing_tower.size.y >= 240.0)
+	assert(live_race.pause_button.is_visible_in_tree())
+	assert(not live_race.is_paused)
+	assert(not live_race.lap_timer.is_stopped())
+	live_race.pause_button.pressed.emit()
+	assert(live_race.is_paused)
+	assert(live_race.lap_timer.is_stopped())
 	assert("LIVE STANDINGS" in str((tower_card.get_node("Tower/TitleRow/Title") as Label).text))
 	live_race.simulation._trigger_caution()
 	await process_frame
@@ -102,8 +108,12 @@ func _initialize() -> void:
 	live_race._advance_one_lap()
 	for entry in live_race.simulation.get_player_entries():
 		assert(entry.pit_stops == 1)
-	viewport_host.queue_free()
+	shell.queue_free()
 	await process_frame
+	team.complete_race_for_series(team.current_series_id, race.race_id)
+	var post_opening_readiness := RaceReadiness.evaluate(team, race, car)
+	assert(RaceReadiness.get_overall_status(post_opening_readiness) == RaceReadiness.BLOCKED)
+	assert(str(post_opening_readiness[2].title) == "RACE CREW")
 
 	var result_scene: Variant = (load("res://scenes/pages/race_results/race_results.tscn") as PackedScene).instantiate()
 	var sample_result := RaceResult.new()

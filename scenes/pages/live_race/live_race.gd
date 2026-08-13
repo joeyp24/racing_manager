@@ -50,6 +50,7 @@ func _ready() -> void:
 	race_flow.set_stage(3, "%d team entr%s · %s controls race strategy" % [simulation.get_player_entries().size(), "y" if simulation.get_player_entries().size() == 1 else "ies", simulation.crew_controller_label])
 	_apply_race_identity()
 	_refresh_display()
+	_set_paused(false)
 	pause_button.call_deferred("grab_focus")
 
 
@@ -65,7 +66,11 @@ func _on_lap_timer_timeout() -> void:
 func _toggle_pause() -> void:
 	if simulation == null or simulation.is_complete:
 		return
-	is_paused = not is_paused
+	_set_paused(not is_paused)
+
+
+func _set_paused(paused: bool) -> void:
+	is_paused = paused
 	pause_button.text = "Resume race" if is_paused else "Pause race"
 	next_lap_button.disabled = not is_paused
 	message_label.text = (
